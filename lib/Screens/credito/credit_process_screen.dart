@@ -201,7 +201,12 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
                 child: BotonTransacciones(
                   imagePath: 'assets/AddTr.png',
                     onItemSelected: onItemSelected, 
-                    zona: facturaC.cierre!.idzona! )
+                    zona: facturaC.cierre!.idzona!,
+                    showPrintIcon: true, // <- habilita el icono
+                      onPrintTap: (p) {
+                        // acción de imprimir / detalle para el producto p
+                      },
+                     )
                 ),
              
           _showLoader ? const LoaderComponent(loadingText: 'Creando...') : Container(),
@@ -221,8 +226,9 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
       key: _formKey,
       child: Column(
         children: [
+            showPlaca(),
          showkms(),         
-         showPlaca(), 
+        
          showObser(), 
         ],
       ),

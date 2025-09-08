@@ -1,42 +1,47 @@
+// ==============================================
+// lib/Components/boton_transacciones.dart
+// ==============================================
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
+import 'package:tester/Components/card_tr.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/product.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
-import 'package:tester/helpers/varios_helpers.dart';
 import 'package:tester/sizeconfig.dart';
 
-import '../../../Models/response.dart';
-
 class BotonTransacciones extends StatefulWidget {
-  
   final String imagePath;
-   final Function(Product) onItemSelected;
-    final int zona;
+  final Function(Product) onItemSelected;
+  final int zona;
+
+  /// Control global para mostrar u ocultar el icono de imprimir en cada card.
+  final bool showPrintIcon;
+
+  /// Callback opcional si se pulsa el icono de imprimir/detalle en una card.
+  final void Function(Product)? onPrintTap;
+
   const BotonTransacciones({
-    super.key,  
-    required this.imagePath,  
+    super.key,
+    required this.imagePath,
     required this.onItemSelected,
     required this.zona,
-    });
+    this.showPrintIcon = false,
+    this.onPrintTap,
+  });
 
   @override
   State<BotonTransacciones> createState() => _BotonTransaccionesState();
 }
 
-
-
 class _BotonTransaccionesState extends State<BotonTransacciones> {
- 
   List<Product> transacciones = [];
   bool showLoader = false;
 
   @override
   void initState() {
-  
     super.initState();
     _updateTransactions();
   }
@@ -46,250 +51,239 @@ class _BotonTransaccionesState extends State<BotonTransacciones> {
     return SizedBox(
       height: 56,
       width: 56,
-      child: GestureDetector(
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        clipBehavior: Clip.antiAlias,
+        child: Ink.image(
+          image: AssetImage(widget.imagePath),
+          fit: BoxFit.cover,
+          child: InkWell(
             onTap: () => _showModal(context),
-            child: ClipRRect(
-      borderRadius: BorderRadius.circular(5), // Borde semicurvo para la imagen
-      child: Image.asset(
-        widget.imagePath,
-        fit: BoxFit.cover, // Ajusta la imagen para que llene el contenedor
-      ),
-            ),
+            splashColor: Colors.white.withOpacity(0.12),
+            highlightColor: Colors.white.withOpacity(0.05),
+          ),
+        ),
       ),
     );
-}
-
-  void _showModal(BuildContext context) async {
-   await _updateTransactions();
-     if (!mounted) return; 
-    showModalBottomSheet(      
-      context: context,
-      builder: (BuildContext context) {       
-            return transacciones.isNotEmpty ?  Container(
-              color: kColorFondoOscuro,
-              child: Padding(
-               padding: const EdgeInsets.only(left: 10, right: 10, top: 20),
-               child: RefreshIndicator(
-                 onRefresh: () async {
-                   _updateTransactions();
-                 },
-                 child: GridView.builder(
-                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                     crossAxisCount: 2, // Número de columnas
-                     crossAxisSpacing: 10, // Espaciado horizontal entre los elementos
-                     mainAxisSpacing: 10, // Espaciado vertical entre los elementos
-                   ),
-                   itemCount: transacciones.length,
-                   itemBuilder: (context, indice) {
-                     return buildCard(product: transacciones[indice]);
-                   },
-                 ),
-               ),
-              ),
-            ) : _noTr();
-          },
-        );      
   }
 
-  Widget _noTr(){
-  return Container(
-      color: kColorFondoOscuro,
-    child: Stack(
-      children: [
-        Column(
+  Future<void> _showModal(BuildContext context) async {
+    await _updateTransactions();
+    if (!mounted) return;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      // showDragHandle: true, // si tu versión de Flutter lo soporta
+      builder: (ctx) {
+        final height = MediaQuery.of(ctx).size.height * 0.85;
+        final bottomPad = 16.0 + MediaQuery.of(ctx).padding.bottom;
+
+        final Widget content = transacciones.isEmpty
+            ? _noTr()
+            : Padding(
+                padding: EdgeInsets.fromLTRB(12, 8, 12, bottomPad),
+                child: RefreshIndicator(
+                  onRefresh: _updateTransactions,
+                  child: GridView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 260,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 0.92,
+                    ),
+                    itemCount: transacciones.length,
+                    itemBuilder: (context, i) {
+                      final p = transacciones[i];
+                      return CardTr(
+                        product: p,
+                        lista: 'zona-${widget.zona}',
+                        onItemSelected: (prod) {
+                          widget.onItemSelected(prod);
+                          Navigator.of(context).pop();
+                        },
+                        showPrintIcon: widget.showPrintIcon,
+                        onPrint: widget.onPrintTap == null
+                            ? null
+                            : () => widget.onPrintTap!(p),
+                      );
+                    },
+                  ),
+                ),
+              );
+
+        return AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          child: Container(
+            height: height,
+            decoration: BoxDecoration(
+              color: kColorFondoOscuro,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.4),
+                  blurRadius: 16,
+                  offset: const Offset(0, -4),
+                ),
+              ],
+            ),
+            child: Stack(
+              children: [
+                // Cabecera
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    child: Row(
+                      children: [
+                        Text(
+                          'Transacciones (${transacciones.length})',
+                          style: TextStyle(
+                            color: kContrateFondoOscuro,
+                            fontWeight: FontWeight.bold,
+                            fontSize: getProportionateScreenWidth(18),
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          tooltip: 'Actualizar',
+                          icon: const Icon(Icons.refresh, color: Colors.white70),
+                          onPressed: _updateTransactions,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Contenido
+                Padding(
+                  padding: const EdgeInsets.only(top: 52),
+                  child: content,
+                ),
+
+                // Loader overlay
+                if (showLoader)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Container(
+                        color: Colors.black.withOpacity(0.15),
+                        alignment: Alignment.center,
+                        child: const CircularProgressIndicator(),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _noTr() {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(getProportionateScreenWidth(16)),
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            
-            Center(
-              child: Container(
-                padding: EdgeInsets.all(getProportionateScreenWidth(10)),
-                height: 100,
-                width: 100,
-                color: kColorFondoOscuro,
-                child: AspectRatio(
-                    aspectRatio: 1,
-                    child: InkWell(
-                      onTap: () => _updateTransactions(),
-                      child: Container(
-                          padding: EdgeInsets.all(getProportionateScreenWidth(10)),
-                          decoration: BoxDecoration(
-                          color: kSecondaryColor.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(15),
-                          ),
-                          child:  const Image(
-                                image: AssetImage('assets/NoTr.png'),
-                                fit: BoxFit.cover,
-                                height: 70,
-                                width: 70,
-                              ),                         
-                      ),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: _updateTransactions,
+                child: Ink(
+                  height: 110,
+                  width: 110,
+                  decoration: BoxDecoration(
+                    color: kSecondaryColor.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.all(getProportionateScreenWidth(12)),
+                    child: const Image(
+                      image: AssetImage('assets/NoTr.png'),
+                      fit: BoxFit.contain,
                     ),
                   ),
-                          
-                  
+                ),
               ),
             ),
-            Center(
-              child: Text(
-                'No Hay Transacciones',
-                style: TextStyle(
-                  fontSize: getProportionateScreenWidth(18),
-                  fontWeight: FontWeight.bold,
-                  color: kContrateFondoOscuro,
-                ),
-              ),),
-             
-             
-          ],
-        
-        ),
-           showLoader ? const CircularProgressIndicator() : Container(),
-      ],
-    ),
-  );
- }
-
-  Widget buildCard({
-  required Product product
-  }) => Stack(
-    children: [
-      Container(
-        padding: EdgeInsets.all(getProportionateScreenWidth(10)),
-        decoration: BoxDecoration(
-          color: VariosHelpers.getShadedColor(product.cantidad.toString(),  Colors.black),
-          borderRadius: BorderRadius.circular(15),
-        ),
-       
-        width: getProportionateScreenWidth(170),   
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [           
-            Expanded(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Material(                
-                 color: VariosHelpers.getShadedColor(product.cantidad.toString(), Colors.black),
-                  child: Ink.image(                        
-                    image: product.detalle =='Super' ?  const AssetImage('assets/super.png') : 
-                      product.detalle=='Regular' ? const AssetImage('assets/regular.png') : 
-                      product.detalle=='Exonerado' ? const AssetImage('assets/exonerado.png') :
-                      const AssetImage('assets/diesel.png'),
-                      fit: BoxFit.cover,
-                      child: InkWell(
-                           onTap: () {
-                              widget.onItemSelected(product); 
-                               Navigator.of(context).pop();// Llama a la función pasando el producto
-                            },
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Text(
-              "Disp: ${product.dispensador.toString()}",
+            const SizedBox(height: 12),
+            Text(
+              'No hay transacciones',
               style: TextStyle(
-                fontSize: getProportionateScreenWidth(16),
-                fontWeight: FontWeight.normal,
-                color:Colors.white,
+                fontSize: getProportionateScreenWidth(18),
+                fontWeight: FontWeight.bold,
+                color: kContrateFondoOscuro,
               ),
-            ),       
-                 
-          Text(
-            "Cant: ${product.cantidad.toString()}",
-            style: TextStyle(
-              fontSize: getProportionateScreenWidth(16),
-              fontWeight: FontWeight.normal,
-              color: Colors.white,
             ),
-          ),
-          Text(
-            "¢${NumberFormat("###,000", "en_US").format(product.total.toInt())}",
-            style:  TextStyle(
-              fontSize: getProportionateScreenWidth(18),
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          )
-        ]),
-        ),
-     Positioned(
-        top: 0, // Ajusta según necesidad
-        right: 0, // Ajusta según necesidad
-        child: Container(
-          //width: getProportionateScreenWidth(20),
-          decoration: BoxDecoration(
-            
-            color: Colors.white.withOpacity(0.3), // Fondo blanco para el botón
-            shape: BoxShape.circle, // Forma circular
-            boxShadow: [
-              BoxShadow(
-                color: const Color.fromARGB(255, 36, 35, 35).withOpacity(0.5),
-                spreadRadius: 1,
-                blurRadius: 3,
-                offset: const Offset(0, 1), // Cambios en la sombra
+            const SizedBox(height: 6),
+            Text(
+              'Toca para volver a intentar',
+              style: TextStyle(
+                fontSize: getProportionateScreenWidth(13),
+                color: Colors.white.withOpacity(0.7),
               ),
-            ],
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.list_alt_outlined, color: Colors.white), // Ajusta color y tamaño según necesidad
-            onPressed: () {
-              // final printerProv = context.read<PrinterProvider>();
-              // final device = printerProv.device;
-              // if (device == null) {
-              //   ScaffoldMessenger.of(context).showSnackBar(
-              //     const SnackBar(content: Text('Selecciona antes un dispositivo')),
-              //   );
-              //   return;
-              // }
-
-              // // Llamas a tu clase de impresión
-              // final testPrint = TestPrint(device: device);
-              // testPrint.printTransaccion(product);
-            },
-          ),
+            ),
+          ],
         ),
       ),
+    );
+  }
 
-    ],
-  );
-  
-     Future<void> _updateTransactions() async {
-      setState(() {
-        showLoader =true;
-      });
-      Response rsponseTransacciones = await ApiHelper.getTransaccionesAsProduct(widget.zona);    
-       setState(() {
-        showLoader =false;
-      }); 
+  Future<void> _updateTransactions() async {
+    try {
+      setState(() => showLoader = true);
+
+      final rs = await ApiHelper.getTransaccionesAsProduct(widget.zona);
+
       List<Invoice> facturas = [];
-      if(mounted){
-        facturas  =  Provider.of<FacturasProvider>(context, listen: false).facturas;
+      if (mounted) {
+        facturas = context.read<FacturasProvider>().facturas;
       }
-      
-      if (rsponseTransacciones.isSuccess){
-         setState(() {
-          transacciones = rsponseTransacciones.result; 
-          transacciones = filtrarProductosNoEnFacturas(transacciones, facturas);
-        });   
-      } 
-      
-     }
 
-     List<Product> filtrarProductosNoEnFacturas(List<Product> productosABuscar, List<Invoice> facturas) {
-  // Crear una nueva lista que será la que se retorne
-  List<Product> productosFiltrados = List<Product>.from(productosABuscar);
-      for (var factura in facturas) {
-        if (factura.detail != null) {
-          for (var productoFactura in factura.detail!) {
-            // Eliminar el producto de la lista filtrada si coincide con alguno de la factura
-            productosFiltrados.removeWhere((productoABuscar) => productoABuscar.transaccion == productoFactura.transaccion);
-          }
+      if (rs.isSuccess) {
+        final List<Product> items = rs.result;
+        final filtrados = filtrarProductosNoEnFacturas(items, facturas);
+        if (mounted) {
+          setState(() => transacciones = filtrados);
         }
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(rs.message.isNotEmpty == true ? rs.message : 'No se pudieron cargar transacciones')),
+        );
       }
-      return productosFiltrados;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al actualizar: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => showLoader = false);
     }
+  }
 
+  List<Product> filtrarProductosNoEnFacturas(List<Product> productosABuscar, List<Invoice> facturas) {
+    final productosFiltrados = List<Product>.from(productosABuscar);
+    for (final factura in facturas) {
+      if (factura.detail == null) continue;
+      for (final productoFactura in factura.detail!) {
+        productosFiltrados.removeWhere(
+          (p) => p.transaccion == productoFactura.transaccion,
+        );
+      }
+    }
+    return productosFiltrados;
+  }
 }
-
-
-
+        

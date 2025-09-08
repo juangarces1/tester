@@ -148,14 +148,14 @@ PreferredSizeWidget _buildCustomAppBar() {
       foregroundColor: Colors.white,
       flexibleSpace: Container(
         padding: const EdgeInsets.only(left: 20, top: 5, right: 0, bottom: 0),
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: kGradientHome,
           boxShadow: [
             BoxShadow(
-              color: const Color.fromARGB(255, 148, 143, 143).withOpacity(0.5),
-              spreadRadius: 3,
+              color: kPrimaryColor,
+              spreadRadius: 1,
               blurRadius: 5,
-              offset: const Offset(0, 3),
+              offset: Offset(0, 3),
             ),
           ],
         ),

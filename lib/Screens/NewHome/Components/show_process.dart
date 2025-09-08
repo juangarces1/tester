@@ -3,6 +3,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
 import 'package:tester/Components/app_bar_custom.dart';
+import 'package:tester/Components/card_tr.dart';
 import 'package:tester/Components/loader_component.dart';
 
 import 'package:tester/Models/Facturaccion/invoice.dart';
@@ -124,7 +125,14 @@ double _paymentPanelHeight() {
                           ),
                           itemCount: transacciones.length,
                           itemBuilder: (context, indice) {
-                            return buildCard(product: transacciones[indice], lista: 'Tr');
+                            final p = transacciones[indice];
+                            return CardTr(
+                              product: p,
+                              lista: 'Tr',
+                              onItemSelected: onItemSelected,      // sigue igual
+                              selected: p.isFavourite,             // 👈 esto enciende el overlay
+                              // showPrintIcon: false,             // (opcional)
+                            );
                           },
                         ),
                       ),
@@ -209,144 +217,6 @@ double _paymentPanelHeight() {
 
  
 
-  Widget buildCard({required Product product, required String lista}) {
-  // Color base una sola vez
-  final Color cardBg = VariosHelpers.getShadedColor(
-    '${product.transaccion}',
-    kColorFondoOscuro,
-  );
-
-  // Acento por combustible
-  final d = (product.detalle ?? '').toLowerCase();
-  final Color accentColor = switch (d) {
-    'super' => kSuperColor,
-    'regular' => kRegularColor,
-    'exonerado' || 'comb exonerado' => kExoColor,
-    _ => kDieselColor,
-  };
-
-  final bool selected = product.isFavourite;
-  const double radius = 20;
-
-  return Container(
-    width: getProportionateScreenWidth(80),
-    padding: EdgeInsets.all(getProportionateScreenWidth(10)),
-    decoration: BoxDecoration(
-      color: cardBg,
-      borderRadius: BorderRadius.circular(radius),
-      border: Border.all(
-        color: selected ? accentColor : Colors.transparent,
-        width: selected ? 2 : 0,
-      ),
-      boxShadow: selected
-          ? [
-              BoxShadow(
-                color: accentColor.withOpacity(0.35),
-                blurRadius: 8,
-                spreadRadius: 1,
-                offset: const Offset(0, 2),
-              ),
-            ]
-          : const [],
-    ),
-    child: Stack(
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // IMAGEN (tap fix: Material -> Ink.image -> InkWell)
-            Expanded(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: Ink.image(
-                      image: product.detalle == 'Super'
-                          ? const AssetImage('assets/super.png')
-                          : product.detalle == 'Regular'
-                              ? const AssetImage('assets/regular.png')
-                              : (product.detalle == 'Exonerado' ||
-                                      product.detalle == 'Comb Exonerado')
-                                  ? const AssetImage('assets/exonerado.png')
-                                  : const AssetImage('assets/diesel.png'),
-                      fit: BoxFit.cover,
-                      child: InkWell(
-                        onTap: () => onItemSelected(product),
-                        splashColor: Colors.white.withOpacity(0.12),
-                        highlightColor: Colors.white.withOpacity(0.05),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            // MONTO (jerarquía principal)
-            Text(
-              VariosHelpers.formattedToCurrencyValue(product.total.toString()),
-              style: TextStyle(
-                fontSize: getProportionateScreenWidth(22),
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-
-            const SizedBox(height: 6),
-
-            // Fila inferior: Chip M-# + Volumen con 2 decimales
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Chip M-#
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.20),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white24),
-                  ),
-                  child: Text(
-                    'M-${product.dispensador}',
-                    style: TextStyle(
-                      fontSize: getProportionateScreenWidth(12),
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white.withOpacity(0.95),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Volumen 12.34 L
-                Text(
-                  '${product.cantidad.toStringAsFixed(2)} L',
-                  style: TextStyle(
-                    fontSize: getProportionateScreenWidth(14),
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white.withOpacity(0.85),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-
-        // OVERLAY sutil (no bloquea taps)
-        if (selected)
-          Positioned.fill(
-            child: IgnorePointer(
-              ignoring: true,
-              child: Container(color: Colors.black.withOpacity(0.08)),
-            ),
-          ),
-      ],
-    ),
-  );
-}
 
 
 
