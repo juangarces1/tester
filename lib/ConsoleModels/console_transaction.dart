@@ -1,6 +1,10 @@
 import 'dart:ui';
 
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:tester/Models/product.dart';
+import 'package:tester/Models/transaccion.dart';
+import 'package:tester/Providers/cierre_activo_provider.dart';
 
 class ConsoleTransaction {
   final int id;
@@ -360,3 +364,76 @@ extension ConsoleTxToProduct on ConsoleTransaction {
     );
   }
 }
+
+
+
+extension ConsoleTxToLegacyTransaccion on ConsoleTransaction {
+  Transaccion toTransaccion({
+    // 👉 Nuevo: permite resolver el id desde Provider si pasas context
+    BuildContext? context,
+    int? idCierre,
+
+    String? nombreProducto,
+    String facturada = 'No',
+    String entregoTarjeta = '',
+    String canjeTarjeta = '',
+    String pan = '',
+    String? subir,
+    String? nombreCliente,
+
+    // Estrategias
+    String Function(DateTime dt)? dateFormat,
+    String Function(int saleStatus)? estadoMapper,
+    int Function(double valor)? redondeoImporte,
+  }) {
+    // 1) Formato de fecha por defecto
+    final fmt = dateFormat ?? (dt) => dt.toIso8601String().split('.').first;
+
+    // 2) Mapeo de estado por defecto
+    
+
+    // 3) Redondeo/entero para montos/precios
+    final toInt = redondeoImporte ?? ((v) => v.toInt());
+
+    // 4) Resolver idCierre:
+    //    - Si viene por parámetro, manda ese.
+    //    - Si no, intenta leerlo del CierreActivoProvider con context.
+    //    - Si nada de lo anterior existe, 0.
+    int resolvedIdCierre = idCierre ??
+        (() {
+          if (context == null) return 0;
+          try {
+            final prov = context.read<CierreActivoProvider>();
+            // Usa el getter o el objeto directo, según tu implementación:
+            return prov.cierreFinal?.idcierre
+                ?? prov.value?.cierreFinal.idcierre
+                ?? 0;
+          } catch (_) {
+            // Provider no está disponible en este contexto
+            return 0;
+          }
+        })();
+
+    return Transaccion(
+      idtransaccion: 0,
+      numero: id, // o fuelingIndex si prefieres
+      fechatransaccion: fmt(dateTime),
+      dispensador: nozzleNumber,
+      idproducto: fuelCode,
+      nombreproducto: nombreProducto ?? 'Fuel $fuelCode',
+      total: toInt(totalValue),
+      volumen: totalVolume,
+      preciounitario: toInt(unitPrice),
+      idcierre: resolvedIdCierre,         // 👈 ahora viene del provider/param
+      estado: 'copiado',
+      entregatarjeta: entregoTarjeta,
+      canjetarjeta: canjeTarjeta,
+      pan: pan,
+      nombrecliente: nombreCliente ?? (userEmail ?? ''),
+      facturada: facturada,
+      creacion: fmt(createdAt),
+      subir: subir,
+    );
+  }
+}
+

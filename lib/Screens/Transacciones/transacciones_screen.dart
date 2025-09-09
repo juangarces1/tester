@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tester/Providers/tranascciones_provider.dart';
 import 'package:tester/Screens/Transacciones/Components/tx_app_bar.dart';
 
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
-import 'package:tester/ConsoleModels/console_transaction.dart';
-import 'package:tester/Providers/transactions_provider.dart';
+import 'package:tester/Models/transaccion.dart';
 
-enum TxFilter { all, unpaid, paid }
+
+enum TxFilter { copiado, efectivo, credito }
 
 class TransaccionesScreen extends StatefulWidget {
   const TransaccionesScreen({super.key});
@@ -18,24 +19,28 @@ class TransaccionesScreen extends StatefulWidget {
 }
 
 class _TransaccionesScreenState extends State<TransaccionesScreen> {
-  TxFilter _filter = TxFilter.unpaid;
+  TxFilter _filter = TxFilter.copiado;
 
   @override
   Widget build(BuildContext context) {
-    final prov = context.watch<TransactionsProvider>();
+    final prov = context.watch<TransaccionesProvider>();
 
-    final List<ConsoleTransaction> items = switch (_filter) {
-      TxFilter.all => prov.all,
-      TxFilter.unpaid => prov.unpaid,
-      TxFilter.paid => prov.all.where((t) => !(t.saleStatus == 0 && !t.paymentConfirmed)).toList()
+    final List<Transaccion> items = switch (_filter) {
+      TxFilter.copiado   => prov.items.where((t) => t.estado == 'copiado').toList(),
+      TxFilter.efectivo  => prov.items.where((t) => t.estado == 'efectivo').toList(),
+      TxFilter.credito    => prov.items.where((t) => t.estado == 'credito').toList(),
     };
+
+    // Contadores (con select para evitar rebuilds gordos, si quieres)
+    final countAll    = prov.length;
+    final countUnpaid = prov.unpaid.length;
 
     return SafeArea(
       child: Scaffold(
         backgroundColor: kNewborder,
         appBar: ConsoleAppBar(
           title: 'Transacciones',
-          subtitle: 'Consulta',          // opcional
+          subtitle: 'Consulta',
           backgroundColor: kBlueColorLogo,
           foreColor: Colors.white,
           elevation: 3,
@@ -43,13 +48,13 @@ class _TransaccionesScreenState extends State<TransaccionesScreen> {
           centerTitle: false,
           showBottomDivider: true,
           bottomDividerColor: Colors.white24,
-          pillBackButton: true,          // mismo look “pill back”
+          pillBackButton: true,
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 16),
               child: Center(
                 child: Text(
-                  '${prov.countUnpaid}/${prov.countAll}',
+                  '$countUnpaid/$countAll',
                   style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ),
@@ -79,6 +84,8 @@ class _TransaccionesScreenState extends State<TransaccionesScreen> {
       ),
     );
   }
+
+ 
 }
 
 class _FiltersRow extends StatelessWidget {
@@ -109,11 +116,11 @@ class _FiltersRow extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          chip('Impagas', TxFilter.unpaid),
+          chip('Impagas', TxFilter.copiado),
           const SizedBox(width: 8),
-          chip('Pagadas', TxFilter.paid),
+          chip('Credito', TxFilter.credito),
           const SizedBox(width: 8),
-          chip('Todas', TxFilter.all),
+          chip('Efectivo', TxFilter.efectivo),
         ],
       ),
     );
@@ -121,15 +128,14 @@ class _FiltersRow extends StatelessWidget {
 }
 
 class _TxCard extends StatelessWidget {
-  final ConsoleTransaction tx;
+  final Transaccion tx;
   const _TxCard({required this.tx});
 
   @override
   Widget build(BuildContext context) {
     final accent = _fuelAccentColor(tx);
-    final pago = (tx.paymentType ?? '').trim();
-    final isUnpaid = tx.saleStatus == 0 && !tx.paymentConfirmed;
-
+   
+    
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF151A26),
@@ -141,7 +147,17 @@ class _TxCard extends StatelessWidget {
       child: Row(
         children: [
           // Acento lateral por combustible
-          Container(width: 4, height: 100, decoration: BoxDecoration(color: accent, borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), bottomLeft: Radius.circular(16)))),
+          Container(
+            width: 4,
+            height: 100,
+            decoration: BoxDecoration(
+              color: accent,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                bottomLeft: Radius.circular(16),
+              ),
+            ),
+          ),
 
           // Contenido
           Expanded(
@@ -158,7 +174,7 @@ class _TxCard extends StatelessWidget {
                       Text(_fuelName(tx),
                           style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
                       const Spacer(),
-                      _StateChip(isUnpaid: isUnpaid),
+                      _StateChip(isUnpaid: tx.isUnpaid), // 👈 estado impaga/pagada
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -167,17 +183,17 @@ class _TxCard extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        VariosHelpers.formattedToCurrencyValue(tx.totalValue.toString()),
+                        VariosHelpers.formattedToCurrencyValue(tx.total.toString()),
                         style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        '${tx.totalVolume.toStringAsFixed(2)} L',
+                        '${tx.volumen.toStringAsFixed(2)} L',
                         style: const TextStyle(color: kNewtextPri, fontSize: 14, fontWeight: FontWeight.w500),
                       ),
                       const Spacer(),
-                      // Badge con saleNumber / saleId si existen
-                      if ((tx.saleNumber) > 0 || (tx.saleId != null && tx.saleId!.isNotEmpty))
+                      // Badge con numero / idtransaccion
+                      if (tx.numero > 0 || tx.idtransaccion > 0)
                         _SaleBadge(text: _saleTag(tx)),
                     ],
                   ),
@@ -187,11 +203,11 @@ class _TxCard extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        'Manguera: M-${tx.nozzleNumber} · ${tx.unitPrice.toStringAsFixed(2)}/L · ${_hhmm(tx.dateTime)}',
+                        'Manguera: M-${tx.dispensador} · ${_precioUnitL(tx)} · ${_hhmm(tx.fechatransaccion)}',
                         style: const TextStyle(color: Color(0xFF95A0B2), fontSize: 12, fontWeight: FontWeight.w500),
                       ),
                       const Spacer(),
-                      if (pago.isNotEmpty) _PayChip(text: pago),
+                      if (tx.estado.isNotEmpty) _PayChip(text: tx.estado),
                     ],
                   ),
                 ],
@@ -203,35 +219,41 @@ class _TxCard extends StatelessWidget {
     );
   }
 
-  static String _saleTag(ConsoleTransaction tx) {
-    if (tx.saleNumber > 0) return '#${tx.saleNumber}';
-    if (tx.saleId != null && tx.saleId!.isNotEmpty) {
-      final s = tx.saleId!;
-      return '#${s.length > 6 ? s.substring(0, 6) : s}';
-    }
+  static String _precioUnitL(Transaccion t) {
+    // Si quieres formateo moneda por litro:
+    // return '${VariosHelpers.formattedToCurrencyValue(t.preciounitario.toString())}/L';
+    // Si prefieres simple:
+    return '${t.preciounitario}/L';
+  }
+
+  static String _saleTag(Transaccion t) {
+    if (t.numero > 0) return '#${t.numero}';
+    if (t.idtransaccion > 0) return '#${t.idtransaccion}';
     return '';
   }
 
-  static String _hhmm(DateTime dt) {
+  static String _hhmm(String s) {
+    final dt = DateTime.tryParse(s);
+    if (dt == null) return s; // fallback si viene en otro formato
     final h = dt.hour.toString().padLeft(2, '0');
     final m = dt.minute.toString().padLeft(2, '0');
     return '$h:$m';
+    // Si tu string viene "YYYY-MM-DD HH:mm:ss" (con espacio),
+    // puedes hacer: DateTime.tryParse(s.replaceFirst(' ', 'T'));
   }
 
-  static String _fuelName(ConsoleTransaction tx) {
-    // Ajusta a tu catálogo si lo tienes en provider
-    switch (tx.fuelCode) {
+  static String _fuelName(Transaccion t) {
+    // Ajusta a tu catálogo si existe:
+    switch (t.idproducto) {
       case 2: return 'Regular';
       case 1: return 'Súper';
       case 3: return 'Diésel';
-      default:
-        // Si el back marca exonerado via paymentType/nombre, cámbialo aquí
-        return 'Combustible';
+      default: return t.nombreproducto.isNotEmpty ? t.nombreproducto : 'Combustible';
     }
   }
 
-  static IconData _fuelIcon(ConsoleTransaction tx) {
-    switch (tx.fuelCode) {
+  static IconData _fuelIcon(Transaccion t) {
+    switch (t.idproducto) {
       case 1:
       case 2:
       case 3:
@@ -242,18 +264,13 @@ class _TxCard extends StatelessWidget {
     }
   }
 
-  static Color _fuelAccentColor(ConsoleTransaction tx) {
-    // Usa tus constantes de colores; si alguna no existe, cambia el nombre aquí.
-    switch (tx.fuelCode) {
+  static Color _fuelAccentColor(Transaccion t) {
+    switch (t.idproducto) {
       case 2: return kRegularColor;    // Regular
       case 1: return kSuperColor;      // Súper
       case 3: return kDieselColor;     // Diésel
       default:
-        // Si manejas "Exonerado" como tipo especial:
-        if ((tx.paymentType ?? '').toLowerCase().contains('exoner')) {
-          return kExoColor;
-        }
-        return const Color(0xFF41506B); // fallback
+        return const Color(0xFF41506B);
     }
   }
 }

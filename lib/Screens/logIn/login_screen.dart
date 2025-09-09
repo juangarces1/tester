@@ -9,6 +9,7 @@ import 'package:tester/ConsoleModels/console_user.dart';
 import 'package:tester/Models/LogIn/estado_login.dart';
 import 'package:tester/Models/all_fact.dart';
 import 'package:tester/Models/cart.dart';
+import 'package:tester/Providers/cierre_activo_provider.dart';
 
 import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/map_provider.dart';         // <-- mapa clásico
@@ -361,7 +362,10 @@ class _LoginScreenState extends State<LoginScreen>
     clienteProv.setClientesCredito(factura.clientesCredito);
     clienteProv.setClientesOromo(factura.clientesPromo);
 
-    if (!mounted) return;
+    
+
+   if (!mounted) return;
+    context.read<CierreActivoProvider>().setFrom(factura.cierreActivo!);
     goHome(factura);
     
   }

@@ -1,9 +1,10 @@
 import 'dart:math';
+import 'package:flutter/widgets.dart';
 import 'package:tester/Components/combustible_icon.dart';
+import 'package:tester/Providers/transacciones_provider.dart'; // <-- ojo al import corregido
 import 'package:tester/ViewModels/dispatch_control.dart';
-import 'package:tester/ConsoleModels/console_transaction.dart';
+import 'package:tester/ConsoleModels/console_transaction.dart'; // tiene la ext .toTransaccion(...)
 import 'package:tester/Providers/despachos_provider.dart';
-import 'package:tester/Providers/transactions_provider.dart';
 import 'package:tester/ViewModels/new_map.dart';
 
 /// Extensión para preparar un despacho mock listo para facturar,
@@ -11,7 +12,7 @@ import 'package:tester/ViewModels/new_map.dart';
 /// NO navega ni simula estados.
 extension DispatchControlMock on DispatchControl {
   /// Crea datos del despacho, genera TX, la adjunta al control
-  /// y registra en TransactionsProvider + DespachosProvider.
+  /// y registra en TransaccionesProvider (legacy) + DespachosProvider.
   ///
   /// Params más usados:
   /// - [useAmount] si true usa monto, si false usa volumen.
@@ -21,8 +22,9 @@ extension DispatchControlMock on DispatchControl {
   /// - [product] código de combustible (fuelCode/productId).
   /// - [nozzle] número de manguera por defecto (visual/estadístico).
   void seedMockAndRegister({
+    BuildContext? context,                      // 👈 opcional: para idCierre del provider
     required DespachosProvider despachos,
-    required TransactionsProvider transactions,
+    required TransaccionesProvider transactions,
     bool useAmount = true,
     double amount = 50000,
     double liters = 10.0,
@@ -32,26 +34,29 @@ extension DispatchControlMock on DispatchControl {
     InvoiceType type = InvoiceType.contado,
     String userId = 'tester@fuelred.dev',
   }) {
-    // 1) Crear/llenar datos del despacho (solo DispatchControl)
+    // 1) Config del DispatchControl (solo estado visual/flujo)
     id = 'SIM-${DateTime.now().millisecondsSinceEpoch}';
     invoiceType = type;
 
-    // Preset por monto/volumen (elige uno)
     if (useAmount) {
       setPresetByAmount(manguera: 'M-$nozzle', amount: amount);
     } else {
       setPresetByVolume(manguera: 'M-$nozzle', liters: liters);
     }
 
-    // Datos de conveniencia
     productId = product;
     price     = pricePerL;
-    fuel   = const Fuel(name: 'Super', color: kSuperColor);
-    nozzle = 1;
-    selectedPosition = const PositionPhysical(number: 1,hoses: []);
-    selectedHose = const HosePhysical(hoseKey: '12', nozzleNumber: 1, fuel: Fuel(name: 'Super', color: kSuperColor,), status: 'Available');
+    fuel      = const Fuel(name: 'Super', color: kSuperColor);
+    this.nozzle = nozzle; // 👈 respeta el parámetro
+    selectedPosition = const PositionPhysical(number: 1, hoses: []);
+    selectedHose = HosePhysical(
+      hoseKey: 'H-$nozzle',
+      nozzleNumber: nozzle,
+      fuel: const Fuel(name: 'Super', color: kSuperColor),
+      status: 'Available',
+    );
 
-    // Dejar listo para facturar sin simular pasos
+    // Dejar listo para facturar
     stage = DispatchStage.unpaid;
 
     // 2) Construir ConsoleTransaction coherente y enlazar al control
@@ -62,7 +67,7 @@ extension DispatchControlMock on DispatchControl {
       unitPrice: pricePerL,
     );
 
-    // Adjuntar la tx al control para que facturación tenga todo
+    // Adjuntar la tx al control para flujos que siguen usando ConsoleTransaction
     consoleTx        = tx;
     saleId           = tx.saleId;
     saleNumber       = tx.saleNumber;
@@ -71,9 +76,19 @@ extension DispatchControlMock on DispatchControl {
     volumenDispense  = tx.totalVolume;
     price            = tx.unitPrice;
 
-    // 3) Registrar en providers (sin navegación)
-    transactions.upsert(tx);     // queda en unpaid por tu predicado
-    despachos.addDispatch(this); // aparece el card en FirstPage
+    // 3) Registrar en providers
+    // 3.1 Registrar despacho (UI)
+    despachos.addDispatch(this);
+
+    // 3.2 Registrar transacción LEGACY en TransaccionesProvider
+    //     Usamos la extensión que ya hicimos (ConsoleTransaction -> Transaccion).
+    final legacy = tx.toTransaccion(
+      context: context,             // si hay context, toma idCierre del provider
+      nombreProducto: 'Combustible ${tx.fuelCode}',
+      facturada: 'N',               // mock impaga
+      estadoMapper: (_) => 'unpaid' // forza "unpaid" en legacy
+    );
+    transactions.upsert(legacy);
   }
 
   /// Crea una ConsoleTransaction coherente con el preset y el precio.
@@ -88,43 +103,4 @@ extension DispatchControlMock on DispatchControl {
 
     final isVolume = preset.isVolume;
     final totalVolume = tankFull
-        ? (12.0 + rnd.nextDouble() * 6.0)                           // ~12–18 L
-        : (isVolume ? (preset.volume ?? 10.0)
-                    : ((preset.amount ?? 50000) / unitPrice));
-    final totalValue = double.parse((totalVolume * unitPrice).toStringAsFixed(2));
-
-    return ConsoleTransaction(
-      id: 100000 + rnd.nextInt(900000),
-      fuelingIndex: 1 + rnd.nextInt(999),
-      nozzleNumber: nozzle,
-      fuelCode: 1,
-      fuelTankNumber: 1,
-      totalValue: totalValue,
-      totalVolume: double.parse(totalVolume.toStringAsFixed(3)),
-      unitPrice: double.parse(unitPrice.toStringAsFixed(3)),
-      duration: 2,
-      dateTime: now,
-      initialTotalizer: 100000 + rnd.nextInt(10000),
-      finalTotalizer:  100000 + rnd.nextInt(10000),
-      attendantId: userId,
-      attendantIdRaw: userId,
-      customerId: null,
-      currentVolume: null,
-
-      // 🔴 Para tu _isUnpaid: saleStatus==0 && !paymentConfirmed
-      saleStatus: 0,
-      saleNumber: 20000 + rnd.nextInt(80000),
-      saleId: 'SIM-${rnd.nextInt(999999).toString().padLeft(6, '0')}',
-
-      reference: 'SIMULATED',
-      paymentType: 'N/A',
-      mode: preset.isVolume ? 'VOLUMEN' : (tankFull ? 'FULL' : 'MONTO'),
-      invoiceType: invoiceType?.name,
-
-      epIdEmpresa: 1,
-      paymentConfirmed: false,
-      createdAt: now,
-      userEmail: null,
-    );
-  }
-}
+        ? (12.0 + rnd.next

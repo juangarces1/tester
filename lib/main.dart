@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tester/Models/cierreactivo.dart';
+import 'package:tester/Providers/cierre_activo_provider.dart';
 
 import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/Providers/printer_provider.dart';
 import 'package:tester/Providers/map_provider.dart'; // ⬅️ nuevo provider clásico
-import 'package:tester/Providers/transactions_provider.dart';
+import 'package:tester/Providers/tranascciones_provider.dart';
+
 import 'package:tester/Providers/usuario_provider.dart';
 import 'package:tester/Screens/logIn/login_screen.dart';
 import 'package:tester/ViewModels/dispatch_control.dart';
@@ -17,9 +20,10 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => CierreActivoProvider()),
         ChangeNotifierProvider(create: (_) => UsuarioProvider()),
         ChangeNotifierProvider(create: (_) => ClienteProvider()),
-        ChangeNotifierProvider(create: (_) => TransactionsProvider()),
+        ChangeNotifierProvider(create: (_) => TransaccionesProvider()),
         ChangeNotifierProvider(create: (_) => FacturasProvider()),
         ChangeNotifierProvider(create: (_) => PrinterProvider()),
         ChangeNotifierProvider(create: (_) => MapProvider()), 
@@ -27,7 +31,7 @@ void main() {
         ChangeNotifierProvider(
           create: (ctx) => DispatchControl(ctx.read<DespachosProvider>())
             ..onLastUnpaid = (tx) {
-              final p = ctx.read<TransactionsProvider>();
+              final p = ctx.read<TransaccionesProvider>();
               p.upsert(tx);
               // opcional “carrito” efímero:
               // p.setSelected(tx.id, true);

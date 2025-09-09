@@ -10,16 +10,77 @@ import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/cierrefinal.dart';
 import 'package:tester/Models/product.dart';
 import 'package:tester/Models/response.dart';
+import 'package:tester/Models/transaccion.dart';
 
 import 'package:tester/Providers/facturas_provider.dart';
-import 'package:tester/Providers/transactions_provider.dart';
+import 'package:tester/Providers/tranascciones_provider.dart';
 
-import 'package:tester/ConsoleModels/console_transaction.dart'; // <-- extensión toInvoiceProduct
+
 
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
-import 'package:tester/helpers/varios_helpers.dart';
+
 import 'package:tester/sizeconfig.dart';
+
+// ---------------------------------------------------------------
+//  EXTENSIÓN: Transaccion -> Product  (para flujo de facturación)
+// ---------------------------------------------------------------
+
+extension LegacyTxToProduct on Transaccion {
+  Product toInvoiceProduct({
+    required String codigoArticulo,      // SKU inventario
+    String tipoArticulo = 'Combustible',
+    String unidad = 'L',
+    String? detalle,
+    String imageUrl = 'NoImage.jpg',
+    int inventario = 0,
+    int rateId = 0,
+    int taxId = 0,
+    String codigoCabys = '',
+    double tasaImp = 0,
+    double impMonto = 0,
+    double precioCompra = 0,
+    List<String> images = const [],
+    List<Color> colors = const [],
+  }) {
+    final isExo = estado.toLowerCase().contains('exoner');
+    final desc = detalle ??
+        (isExo
+            ? 'Comb Exonerado'
+            : (nombreproducto.isNotEmpty ? nombreproducto : 'Combustible'));
+
+    return Product(
+      // Cantidad = litros
+      cantidad: volumen,
+      tipoArticulo: tipoArticulo,
+      codigoArticulo: codigoArticulo,
+      unidad: unidad,
+      detalle: desc,
+      // Precios
+      precioUnit: preciounitario.toDouble(),
+      montoTotal: total.toDouble(),
+      descuento: 0,
+      nDescuento: 0,
+      subtotal: total.toDouble() - impMonto,
+      tasaImp: tasaImp,
+      impMonto: impMonto,
+      total: total.toDouble(),
+      rateid: rateId,
+      taxid: taxId,
+      precioCompra: precioCompra,
+      codigoCabys: codigoCabys,
+      // Vínculos
+      transaccion: idtransaccion,         // ← importante para no duplicar en facturas
+      factor: 1,
+      dispensador: dispensador,
+      // Media / inventario
+      imageUrl: imageUrl,
+      inventario: inventario,
+      images: images,
+      colors: colors,
+    );
+  }
+}
 
 class ShowProcessMenu extends StatefulWidget {
   final CierreFinal cierreFinal;
@@ -50,28 +111,28 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
 
   final List<String> estados = const [
     'Efectivo', 'Tarjeta_Bac','Tarjeta_Bn','Tarjeta_Dav',
-   'Tarjeta_Scotia',   'Cheque',
-    'Calibracion', 'Exonerado', 'Cupones',     
+    'Tarjeta_Scotia','Cheque',
+    'Calibracion', 'Exonerado', 'Cupones',
     'Dollar', 'Procesar',
   ];
 
- static const int _cols = 4;
-static const double _tileExtent = 74;      // alto fijo de cada tile del grid de pagos
-static const double _gridMainSpacing = 8;  // separación vertical entre filas
-static const double _gridPadTop = 8;
-static const double _gridPadBottom = 12;
+  static const int _cols = 4;
+  static const double _tileExtent = 74;      // alto fijo de cada tile del grid de pagos
+  static const double _gridMainSpacing = 8;  // separación vertical entre filas
+  static const double _gridPadTop = 8;
+  static const double _gridPadBottom = 12;
 
-double _paymentPanelHeight() {
-  final rows = (buttonNames.length + _cols - 1) ~/ _cols;
-  final tilesHeight = rows * _tileExtent + (rows - 1) * _gridMainSpacing;
-  // + Divider (1px) y paddings
-  return 1 + _gridPadTop + tilesHeight + _gridPadBottom;
-}
+  double _paymentPanelHeight() {
+    final rows = (buttonNames.length + _cols - 1) ~/ _cols;
+    final tilesHeight = rows * _tileExtent + (rows - 1) * _gridMainSpacing;
+    // + Divider (1px) y paddings
+    return 1 + _gridPadTop + tilesHeight + _gridPadBottom;
+  }
 
   @override
   void initState() {
     super.initState();
-    _updateTransactions(); // ahora desde provider
+    _updateTransactions(); // ahora desde TransaccionesProvider (legacy)
   }
 
   @override
@@ -102,108 +163,107 @@ double _paymentPanelHeight() {
           ],
         ),
         body: Stack(
-  children: [
-    // Contenido principal con espacio reservado para el panel inferior
-    Padding(
-      padding: EdgeInsets.only(bottom: panelH),
-      child: Container(
-        color: kNewsurface,
-        child: Column(
-          children: <Widget>[
-            // ---- Transacciones (ocupa todo lo disponible) ----
-            Expanded(
-              child: transacciones.isNotEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.only(left: 10, right: 10, top: 20),
-                      child: RefreshIndicator(
-                        onRefresh: () async => _updateTransactions(),
-                        child: GridView.builder(
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 10,
-                          ),
-                          itemCount: transacciones.length,
-                          itemBuilder: (context, indice) {
-                            final p = transacciones[indice];
-                            return CardTr(
-                              product: p,
-                              lista: 'Tr',
-                              onItemSelected: onItemSelected,      // sigue igual
-                              selected: p.isFavourite,             // 👈 esto enciende el overlay
-                              // showPrintIcon: false,             // (opcional)
-                            );
-                          },
-                        ),
-                      ),
-                    )
-                  : _noTr(),
+          children: [
+            // Contenido principal con espacio reservado para el panel inferior
+            Padding(
+              padding: EdgeInsets.only(bottom: panelH),
+              child: Container(
+                color: kNewsurface,
+                child: Column(
+                  children: <Widget>[
+                    // ---- Transacciones (ocupa todo lo disponible) ----
+                    Expanded(
+                      child: transacciones.isNotEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.only(left: 10, right: 10, top: 20),
+                              child: RefreshIndicator(
+                                onRefresh: () async => _updateTransactions(),
+                                child: GridView.builder(
+                                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10,
+                                  ),
+                                  itemCount: transacciones.length,
+                                  itemBuilder: (context, indice) {
+                                    final p = transacciones[indice];
+                                    return CardTr(
+                                      product: p,
+                                      lista: 'Tr',
+                                      onItemSelected: onItemSelected,
+                                      selected: p.isFavourite,
+                                    );
+                                  },
+                                ),
+                              ),
+                            )
+                          : _noTr(),
+                    ),
+
+                    const SizedBox(height: 10),
+                    const Divider(height: 2, color: kNewtextPri),
+                  ],
+                ),
+              ),
             ),
 
-            const SizedBox(height: 10),
-            const Divider(height: 2, color: kNewtextPri),
+            // Panel inferior ANCLADO con el grid de métodos (incluye "Procesar" como ÚLTIMO tile)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SafeArea(
+                top: false,
+                child: Material(
+                  color: kNewsurface,
+                  elevation: 8,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(8, _gridPadTop, 8, _gridPadBottom),
+                    child: GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: buttonNames.length,
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: _cols,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: _gridMainSpacing,
+                        mainAxisExtent: _tileExtent,   // asegura altura exacta por fila
+                      ),
+                      itemBuilder: (BuildContext context, int index) {
+                        final isProcess = index == lastIndex;
+                        if (isProcess) {
+                          return _PaymentTile.process(
+                            label: buttonNames[index],
+                            onTap: _goProcess,
+                          );
+                        }
+                        final selected = _selectedIndex == index;
+                        return _PaymentTile.option(
+                          label: buttonNames[index],
+                          icon: _iconForMethod(buttonNames[index]),
+                          selected: selected,
+                          onTap: () {
+                            setState(() {
+                              _selectedIndex = index;
+                              state = estados[index];
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            if (_showLoader) const LoaderComponent(loadingText: 'Procesando...'),
           ],
         ),
-      ),
-    ),
-
-    // Panel inferior ANCLADO con el grid de métodos (incluye "Procesar" como ÚLTIMO tile)
-    Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: SafeArea(
-        top: false,
-        child: Material(
-          color: kNewsurface,
-          elevation: 8,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, _gridPadTop, 8, _gridPadBottom),
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: buttonNames.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: _cols,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: _gridMainSpacing,
-                mainAxisExtent: _tileExtent,   // 👈 asegura altura exacta por fila
-              ),
-              itemBuilder: (BuildContext context, int index) {
-                final isProcess = index == lastIndex;
-                if (isProcess) {
-                  return _PaymentTile.process(
-                    label: buttonNames[index],
-                    onTap: _goProcess,
-                  );
-                }
-                final selected = _selectedIndex == index;
-                return _PaymentTile.option(
-                  label: buttonNames[index],
-                  icon: _iconForMethod(buttonNames[index]),
-                  selected: selected,
-                  onTap: () {
-                    setState(() {
-                      _selectedIndex = index;
-                      state = estados[index];
-                    });
-                  },
-                );
-              },
-            ),
-          ),
-        ),
-      ),
-    ),
-
-    if (_showLoader) const LoaderComponent(loadingText: 'Procesando...'),
-  ],
-),
       ),
     );
   }
 
-  // ---------- selección en cards (tal cual tenías) ----------
+  // ---------- selección en cards ----------
   void onItemSelected(Product product) {
     setState(() {
       product.isFavourite = !product.isFavourite;
@@ -214,11 +274,6 @@ double _paymentPanelHeight() {
       }
     });
   }
-
- 
-
-
-
 
   Widget _noTr() {
     return Container(
@@ -269,33 +324,21 @@ double _paymentPanelHeight() {
     );
   }
 
-  // ---------- NUEVO: cargar desde provider.unpaid y aplicar filtros locales ----------
+  // ---------- Cargar desde TransaccionesProvider.unpaid ----------
   Future<void> _updateTransactions() async {
     setState(() => _showLoader = true);
 
-    // 1) Tomar impagas desde el provider
-    final txProv = Provider.of<TransactionsProvider>(context, listen: false);
-    final List<ConsoleTransaction> unpaid = txProv.unpaid;
+    // 1) Tomar impagas desde el provider (legacy)
+    final txProv = Provider.of<TransaccionesProvider>(context, listen: false);
+    final List<Transaccion> unpaid = txProv.unpaid;
 
-    // 2) Convertir a Product usando tu extensión (sin duplicar mapeo)
+    // 2) Convertir a Product usando la extensión nueva
     final mapped = unpaid.map((tx) {
-      // SKU simple por fuelCode (ajústalo si tienes catálogo)
-      final sku = switch (tx.fuelCode) {
-        1 => 'REG',
-        2 => 'SUP',
-        3 => 'DIE',
-        _ => 'FUEL',
-      };
-      // detalle: cuida "Exonerado" para tus validaciones
-      final isExo = (tx.paymentType ?? '').toLowerCase().contains('exoner');
+      final isExo = tx.estado.toLowerCase().contains('exoner');
+      final sku = 'FUEL-${tx.idproducto}';
       final detalle = isExo
           ? 'Comb Exonerado'
-          : switch (tx.fuelCode) {
-              1 => 'Regular',
-              2 => 'Super',
-              3 => 'Diesel',
-              _ => 'Combustible',
-            };
+          : (tx.nombreproducto.isNotEmpty ? tx.nombreproducto : 'Combustible');
 
       return tx.toInvoiceProduct(
         codigoArticulo: sku,
@@ -303,13 +346,13 @@ double _paymentPanelHeight() {
       );
     }).toList();
 
-    // 3) Filtros locales (se mantienen)
+    // 3) Filtros locales: excluir productos ya en facturas y los del carrito
     List<Invoice> facturas = [];
     if (mounted) {
       facturas = Provider.of<FacturasProvider>(context, listen: false).facturas;
     }
     List<Product> filtrados = filtrarProductosNoEnFacturas(mapped, facturas);
-    // quitar los ya seleccionados en el carrito
+
     for (final c in cart) {
       filtrados.removeWhere((p) => p.transaccion == c.transaccion);
     }
@@ -334,7 +377,7 @@ double _paymentPanelHeight() {
     return productosFiltrados;
   }
 
-  // ---------- Procesar (misma lógica/validaciones) ----------
+  // ---------- Procesar ----------
   Future<void> _goProcess() async {
     if (cart.isEmpty) {
       Fluttertoast.showToast(
@@ -358,7 +401,7 @@ double _paymentPanelHeight() {
       return;
     }
 
-    // Validaciones de exonerado: se mantienen tal cual
+    // Validaciones de exonerado
     bool validate = false;
     bool validate2 = false;
 

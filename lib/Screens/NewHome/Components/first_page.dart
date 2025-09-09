@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tester/Models/transaccion.dart';
 import 'package:tester/Providers/despachos_provider.dart';
-import 'package:tester/Providers/transactions_provider.dart';
+
 import 'package:tester/Screens/NewHome/Components/dispatch_card.dart';
 
 import 'package:tester/Screens/NewHome/PagesWizard/fuel_stage_page.dart';
@@ -60,8 +61,51 @@ Widget build(BuildContext context) {
               itemBuilder: (ctx, i) {
                 final d = despachos[i];
                 return Dismissible(
-                  key: ValueKey(d.id ?? d.selectedHose?.hoseKey ?? 'dispatch_$i'),
+                  key: ObjectKey(d),
                   direction: _canDelete(d) ? DismissDirection.endToStart : DismissDirection.none,
+                  background: Container(),
+                  secondaryBackground: Container(
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  color: Colors.red,
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.delete, color: Colors.white),
+                      SizedBox(width: 8),
+                      Text('Eliminar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+
+                // (Opcional) Confirmar antes de eliminar
+                confirmDismiss: (dir) async {
+                  if (!_canDelete(d)) return false;
+                  return await showDialog<bool>(
+                        context: ctx,
+                        builder: (_) => AlertDialog(
+                          title: const Text('Eliminar despacho'),
+                          content: const Text('¿Seguro que quieres eliminar este despacho?'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(_, false), child: const Text('Cancelar')),
+                            TextButton(onPressed: () => Navigator.pop(_, true), child: const Text('Eliminar')),
+                          ],
+                        ),
+                      ) ??
+                      false;
+                },
+
+                  // ¡IMPORTANTE! Quitar el item del provider para evitar el error
+                  onDismissed: (_) {
+                    final despachosProv = Provider.of<DespachosProvider>(ctx, listen: false);
+                    
+                    despachosProv.removeDispatch(d); // si implementaste remove por objeto
+
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      const SnackBar(content: Text('Despacho eliminado')),
+                    );
+                  },
+
                   // ... resto igual
                   child: GestureDetector(
                     onTap: () {},
@@ -71,8 +115,8 @@ Widget build(BuildContext context) {
               },
             ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: kPrimaryColor,
-        onPressed: () => _startNewMockDispatch(context),
+        backgroundColor: kBlueColorLogo,
+        onPressed: () => _startNewFlow(context),
         child: const Icon(Icons.add, color: Colors.white, size: 35),
       ),
     ),
@@ -82,7 +126,7 @@ Widget build(BuildContext context) {
 
   Future<void> _startNewMockDispatch(BuildContext ctx) async {
   final despachosProv = Provider.of<DespachosProvider>(ctx, listen: false);
-  final txProv        = Provider.of<TransactionsProvider>(ctx, listen: false);
+  final txProv        = Provider.of<Transaccion>(ctx, listen: false);
 
   final dispatch = DispatchControl(despachosProv);
   dispatch.seedMockAndRegister(

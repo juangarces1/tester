@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:tester/ConsoleModels/console_transaction.dart';
+import 'package:tester/Models/transaccion.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/helpers/console_api_helper.dart';
 import '../ViewModels/new_map.dart' show Fuel, HosePhysical, PositionPhysical;
@@ -34,7 +35,8 @@ class DispatchControl extends ChangeNotifier {
 
   //Modelo para Almacenar la última transacción
   ConsoleTransaction? consoleTx;
-  bool _loadingLastSale = false; 
+  Transaccion? tx;
+  bool _loadingLastSale = false;
 
   DispatchStage stage = DispatchStage.idle;
 
@@ -309,7 +311,7 @@ class DispatchControl extends ChangeNotifier {
   //Implementacion Cancelacion por tiempo
   // Nuevo Timer para vigilancia de inicio de despacho
 
- void Function(ConsoleTransaction tx)? onLastUnpaid;
+ void Function(Transaccion tx)? onLastUnpaid;
 
 
 Future<bool> retryAuthorize() async {
@@ -339,8 +341,9 @@ Future<void> _fetchLastSaleIfNeeded() async {
         amountDispense   = consoleTx?.totalValue;
         volumenDispense  = consoleTx?.totalVolume;
         price            = consoleTx?.unitPrice;
+        tx               = consoleTx?.toTransaccion();
         //Agregar la transaccion al provider
-        onLastUnpaid?.call(consoleTx!);
+        onLastUnpaid?.call(tx!);
 
       } else {
         // Deja explícito el estado “sin datos” para no mostrar valores viejos

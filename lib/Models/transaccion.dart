@@ -1,5 +1,6 @@
 class Transaccion {
   int idtransaccion = 0;
+  int numero =0;
   String fechatransaccion = "";
   int dispensador = 0;
   int idproducto = 0;
@@ -19,6 +20,7 @@ class Transaccion {
 
   Transaccion(
       {required this.idtransaccion,
+      required this.numero,
       required this.fechatransaccion,
       required this.dispensador,
       required this.idproducto,
@@ -38,6 +40,7 @@ class Transaccion {
 
   Transaccion.fromJson(Map<String, dynamic> json) {
     idtransaccion = json['idtransaccion'];
+    numero = json['numero'];
     fechatransaccion =  json['fechatransaccion'];
     dispensador = json['dispensador'];
     idproducto = json['idproducto'];
@@ -66,6 +69,7 @@ class Transaccion {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
     data['idtransaccion'] = idtransaccion;
+    data['numero'] = numero;
     data['fechatransaccion'] = fechatransaccion;
     data['dispensador'] = dispensador;
     data['idproducto'] = idproducto;
@@ -84,4 +88,8 @@ class Transaccion {
     data['subir'] = subir;
     return data;
   }
+  bool get isUnpaid =>
+      estado.toLowerCase() == 'copiado';
+  bool get isFacturada =>
+      facturada.trim().toUpperCase() == 'SI';
 }
