@@ -1,12 +1,12 @@
 
 
-import 'package:tester/Models/clientecredito.dart';
+import 'package:tester/Models/cliente.dart';
 import 'package:tester/Models/empleado.dart';
 import 'package:tester/Models/product.dart';
 
 class Peddler {
   int? id;
-  ClienteCredito? cliente;
+  Cliente? cliente;
   String? fecha;
   bool? estado;
   int? idcierre;
@@ -54,7 +54,7 @@ class Peddler {
     observaciones = json['observaciones'];
     chofer = json['chofer'];
     numFact = json['numFact'];
-    cliente = ClienteCredito.fromJson(json['cliente']);
+    cliente = Cliente.fromJson(json['cliente']);
     products = json['products'] != null
         ? (json['products'] as List).map((i) => Product.fromJson(i)).toList()
         : null;

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -235,8 +236,8 @@ static Future<Response> getLogIn(int? zona, int? cedula) async {
       }
  }
 
-static Future<Response> getClienteCredito(String id) async {      
-   var url = Uri.parse('${Constans.getAPIUrl()}/api/Users/GetClienteCredito/$id');
+static Future<Response> getClienteCredito() async {      
+   var url = Uri.parse('${Constans.getAPIUrl()}/api/Clientes/GetClientsYam');
    
     var response = await http.get(
       url,
@@ -245,17 +246,18 @@ static Future<Response> getClienteCredito(String id) async {
         'accept' : 'application/json',
       },        
     );
-    var body = response.body;
+     var body = response.body;
     if (response.statusCode >= 400) {
       return Response(isSuccess: false, message: body);
     }
-    ClienteCredito cliente = ClienteCredito();
+    List<Cliente> clientes =[];
     var decodedJson = jsonDecode(body);
-     if(decodedJson != null){      
-
-      cliente=ClienteCredito.fromJson(decodedJson);
+     if(decodedJson != null){
+      for (var item in decodedJson){
+        clientes.add(Cliente.fromJson(item));
+      }
      }
-     return Response(isSuccess: true, result: cliente);    
+     return Response(isSuccess: true, result: clientes);      
  }
 
  static Future<Response> getFactura(String id) async {      
@@ -814,7 +816,7 @@ static Future<Response> getBanks() async {
  }
 
   static Future<Response> getClienteContado() async {
-   var url = Uri.parse('${Constans.getAPIUrl()}/api/TransaccionesApi/GetClientsContado');
+   var url = Uri.parse('${Constans.getAPIUrl()}/api/Clientes/GetClientsContado');
     var response = await http.get(
       url,
       headers: {
@@ -860,7 +862,7 @@ static Future<Response> getBanks() async {
  }
 
  static Future<Response> getClientFrec(String codigo) async {      
-   var url = Uri.parse('${Constans.getAPIUrl()}/api/TransaccionesApi/GetClientFrecuente/?codigo=$codigo');
+   var url = Uri.parse('${Constans.getAPIUrl()}/api/Clientes/GetClientFrecuente/?codigo=$codigo');
    
     var response = await http.get(
       url,
@@ -882,39 +884,74 @@ static Future<Response> getBanks() async {
      return Response(isSuccess: true, result: cliente);    
  }
 
-static Future<Response> getClienteFromHacienda(String document) async {
-   
-    var url = Uri.parse('${Constans.apiHacienda}?identificacion=$document');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type' : 'application/json',
-        'accept' : 'application/json',
-      },
-     
-    );
-     var body = response.body;
-    if(response.statusCode >= 400){
-      return Response(isSuccess: false, message: body);
-    }
-     
-     Cliente cliente = Cliente(
-      nombre: "",
-      documento: document,
-      codigoTipoID: "",
-      email: "",
-      puntos: 0,
-      codigo: '',
-      telefono: '',
-      );
-     var decodedJson = jsonDecode(body);
-     if(decodedJson != null){
-       
-        cliente= Cliente.fromHaciendaJson(decodedJson);
-     }
-     cliente.documento=document;
-     return Response(isSuccess: true, result: cliente);
+
+
+  static Future<Response> getClienteFromHacienda(String document) async {
+  final doc = document.trim();
+  if (doc.isEmpty) {
+    return Response(isSuccess: false, message: 'Debe indicar un documento.');
   }
+
+  try {
+   
+      final url = Uri.parse('${Constans.getAPIUrl()}/api/Clientes/buscar/$doc');
+    final resp = await http.get(
+      url,
+      headers: const {
+        'accept': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 20));
+
+    final status = resp.statusCode;
+    final body = resp.body;
+
+    // Errores HTTP
+    if (status >= 400) {
+      String message;
+      try {
+        final j = jsonDecode(body);
+        // intenta sacar "message" del JSON si existe, si no, usa el body tal cual
+        message = (j is Map && j['message'] is String)
+            ? j['message'] as String
+            : (body.isEmpty ? 'Error $status' : body);
+      } catch (_) {
+        message = body.isEmpty ? 'Error $status' : body;
+      }
+      return Response(isSuccess: false, message: message);
+    }
+
+    if (body.isEmpty) {
+      return Response(isSuccess: false, message: 'Respuesta vacía del servidor.');
+    }
+
+    final decoded = jsonDecode(body);
+    if (decoded == null || decoded is! Map<String, dynamic>) {
+      return Response(isSuccess: false, message: 'Formato JSON inválido.');
+    }
+
+    // Compatibilidad: si viene de Hacienda (tipoIdentificacion) usa fromHaciendaJson,
+    // si viene como ClienteApi (con llaves de tu dominio), usa fromJson.
+    late Cliente cliente;
+    if (decoded.containsKey('tipoIdentificacion')) {
+      cliente = Cliente.fromHaciendaJson(decoded);
+    } else {
+      cliente = Cliente.fromJson(decoded);
+    }
+
+    // Asegura documento (el backend podría no retornarlo)
+    cliente.documento = doc;
+
+    // El backend no trae email/teléfono en este paso: los dejas vacíos para completar luego
+    cliente.email = cliente.email; // por si fromJson lo trae vacío
+    cliente.telefono = cliente.telefono;
+
+    return Response(isSuccess: true, result: cliente);
+  } on TimeoutException {
+    return Response(isSuccess: false, message: 'Tiempo de espera agotado al consultar el servicio.');
+  } catch (e) {
+    return Response(isSuccess: false, message: 'Error inesperado: $e');
+  }
+}
 
   static Future<Response> editEmail(String id, Map<String, dynamic> request) async {
         
@@ -1027,5 +1064,36 @@ static Future<Response> delete(String controller, String id) async {
      }
      return Response(isSuccess: true, result: clientes);    
  }
+
+  static Future<Response> syncActividades(String documento, {String tipoCliente = "Contado"}) async {
+      var url = Uri.parse('${Constans.getAPIUrl()}/api/Clientes/actividades/sincronizar');
+
+      final body = {
+        "numeroDocumento": documento,
+        "tipoCliente": tipoCliente,
+      };
+
+      try {
+        final response = await http.post(
+          url,
+          headers: {
+            'content-type': 'application/json',
+            'accept': 'application/json',
+          },
+          body: jsonEncode(body),
+        );
+
+        if (response.statusCode >= 400) {
+          return Response(isSuccess: false, message: response.body);
+        }
+
+        var decodedJson = jsonDecode(response.body);
+        Cliente cliente = Cliente.fromJson(decodedJson);
+
+        return Response(isSuccess: true, result: cliente);
+      } catch (e) {
+        return Response(isSuccess: false, message: "Exception: ${e.toString()}");
+      }
+  }
 }
 

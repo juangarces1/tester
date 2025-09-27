@@ -8,7 +8,7 @@ import 'package:tester/Screens/NewHome/Components/dispatch_card.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/fuel_stage_page.dart';
 import 'package:tester/ViewModels/dispatch_control.dart';
 import 'package:tester/constans.dart';
-import 'package:tester/helpers/dispatch_simulator.dart';
+
 
 class FirstPage extends StatelessWidget {
   const FirstPage({super.key});
@@ -124,27 +124,27 @@ Widget build(BuildContext context) {
 }
 
 
-  Future<void> _startNewMockDispatch(BuildContext ctx) async {
-  final despachosProv = Provider.of<DespachosProvider>(ctx, listen: false);
-  final txProv        = Provider.of<Transaccion>(ctx, listen: false);
+//   Future<void> _startNewMockDispatch(BuildContext ctx) async {
+//   final despachosProv = Provider.of<DespachosProvider>(ctx, listen: false);
+//   final txProv        = Provider.of<Transaccion>(ctx, listen: false);
 
-  final dispatch = DispatchControl(despachosProv);
-  dispatch.seedMockAndRegister(
-    despachos: despachosProv,
-    transactions: txProv,
-    useAmount: true,       // o false si prefieres volumen
-    amount: 280800,         // si useAmount=true
-    liters: 360.0,          // si useAmount=false
-    pricePerL: 780.0,
-    product: 95,
-    nozzle: 1,
-    type: InvoiceType.credito,   
-  );
+//   final dispatch = DispatchControl(despachosProv);
+//   dispatch.seedMockAndRegister(
+//     despachos: despachosProv,
+//     transactions: txProv,
+//     useAmount: true,       // o false si prefieres volumen
+//     amount: 280800,         // si useAmount=true
+//     liters: 360.0,          // si useAmount=false
+//     pricePerL: 780.0,
+//     product: 95,
+//     nozzle: 1,
+//     type: InvoiceType.credito,   
+//   );
 
-  ScaffoldMessenger.of(ctx).showSnackBar(
-    const SnackBar(content: Text('Despacho mock listo (unpaid)')),
-  );
-}
+//   ScaffoldMessenger.of(ctx).showSnackBar(
+//     const SnackBar(content: Text('Despacho mock listo (unpaid)')),
+//   );
+// }
 
   Future<void> _startNewFlow(BuildContext ctx) async {
     final despachosProv = Provider.of<DespachosProvider>(ctx, listen: false);

@@ -7,6 +7,7 @@ class TransParcial {
   String cuenta = "";
   String numeroDeposito = "";
   String cliente = "";
+  String banco ="";
   
  
  
@@ -17,6 +18,7 @@ class TransParcial {
     required this.cuenta, 
     required this.numeroDeposito,  
     required this.cliente,  
+    required this.banco
     
   });
 
@@ -27,6 +29,7 @@ class TransParcial {
     cuenta = json['cuenta']; 
     numeroDeposito = json['numeroDeposito']; 
      cliente = json['cliente']; 
+     banco=json['banco']; 
   }
 
   
@@ -38,7 +41,9 @@ class TransParcial {
     data['aplicado'] = aplicado;   
     data['cuenta'] = cuenta; 
     data['numeroDeposito'] = numeroDeposito;     
-     data['cliente'] = cliente;     
+     data['cliente'] = cliente;  
+      data['banco'] = banco;    
+      
     return data;
   }
 }

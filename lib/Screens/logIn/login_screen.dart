@@ -1,16 +1,13 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:provider/provider.dart';                    // sin alias ahora
 import 'package:tester/Components/default_button.dart';
 import 'package:tester/Components/loader_component.dart';
-import 'package:tester/Components/shiny_logo.dart';
-import 'package:tester/ConsoleModels/auth_service.dart';
 import 'package:tester/ConsoleModels/console_user.dart';
 import 'package:tester/Models/LogIn/estado_login.dart';
 import 'package:tester/Models/all_fact.dart';
 import 'package:tester/Models/cart.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
-
 import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/map_provider.dart';         // <-- mapa clásico
 import 'package:tester/Providers/usuario_provider.dart';
@@ -18,10 +15,7 @@ import 'package:tester/Screens/NewHome/new_home_screen.dart';
 import 'package:tester/Screens/logIn/invent_screen.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
-import 'package:tester/helpers/console_api_helper.dart';
 import 'package:tester/sizeconfig.dart';
-import 'package:provider/provider.dart';                    // sin alias ahora
-import 'package:http/http.dart' as http;                    // <-- NUEVO: http para CoreWebAPI
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -336,7 +330,7 @@ class _LoginScreenState extends State<LoginScreen>
       Fluttertoast.showToast(msg: 'No se pudo cargar la configuración de la estación: $e');
       return;
     }
-    setState(() => _showLoader = false);
+   
 
     // Manejo de factura
     final AllFact factura = response.result;
@@ -345,6 +339,23 @@ class _LoginScreenState extends State<LoginScreen>
       return goInvent(factura.cierreActivo!.cajero.cedulaEmpleado);
     }
 
+     final clienteProv = Provider.of<ClienteProvider>(context, listen: false);
+
+
+       final responseClienteContado = await ApiHelper.getClienteContado();
+       if (responseClienteContado.isSuccess){
+           clienteProv.setClientesContado(responseClienteContado.result);
+        
+       }
+
+       
+       final responseClienteCredito = await ApiHelper.getClienteCredito();
+       if (responseClienteCredito.isSuccess){
+           clienteProv.setClientesCredito(responseClienteCredito.result);
+        
+       }
+
+    setState(() => _showLoader = false);
     // Inicializar datos locales
     factura.cart = Cart(products: [], numOfItem: 0);
     factura.placa = '';
@@ -356,11 +367,11 @@ class _LoginScreenState extends State<LoginScreen>
       factura.lasTr = factura.transacciones.first.transaccion;
     }
 
+
+
     // Clientes (usando provider clásico)
-    final clienteProv = Provider.of<ClienteProvider>(context, listen: false);
-    clienteProv.setClientesContado(factura.clientesFacturacion);
-    clienteProv.setClientesCredito(factura.clientesCredito);
-    clienteProv.setClientesOromo(factura.clientesPromo);
+   
+   
 
     
 

@@ -484,8 +484,8 @@ Widget _crearBotonOpcion(BuildContext context, String texto, Invoice invoice, Co
         Navigator.of(context).pop();
     
          final facturasProvider = Provider.of<FacturasProvider>(context, listen: false);
-            facturasProvider.facturas.add(invoice);
-           int index = facturasProvider.facturas.indexOf(invoice);
+            
+         int index = facturasProvider.addInvoice(invoice);
     
         // Navegar al widget correspondiente con la nueva factura
         if (texto == 'Contado') {

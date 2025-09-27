@@ -11,6 +11,7 @@ import 'package:tester/Components/client_points.dart';
 import 'package:tester/Components/default_button.dart';
 import 'package:tester/Components/form_pago.dart';
 import 'package:tester/Components/loader_component.dart';
+import 'package:tester/Components/show_actividad_select.dart';
 import 'package:tester/Components/show_client.dart';
 import 'package:tester/Components/show_email.dart';
 import 'package:tester/Models/Facturaccion/factura_service.dart';
@@ -412,21 +413,33 @@ class _ContadoScreenState extends State<ContadoScreen> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Email
-                  (factura.formPago!.clienteFactura.nombre.isNotEmpty)
-                      ? _panel(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            child: ShowEmail(
-                              email: factura.formPago!.clienteFactura.email,
-                              backgroundColor: _surface,
-                            ),
-                          ),
-                        )
-                      : const SizedBox.shrink(),
+                  // // Email
+                  // (factura.formPago!.clienteFactura.nombre.isNotEmpty)
+                  //     ? _panel(
+                  //         child: Padding(
+                  //           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  //           child: ShowEmail(
+                  //             email: factura.formPago!.clienteFactura.email,
+                  //             backgroundColor: _surface,
+                  //           ),
+                  //         ),
+                  //       )
+                  //     : const SizedBox.shrink(),
+
+                    // Actividad
+                  // (factura.formPago!.clienteFactura.actividadSeleccionada != null)
+                  //     ? _panel(
+                  //         child: Padding(
+                  //           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  //           child: ShowActividadSelect(
+                  //             actividad: factura.formPago!.clienteFactura.actividadSeleccionada!,                          
+                  //           ),
+                  //         ),
+                  //       )
+                  //     : const SizedBox.shrink(),   
 
                   const SizedBox(height: 10),
-                  _panel(child: showkms()),
+                //  _panel(child: showkms()),
                   const SizedBox(height: 10),
                   _panel(child: showPlaca()),
                   const SizedBox(height: 10),

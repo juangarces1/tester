@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:http/http.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Models/Facturaccion/factura_service.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
+import 'package:tester/Models/cliente.dart';
 import 'package:tester/Models/clientecredito.dart';
 import 'package:tester/Models/response.dart';
 import 'package:tester/Providers/clientes_provider.dart';
@@ -29,8 +31,8 @@ class ClientesNewCredito extends StatefulWidget {
 
 class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<ClienteCredito> _users = [];
-  final List<ClienteCredito> _filterUsers = [];
+  List<Cliente> _users = [];
+  final List<Cliente> _filterUsers = [];
    String emailSeleccionado='';
   bool showLoader =false;
   String _searchNombre = '';
@@ -229,7 +231,7 @@ class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTicke
 
      
    for (var cliente in _users) {
-        if (cliente.nombre!.toLowerCase().contains(_searchNombre.toLowerCase())) {
+        if (cliente.nombre.toLowerCase().contains(_searchNombre.toLowerCase())) {
           _filterUsers.add(cliente);
         }
       }
@@ -249,7 +251,7 @@ class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTicke
    });
   
    for (var cliente in _users) {
-      if (cliente.codigo!.contains(_searchDocument)) {
+      if (cliente.codigo.contains(_searchDocument)) {
         _filterUsers.add(cliente);
       }
     }
@@ -308,15 +310,15 @@ class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTicke
   );
 }
 
-   void _goInfoUser(ClienteCredito clienteSel, Invoice facturaC) async {   
+   void _goInfoUser(Cliente clienteSel, Invoice facturaC) async {   
     clienteSel.placas ?? [];
     facturaC.formPago!.clienteCredito=clienteSel;    
     FacturaService.updateFactura(context, facturaC);
     Navigator.of(context).pop();    
   }
    
-  void mostrarEditarEmailDialog(ClienteCredito cliente, int clienteIndex) {
-    String emailTemporal = cliente.email!;
+  void mostrarEditarEmailDialog(Cliente cliente, int clienteIndex) {
+    String emailTemporal = cliente.email;
 
     showDialog(
       context: context,
@@ -361,12 +363,12 @@ class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTicke
         return;
       }
       if (nuevoEmail != null && nuevoEmail.isNotEmpty) {
-        actualizarEmailCliente(clienteIndex, nuevoEmail, cliente.email!);
+        actualizarEmailCliente(clienteIndex, nuevoEmail, cliente.email);
       }
     });
   }
 
-  void mostrarAgregarEmailDialog(ClienteCredito cliente, int clienteIndex) {
+  void mostrarAgregarEmailDialog(Cliente cliente, int clienteIndex) {
     String emailTemporal = "";
 
     showDialog(
@@ -428,8 +430,8 @@ class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTicke
     if( nuevoEmail == emailAntiguo){
       return;
     }
-     ClienteCredito cliente = _filterUsers[clienteIndex];
-      bool go = await _editEmail(nuevoEmail, emailAntiguo, cliente.codigo!);
+     Cliente cliente = _filterUsers[clienteIndex];
+      bool go = await _editEmail(nuevoEmail, emailAntiguo, cliente.codigo);
     if (go){
         setState(() {   
           cliente.email = nuevoEmail;
@@ -448,7 +450,7 @@ class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTicke
   }
 
 
-  Widget cardClienteNuevo(ClienteCredito e, Invoice facturaC, int index) {
+  Widget cardClienteNuevo(Cliente e, Invoice facturaC, int index) {
   
   return Card(
     color: kContrateFondoOscuro,
@@ -530,7 +532,7 @@ class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTicke
               child: IconButton(
                 icon: const Icon(Icons.refresh, color: kBlueColorLogo),
                 onPressed: () {
-                _getEmails(e.codigo!, index);
+                _getEmails(e.codigo, index);
                 },
               ),
               ),
@@ -577,7 +579,7 @@ class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTicke
     });
 
     
-    Response response = await ApiHelper.getEmailsBy(codigo);
+    var response = await ApiHelper.getEmailsBy(codigo);
 
     setState(() {
       showLoader = false;
@@ -636,7 +638,7 @@ class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTicke
       };
     
     
-    Response response = await ApiHelper.editEmail(codigo, request);
+    var response = await ApiHelper.editEmail(codigo, request);
 
     setState(() {
       showLoader = false;
@@ -682,7 +684,7 @@ class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTicke
       };
     
     
-    Response response = await ApiHelper.post('api/Users', request);
+    var response = await ApiHelper.post('api/Users', request);
 
     setState(() {
       showLoader = false;
@@ -716,8 +718,8 @@ class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTicke
   
   void agregarEmail(int clienteIndex, nuevoEmail) async {
    
-     ClienteCredito cliente = _filterUsers[clienteIndex];
-      bool go = await _addEmail(nuevoEmail, cliente.codigo!);
+     Cliente cliente = _filterUsers[clienteIndex];
+      bool go = await _addEmail(nuevoEmail, cliente.codigo);
     if (go){
         setState(() {   
           cliente.email = nuevoEmail;    

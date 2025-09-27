@@ -5,7 +5,9 @@ class Transferview {
   int saldo = 0;
   String numeroDeposito = ""; 
   int monto = 0;
- 
+  String banco ="";
+  
+
   Transferview({
     required this.cliente,
     required this.id,   
@@ -13,6 +15,7 @@ class Transferview {
     required this.saldo,
     required this.numeroDeposito, 
     required this.monto, 
+    required this.banco
 
   });
 
@@ -23,6 +26,7 @@ class Transferview {
     saldo = json['saldo'];
     numeroDeposito = json['numeroDeposito']; 
     monto = json['monto']; 
+    banco= json['banco']; 
   }
 
   
@@ -34,7 +38,8 @@ class Transferview {
     data['cuenta'] = cuenta;   
     data['saldo'] = saldo; 
     data['numeroDeposito'] = numeroDeposito;     
-    data['monto'] = monto;     
+    data['monto'] = monto;    
+    data['banco'] = banco;   
     return data;
   }
 }

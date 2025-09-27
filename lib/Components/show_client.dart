@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
-import 'package:tester/Screens/clientes/cliestes_new_screen.dart';
+import 'package:tester/Screens/clientes/cliestes_new_screen.dart'; // verifica el nombre real del archivo
 import 'package:tester/constans.dart';
-import 'package:tester/sizeconfig.dart';
-
 
 class ShowClient extends StatefulWidget {
   final Invoice factura;
   final String ruta;
   final EdgeInsets? padding;
+
   const ShowClient({
-      super.key,
-      required this.factura,
-      required this.ruta,
-      this.padding,
-     });
+    super.key,
+    required this.factura,
+    required this.ruta,
+    this.padding,
+  });
 
   @override
   State<ShowClient> createState() => _ShowClientState();
@@ -24,76 +23,67 @@ class ShowClient extends StatefulWidget {
 class _ShowClientState extends State<ShowClient> {
   @override
   Widget build(BuildContext context) {
-    return Container(
-       padding:  widget.padding ?? const EdgeInsets.all(0),
-       decoration: BoxDecoration(border: Border.all(color: Colors.white), borderRadius: BorderRadius.circular(10)),
-      child: InkWell(
-        onTap: () => _showNewCliente(context),
-        child: Container(        
-          decoration: const BoxDecoration(color: kColorFondoOscuro,
-             borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(10),
-            topRight: Radius.circular(10),
-            bottomLeft: Radius.circular(10),
-            bottomRight: Radius.circular(10),
-    
-          ),),
-          
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            mainAxisSize: MainAxisSize.max,        
-            children: [                   
-              Container(
-                padding: const EdgeInsets.all(10),
-                height: 50,
-                width: getProportionateScreenWidth(40),
-                decoration: const BoxDecoration(
-                  color: kContrateFondoOscuro,
-                    borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(10),
-                    topRight: Radius.circular(3),
-                  ),
-                ),
-                child: SvgPicture.asset(
-                  "assets/User Icon.svg", 
-                  // ignore: deprecated_member_use
-                  color: widget.factura.formPago!.clienteFactura.nombre == '' ? kTextColorBlack 
-                  : kPrimaryColor,),
-                  
+    final nombre = (widget.factura.formPago?.clienteFactura.nombre ?? '').trim();
+    final hasCliente = nombre.isNotEmpty;
+
+    // Compacto, sin contenedor externo, solo NOMBRE
+    return Padding(
+      padding: widget.padding ?? EdgeInsets.zero,
+      child: Material(
+        color: kColorFondoOscuro,
+        borderRadius: BorderRadius.circular(10),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: _goClientes,
+          borderRadius: BorderRadius.circular(10),
+          child: ListTile(
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            leading: _leadingAvatar(hasCliente),
+            title: Text(
+              hasCliente ? nombre : "Seleccione un cliente",
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: kContrateFondoOscuro,
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(width: 10,),        
-              Flexible(
-                child: Text(
-                  widget.factura.formPago!.clienteFactura.nombre == "" ? "Seleccione Un Cliente" :  widget.factura.formPago!.clienteFactura.nombre,
-                    style:  const TextStyle(
-                    color: kContrateFondoOscuro),),
-              ),
-             
-             
-             
-            ],
+            ),
+            trailing: const Icon(Icons.chevron_right, color: kContrateFondoOscuro),
           ),
         ),
       ),
     );
   }
 
-void _showNewCliente(context) async {
-
-  _goClientes();
-}
-
-
- void _goClientes() {
- 
-     Navigator.push(context,  
-       MaterialPageRoute(
-         builder: 
-         (context) => ClientesNewScreen(factura: widget.factura,ruta: widget.ruta,)
-       )
-     );
+  Widget _leadingAvatar(bool hasCliente) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: const BoxDecoration(
+        color: kContrateFondoOscuro,
+        shape: BoxShape.circle,
+      ),
+      padding: const EdgeInsets.all(8),
+      child: SvgPicture.asset(
+        "assets/User Icon.svg",
+        // ignore: deprecated_member_use
+        color: hasCliente ? kPrimaryColor : kTextColorBlack,
+      ),
+    );
   }
 
-
-  
+  Future<void> _goClientes() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ClientesNewScreen(
+          factura: widget.factura,
+          ruta: widget.ruta,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    setState(() {}); // refresca el nombre si cambió en la factura
+  }
 }

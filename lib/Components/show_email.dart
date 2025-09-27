@@ -1,59 +1,62 @@
 import 'package:flutter/material.dart';
-import 'package:tester/constans.dart';
 import 'package:tester/sizeconfig.dart';
 
-class ShowEmail extends StatefulWidget {
+class ShowEmail extends StatelessWidget {
   final String? email;
   final Color? backgroundColor;
-  const ShowEmail({super.key, this.email, this.backgroundColor});
 
-  @override
-  State<ShowEmail> createState() => _ShowEmailState();
-}
+  const ShowEmail({
+    super.key,
+    this.email,
+    this.backgroundColor,
+  });
 
-class _ShowEmailState extends State<ShowEmail> {
+  bool get _isEmpty => (email == null || email!.trim().isEmpty);
+
   @override
   Widget build(BuildContext context) {
-    return Container(        
-          decoration:   BoxDecoration( color: widget.backgroundColor ??  const Color.fromARGB(255, 9, 36, 67),
-           
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(10),
-            topRight: Radius.circular(10),
-            bottomLeft: Radius.circular(10),
-            bottomRight: Radius.circular(10),
-            
-         
-          ),),
-    
-          
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            mainAxisSize: MainAxisSize.max,        
-            children: [                   
-               Container(
-                padding: const EdgeInsets.all(10),
-                height: 50,
-                width: getProportionateScreenWidth(50),
-                decoration: const BoxDecoration(
-                  // Resto del código...
-                ),
-                child: Image.asset( // Aquí es donde cambias a Image.asset
-                  "assets/email.png", // Cambia la ruta del archivo a la imagen correspondiente
-                 fit: BoxFit.cover, // Puedes ajustar cómo se muestra la imagen con BoxFit
-                ),
+    final bg = backgroundColor ?? const Color(0xFF0A2A43);
+
+    return Container(
+      // Alto más bajo y padding mínimo: compacto de verdad
+       width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 36),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Icono pequeño y cuadrado
+          SizedBox(
+            height: 20,
+            width: getProportionateScreenWidth(20),
+            child: FittedBox(
+              fit: BoxFit.contain,
+              child: Image.asset(
+                "assets/email.png",
+                errorBuilder: (_, __, ___) => const Icon(Icons.email_outlined, size: 18, color: Colors.white70),
               ),
-              const SizedBox(width: 10,),        
-              Flexible(
-                child: Text(
-                   widget.email??'',
-                    style:  const TextStyle(
-                    color: Colors.white),),
-              ),
-              
-             
-            ],
+            ),
           ),
-        );
+          const SizedBox(width: 6),
+          // Texto en una sola línea, con elipsis
+          Flexible(
+            child: Text(
+              _isEmpty ? '—' : email!.trim(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,           // más pequeño
+                height: 1.1,            // compacta el interlineado
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

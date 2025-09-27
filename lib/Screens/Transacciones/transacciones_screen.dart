@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/tranascciones_provider.dart';
 import 'package:tester/Screens/Transacciones/Components/tx_app_bar.dart';
 
@@ -7,9 +8,12 @@ import 'package:tester/constans.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
 import 'package:tester/Models/transaccion.dart';
+import 'package:tester/helpers/api_helper.dart';
+import 'package:tester/Models/response.dart'; // si ya lo usas en el proyecto
 
 
-enum TxFilter { copiado, efectivo, credito }
+
+enum TxFilter { copiado, efectivo, credito, facturadas, noFacturadas }
 
 class TransaccionesScreen extends StatefulWidget {
   const TransaccionesScreen({super.key});
@@ -20,18 +24,66 @@ class TransaccionesScreen extends StatefulWidget {
 
 class _TransaccionesScreenState extends State<TransaccionesScreen> {
   TxFilter _filter = TxFilter.copiado;
+  bool _bootstrapped = false;
+  bool _loading = false;
+  String? _error;
 
-  @override
+ @override
+  void initState() {
+    super.initState();
+    // Bootstrap después del primer frame para no disparar en build()
+    WidgetsBinding.instance.addPostFrameCallback((_) => _bootstrapIfNeeded());
+  }
+
+  Future<void> _bootstrapIfNeeded() async {
+    if (_bootstrapped) return;
+    final prov = context.read<TransaccionesProvider>();
+    if (prov.items.isEmpty) {
+      await _fetchFromBackend();
+    }
+    _bootstrapped = true;
+  }
+
+  Future<void> _fetchFromBackend() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+
+      final cierreProv = context.read<CierreActivoProvider>();
+      final int? cierre = cierreProv.cierreFinal?.idcierre;
+
+      // ⬇️ AJUSTA esta llamada al método real en tu ApiHelper
+      // por ejemplo: final resp = await ApiHelper.getTransaccionesUsuarioTurno(...);
+      final Response resp = await ApiHelper.getTransaccionesByCierre(cierre); 
+
+      if (!resp.isSuccess) {
+        setState(() => _error = resp.message ?? 'No se pudo cargar transacciones.');
+        return;
+      }
+
+      final list  = resp.result;
+
+      // ⬇️ AJUSTA el método del provider que reemplace la lista
+      // p. ej. prov.replaceAll(list) / prov.setItems(list) / prov.load(list)
+      context.read<TransaccionesProvider>().setAll(list); 
+    } catch (e) {
+      setState(() => _error = 'Error: $e');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+    @override
   Widget build(BuildContext context) {
     final prov = context.watch<TransaccionesProvider>();
 
     final List<Transaccion> items = switch (_filter) {
-      TxFilter.copiado   => prov.items.where((t) => t.estado == 'copiado').toList(),
-      TxFilter.efectivo  => prov.items.where((t) => t.estado == 'efectivo').toList(),
-      TxFilter.credito    => prov.items.where((t) => t.estado == 'credito').toList(),
+      TxFilter.copiado   => prov.items.where((t) => t.estado == 'Copiado').toList(),
+      TxFilter.efectivo  => prov.items.where((t) => t.estado == 'Efectivo').toList(),
+      TxFilter.credito   => prov.items.where((t) => t.estado == 'Credito').toList(),
+      TxFilter.facturadas   => prov.items.where((t) => t.facturada != 'no').toList(),
+      TxFilter.noFacturadas   => prov.items.where((t) => t.facturada == 'no').toList(),
     };
 
-    // Contadores (con select para evitar rebuilds gordos, si quieres)
     final countAll    = prov.length;
     final countUnpaid = prov.unpaid.length;
 
@@ -69,15 +121,47 @@ class _TransaccionesScreenState extends State<TransaccionesScreen> {
               onChanged: (f) => setState(() => _filter = f),
             ),
             const SizedBox(height: 10),
+
+            // ---- Contenido con RefreshIndicator / Loading / Error ----
             Expanded(
-              child: items.isEmpty
-                  ? const _EmptyState()
-                  : ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemCount: items.length,
-                      itemBuilder: (_, i) => _TxCard(tx: items[i]),
-                    ),
+              child: RefreshIndicator(
+                onRefresh: _fetchFromBackend,
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : (_error != null)
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              const SizedBox(height: 60),
+                              Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                                  child: Column(
+                                    children: [
+                                      Text(_error!, style: const TextStyle(color: Colors.white70)),
+                                      const SizedBox(height: 12),
+                                      OutlinedButton(
+                                        onPressed: _fetchFromBackend,
+                                        child: const Text('Reintentar'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : (items.isEmpty
+                            ? ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                children: const [SizedBox(height: 80), _EmptyState()],
+                              )
+                            : ListView.separated(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                                itemCount: items.length,
+                                itemBuilder: (_, i) => _TxCard(tx: items[i]),
+                              )),
+              ),
             ),
           ],
         ),
@@ -121,6 +205,11 @@ class _FiltersRow extends StatelessWidget {
           chip('Credito', TxFilter.credito),
           const SizedBox(width: 8),
           chip('Efectivo', TxFilter.efectivo),
+           const SizedBox(width: 8),
+          chip('Facturadas', TxFilter.facturadas),
+           const SizedBox(width: 8),
+          chip('No Facturadas', TxFilter.noFacturadas),
+
         ],
       ),
     );

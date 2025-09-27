@@ -1,23 +1,27 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:tester/Components/loader_component.dart';
+import 'package:provider/provider.dart';
+
 import 'package:tester/Models/Facturaccion/factura_service.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/cliente.dart';
-import 'package:tester/Models/response.dart';
 import 'package:tester/Providers/clientes_provider.dart';
+import 'package:tester/Screens/clientes/cliente_card.dart';
 import 'package:tester/Screens/clientes/clientes_add_screem.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
-import 'package:provider/provider.dart';
 
+enum SearchMode { nombre, documento }
 
 class ClientesNewScreen extends StatefulWidget {
-  final Invoice factura; 
+  final Invoice factura;
   final String ruta;
 
-  const ClientesNewScreen({   
+  const ClientesNewScreen({
     super.key,
     required this.factura,
     required this.ruta,
@@ -27,99 +31,132 @@ class ClientesNewScreen extends StatefulWidget {
   ClientesNewScreenState createState() => ClientesNewScreenState();
 }
 
-class ClientesNewScreenState extends State<ClientesNewScreen> with SingleTickerProviderStateMixin {
+class ClientesNewScreenState extends State<ClientesNewScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-   List<Cliente> _users = [];
-   final List<Cliente> _filterUsers = [];
-   String emailSeleccionado='';
-  bool showLoader =false;  
-  String _searchNombre = '';
-  String _searchDocument = '';
-  bool _isFiltered = false; 
- 
+
+  // Resultados visibles
+  final List<Cliente> _filterUsers = [];
+
+  // Búsqueda
+  SearchMode _mode = SearchMode.nombre;
+  final TextEditingController _queryCtrl = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
+  Timer? _debounce;
+  final List<String> _recent = [];
+  static const int _minLenName = 3;
+  static const int _minLenDoc = 4;
+
+  // Estado por ID (no por índice)
+  final Set<String> _busyIds = <String>{};
+  final Map<String, String> _statusById = <String, String>{};
+
+  bool _isFiltered = false;
+
+  String _norm(String s) => s.toLowerCase().trim();
+
+  // Para forzar reconstrucción limpia de la lista entre búsquedas
+  Key _resultsListKey = UniqueKey();
+
   TextStyle baseStyle = const TextStyle(
-    fontStyle: FontStyle.normal, 
+    fontStyle: FontStyle.normal,
     fontSize: 20,
-    fontWeight: FontWeight.bold, 
-    color: Colors.white
+    fontWeight: FontWeight.bold,
+    color: Colors.white,
   );
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    // Aquí va tu lógica inicial...
-        final clienteProvider = Provider.of<ClienteProvider>(context, listen: false);
-    setState(() {
-     _users=clienteProvider.clientesContado;
-        
-   });
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging && _tabController.index == 1) {
+        _hideKeyboard();
+      }
+    });
+
+    // Precarga de clientes
+    Future.microtask(() {
+      context.read<ClienteProvider>().getClientes();
+    });
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
+    _queryCtrl.dispose();
+    _searchFocus.dispose();
     _tabController.dispose();
     super.dispose();
   }
 
+  // ID estable para cada cliente
+  String _idOf(Cliente c) {
+    final codigo = (c.codigo ?? '').trim();
+    if (codigo.isNotEmpty) return codigo;
+    return c.documento.trim();
+  }
+
+  void _hideKeyboard() {
+    FocusScope.of(context).unfocus();
+    SystemChannels.textInput.invokeMethod('TextInput.hide');
+  }
+
   @override
   Widget build(BuildContext context) {
-   
     return SafeArea(
-   
       child: Scaffold(
-        appBar:  AppBar(
+        appBar: AppBar(
           backgroundColor: kPrimaryColor,
           elevation: 6.0,
           shadowColor: Colors.white,
-
-            title:  Text('Cliente Contado', style: baseStyle,),
-            
-            leading: Padding(
-                    padding: const EdgeInsets.all(8.0), // Adjust padding as needed
-                    child: TextButton(
-               style: TextButton.styleFrom(
-                 shape: RoundedRectangleBorder(     
-                   borderRadius: BorderRadius.circular(60),
-                 ),                 
-                
-                 backgroundColor: Colors.white,
-                 padding: EdgeInsets.zero,
-               ),
-               onPressed: () {
-                   Navigator.of(context).pop();
-               },      
-               child: SvgPicture.asset(
-                 "assets/Back ICon.svg",
-                 height: 15,
-                 // ignore: deprecated_member_use
-                 color: kPrimaryColor,
-               ),
-             ),),
-         
-            actions: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: ClipOval(child:  Image.asset(
-                    'assets/splash.png',
-                    width: 30,
-                    height: 30,
-                    fit: BoxFit.cover,
-                  ),), // Ícono de perfil de usuario
+          title: Text('Cliente Contado', style: baseStyle),
+          leading: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextButton(
+              style: TextButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(60)),
+                backgroundColor: Colors.white,
+                padding: EdgeInsets.zero,
               ),
-            ],
-            bottom:  TabBar(
-              indicatorColor: Colors.white,
-              controller: _tabController,
-              labelColor: Colors.white, // Color for selected tab
-              unselectedLabelColor: Colors.grey, // Color for unselected tabs
-              tabs:  const [
-                Tab(text: 'Buscar Por'),
-                Tab(text: 'Resultados'),
-              ],
+              onPressed: () => Navigator.of(context).pop(),
+              child: SvgPicture.asset(
+                "assets/Back ICon.svg",
+                height: 15,
+                color: kPrimaryColor,
+              ),
             ),
           ),
-
+          actions: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/splash.png',
+                  width: 30,
+                  height: 30,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ],
+          bottom: TabBar(
+            indicatorColor: Colors.white,
+            controller: _tabController,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.grey,
+            onTap: (i) {
+              if (i == 0) {
+                // Si el usuario regresa a "Buscar Por", resetea la key para evitar reuso extraño
+                setState(() => _resultsListKey = UniqueKey());
+              } else {
+                _hideKeyboard();
+              }
+            },
+            tabs: const [Tab(text: 'Buscar Por'), Tab(text: 'Resultados')],
+          ),
+        ),
         body: TabBarView(
           controller: _tabController,
           children: [
@@ -130,606 +167,621 @@ class ClientesNewScreenState extends State<ClientesNewScreen> with SingleTickerP
             ),
           ],
         ),
-
         floatingActionButton: FloatingActionButton(
           backgroundColor: kPrimaryColor,
-          onPressed: () => _goAdd(),
-          child: const Icon(Icons.add,
-           color: Colors.white,
-           size: 30,
-           ),
-        ),            
+          onPressed: _goAdd,
+          child: const Icon(Icons.add, color: Colors.white, size: 30),
+        ),
       ),
     );
-  } 
- 
+  }
+
+  // =========================
+  // Pestaña de búsqueda
+  // =========================
   Widget _buildFilterTab() {
-  return SizedBox(
-    width: double.infinity, // Ocupa todo el ancho disponible
-    child: Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-         
-           Align(
-            alignment: Alignment.topLeft,
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: '# Documento',
-                     
-                    ),
-                    onChanged: (value) {
-                      _searchDocument = value;
-                    },
-                  ),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: kPrimaryColor,
-                      elevation: 5.0,
-                    ),
-                    onPressed: _filterByDocument, 
-                    child: const Text('Buscar'),
-                  ),
-                ),
+    final isDoc = _mode == SearchMode.documento;
 
-                
-              ],
-            ),
-            
-            
-          ),
-           Align(
-            alignment: Alignment.topLeft,
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    keyboardType: TextInputType.name,
-                    decoration: const InputDecoration(
-                      labelText: 'Nombre',
-                      
-                    ),
-                    onChanged: (value) {
-                      _searchNombre = value;
-                    },
+    return SizedBox(
+      width: double.infinity,
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: SegmentedButton<SearchMode>(
+                segments: const [
+                  ButtonSegment(
+                    value: SearchMode.nombre,
+                    label: Text('Nombre'),
+                    icon: Icon(Icons.person_search),
                   ),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: ElevatedButton(
-                     style: ElevatedButton.styleFrom(
-                      foregroundColor: kPrimaryColor,
-                      elevation: 5.0,
-                    ),
-                    onPressed: _filterByName, 
-                    child: const Text('Buscar'),
+                  ButtonSegment(
+                    value: SearchMode.documento,
+                    label: Text('Documento'),
+                    icon: Icon(Icons.badge_outlined),
                   ),
+                ],
+                selected: {_mode},
+                onSelectionChanged: (set) {
+                  setState(() {
+                    _mode = set.first;
+                    _queryCtrl.clear();
+                    _filterUsers.clear();
+                    _isFiltered = false;
+                    _resultsListKey = UniqueKey();
+                  });
+                },
+                style: ButtonStyle(
+                  backgroundColor:
+                      WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected)
+                          ? kPrimaryColor.withOpacity(0.15)
+                          : null),
+                  foregroundColor:
+                      WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected)
+                          ? kPrimaryColor
+                          : Colors.black),
                 ),
-              ],
+              ),
             ),
-            
-          ),
-        ],
+            const SizedBox(height: 12),
+
+            // Barra de búsqueda
+            TextField(
+              focusNode: _searchFocus,
+              controller: _queryCtrl,
+              autofocus: true,
+              textInputAction: TextInputAction.search,
+              keyboardType: isDoc ? TextInputType.number : TextInputType.name,
+              inputFormatters: isDoc ? [FilteringTextInputFormatter.digitsOnly] : null,
+              onChanged: _onQueryChanged,
+              onSubmitted: (_) {
+                _hideKeyboard();
+                _performSearch(force: true);
+              },
+              decoration: InputDecoration(
+                hintText: isDoc ? 'Digite # de documento' : 'Nombre del cliente',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_queryCtrl.text.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          setState(() {
+                            _queryCtrl.clear();
+                            _filterUsers.clear();
+                            _isFiltered = false;
+                            _resultsListKey = UniqueKey();
+                          });
+                        },
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.arrow_forward),
+                      onPressed: () {
+                        _hideKeyboard();
+                        _performSearch(force: true);
+                      },
+                    ),
+                  ],
+                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+
+            // Búsquedas recientes
+            if (_recent.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: _recent
+                    .map((q) => ActionChip(
+                          label: Text(q, overflow: TextOverflow.ellipsis),
+                          avatar: const Icon(Icons.history, size: 16),
+                          onPressed: () {
+                            _queryCtrl.text = q;
+                            _hideKeyboard();
+                            _performSearch(force: true);
+                          },
+                        ))
+                    .toList(),
+              ),
+            ],
+
+            // Ayuda
+            const SizedBox(height: 12),
+            Text(
+              _mode == SearchMode.nombre
+                  ? 'Tip: escribe al menos $_minLenName letras para filtrar por nombre.'
+                  : 'Tip: escribe al menos $_minLenDoc dígitos para filtrar por documento.',
+              style: TextStyle(color: Colors.white.withOpacity(0.7)),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
-  void _filterByName() {
-      setState(() {
-         _isFiltered=true;
-         _filterUsers.clear();
-      });
+  void _onQueryChanged(String _) {
+    // Rebuild para mostrar/ocultar el botón de limpiar en el suffixIcon
+    setState(() {});
+    _debounce?.cancel();
+    // Ajusta el delay a tu público objetivo (300–500ms). Aquí: 400ms.
+    _debounce = Timer(const Duration(milliseconds: 1000), () => _performSearch());
+  }
 
-     
-   for (var cliente in _users) {
-        if (cliente.nombre.toLowerCase().contains(_searchNombre.toLowerCase())) {
-          _filterUsers.add(cliente);
-        }
-      }
-   if (_filterUsers.isNotEmpty) {
+  void _performSearch({bool force = false}) {
+    final q = _queryCtrl.text.trim();
+
+    // reglas mínimas
+    if (!force) {
+      if (_mode == SearchMode.nombre && q.length < _minLenName) {
         setState(() {
-         _filterUsers;
-        
+          _isFiltered = false;
+          _filterUsers.clear();
+          _resultsListKey = UniqueKey();
         });
-       _tabController.animateTo(1);
-    } 
-   }
-
-  void _filterByDocument() {
-   setState(() {
-    _isFiltered=true;
-    _filterUsers.clear();
-   });
-  
-   for (var cliente in _users) {
-      if (cliente.documento.contains(_searchDocument)) {
-        _filterUsers.add(cliente);
+        return;
+      }
+      if (_mode == SearchMode.documento && q.length < _minLenDoc) {
+        setState(() {
+          _isFiltered = false;
+          _filterUsers.clear();
+          _resultsListKey = UniqueKey();
+        });
+        return;
+      }
+    } else {
+      if ((_mode == SearchMode.nombre && q.length < _minLenName) ||
+          (_mode == SearchMode.documento && q.length < _minLenDoc)) {
+        return;
       }
     }
- 
-   if (_filterUsers.isNotEmpty) {
-        setState(() {
-         _filterUsers;
-        });
-       _tabController.animateTo(1);
-    } 
-   }
-   
-  Widget _getContent() {
-    return _filterUsers.isEmpty 
-      ? _noContent()
-      : _getListView();
+
+    final clientes = context.read<ClienteProvider>().clientesContado;
+
+   // 👇 Comparación case-insensitive
+    final qn = _norm(q);
+    final Iterable<Cliente> result = (_mode == SearchMode.nombre)
+        ? clientes.where((c) => _norm(c.nombre).contains(qn))
+        : clientes.where((c) => _norm(c.documento).contains(qn));
+
+    setState(() {
+      _isFiltered = true;
+      _filterUsers
+        ..clear()
+        ..addAll(result);
+      _resultsListKey = UniqueKey(); // fuerza lista “limpia” (sin reuso peligroso)
+    });
+
+    if (_filterUsers.isNotEmpty) {
+      _hideKeyboard();
+      _tabController.animateTo(1);
+      _addRecent(q);
+    }
   }
-   
-   Widget _noContent() {
+
+  void _addRecent(String q) {
+    if (q.isEmpty) return;
+    _recent.remove(q);
+    _recent.insert(0, q);
+    if (_recent.length > 5) _recent.removeLast();
+  }
+
+  // =========================
+  // Resultados
+  // =========================
+  Widget _getContent() => _filterUsers.isEmpty ? _noContent() : _getListView();
+
+  Widget _noContent() {
     return Center(
       child: Container(
         margin: const EdgeInsets.all(20),
         child: Text(
           _isFiltered
-          ? 'No hay Usuarios con ese criterio de búsqueda.'
-          : 'No hay Usuarios registradas.',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.bold
-          ),
+              ? 'No hay Usuarios con ese criterio de búsqueda.'
+              : 'No hay Usuarios registradas.',
+          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
         ),
       ),
     );
   }
 
   Widget _getListView() {
-  return ListView.builder(
-    scrollDirection: Axis.vertical,
-    itemCount: _filterUsers.length,
-    itemBuilder: (context, indice) {
-      return Stack(
-        children: [
-          Column(
-            children: [
-              cardClienteNuevo(_filterUsers[indice], widget.factura, indice),
-              if (indice < _filterUsers.length - 1)
-                const SizedBox(height: 8), // Espaciado entre tarjetas
-            ],
-          ),
-          showLoader ? const LoaderComponent(loadingText: 'Procesando...'): Container(),
-      
-        ],
-      );
-    },
-  );
-}
+    // Snapshot inmutable para este frame → evita RangeError por cambios durante build
+    final items = List<Cliente>.unmodifiable(_filterUsers);
 
-   void _goInfoUser(Cliente clienteSel) async {
-   
-    widget.factura.formPago!.clienteFactura=clienteSel;
-    FacturaService.updateFactura(context, widget.factura);
-      Navigator.of(context).pop();
-    
-  }
- 
-  _goAdd() {
-     Navigator.push(
-       context,  
-       MaterialPageRoute(
-          builder: (context) =>  ClietesAddScreen(
-            factura: widget.factura,  
-            ruta: widget.ruta,         
-          )
-       ),
-    );
+    return ListView.builder(
+      key: _resultsListKey,
+      itemCount: items.length,
+      itemBuilder: (context, indice) {
+        if (indice >= items.length) return const SizedBox.shrink(); // guard por si el scheduler llega tarde
 
-  }
+        final c = items[indice];
+        final id = _idOf(c);
 
-   void mostrarEditarEmailDialog(Cliente cliente, int clienteIndex) {
-    String emailTemporal = cliente.email;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Editar Correo'),
-          content: TextField(
-            keyboardType: TextInputType.emailAddress,
-            onChanged: (value) {
-              emailTemporal = value;
-            },
-            controller: TextEditingController(text: emailTemporal),
-            decoration: const InputDecoration(hintText: "Introduce un nuevo correo"),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancelar'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+        return Column(
+          children: [
+            ClienteCard(
+              key: ValueKey(id),
+              cliente: c,
+              factura: widget.factura,
+              index: indice,
+              onInfoUser: _goInfoUser,
+              onSyncActividades: (doc, idx) => _syncActividades(doc, idx, id),
+              onGetEmails: (doc, idx) => _getEmails(doc, idx, id),
+              onEditarEmail: mostrarEditarEmailDialog,
+              onAgregarEmail: mostrarAgregarEmailDialog,
+              isBusy: _busyIds.contains(id),
+              statusText: _statusById[id],
             ),
-            ElevatedButton(
-              child: const Text('Guardar'),
-              onPressed: () {
-                Navigator.of(context).pop(emailTemporal);
-              },
-            ),
+            if (indice < items.length - 1) const SizedBox(height: 8),
           ],
         );
       },
-    ).then((nuevoEmail) {
-       if(!esCorreoValido(nuevoEmail)){
-         Fluttertoast.showToast(
+    );
+  }
+
+  void _goInfoUser(Cliente clienteSel) {
+    widget.factura.formPago!.clienteFactura = clienteSel;
+    FacturaService.updateFactura(context, widget.factura);
+    Navigator.of(context).pop();
+  }
+
+void _goAdd() async {
+  final result = await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => ClietesAddScreen(
+        factura: widget.factura,
+        ruta: widget.ruta,
+      ),
+    ),
+  );
+
+  if (!mounted) return;
+
+  // Si regresamos con un Cliente creado, muéstralo en Resultados
+  if (result is Cliente) {
+    final created = result;
+    final id = _idOf(created);
+
+    // 1) Persistir en Provider
+    final prov = context.read<ClienteProvider>();
+    prov.upsertCliente(created, asFirst: true);
+
+    setState(() {
+      // Dedupe por ID estable (documento/código)
+      final existingIdx = _filterUsers.indexWhere((c) => _idOf(c) == id);
+      if (existingIdx >= 0) {
+        _filterUsers[existingIdx] = created;
+      } else {
+        _filterUsers.insert(0, created); // al tope de la lista
+      }
+
+      // Marca visual temporal en el card (aprovechando status por-ID)
+      _statusById[id] = 'Creado ✓';
+
+      _isFiltered = true;
+      _resultsListKey = UniqueKey(); // lista “limpia” para evitar reuso peligroso
+    });
+
+    // Snack amistoso y navega a Resultados
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Cliente creado: ${created.nombre}')),
+    );
+    _tabController.animateTo(1);
+
+    // Limpia el status después de 2s
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      setState(() => _statusById.remove(id));
+    });
+  }
+}
+
+  // =========================
+  // Acciones por-card
+  // =========================
+
+  Future<void> _syncActividades(String documento, int index, String id) async {
+    final clienteProvider = context.read<ClienteProvider>();
+    _setBusyById(id, true, status: 'Sincronizando actividades…');
+
+    await clienteProvider.syncActividades(documento, index);
+    if (!mounted) return;
+
+    final err = clienteProvider.errorMessage;
+
+    // Reemplaza en la lista por ID (no dependas del índice del provider)
+    final actualizado = clienteProvider.clientesContado.firstWhere(
+      (x) => _idOf(x) == id,
+      orElse: () => _filterUsers.elementAt(index),
+    );
+    setState(() {
+      final pos = _filterUsers.indexWhere((x) => _idOf(x) == id);
+      if (pos >= 0) _filterUsers[pos] = actualizado;
+    });
+
+    if (err == null) {
+      final count = actualizado.actividadesEconomicas?.length ?? 0;
+      _doneById(id, 'Sincronizado ✓  ($count actividades)');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Actividades sincronizadas ✅")),
+      );
+    } else {
+      _failById(id, err);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $err")),
+      );
+    }
+  }
+
+  Future<void> _getEmails(String codigo, int index, String id) async {
+    _setBusyById(id, true, status: 'Buscando emails…');
+
+    final response = await ApiHelper.getEmailsBy(codigo);
+    if (!mounted) return;
+
+    if (!response.isSuccess) {
+      _failById(id, response.message);
+      showDialog(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+          title: const Text('Error'),
+          content: Text(response.message),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Aceptar'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final correos = (response.result as List<dynamic>).cast<String>();
+
+    setState(() {
+      // busca por id por si el índice cambió
+      final pos = _filterUsers.indexWhere((x) => _idOf(x) == id);
+      if (pos >= 0) {
+        final cli = _filterUsers[pos];
+        cli.emails ??= <String>[];
+        for (final item in correos) {
+          if (!cli.emails!.contains(item)) cli.emails!.add(item);
+        }
+        if (cli.email.isEmpty || !cli.emails!.contains(cli.email)) {
+          cli.email = cli.emails!.isNotEmpty ? cli.emails!.first : '';
+        }
+      }
+    });
+
+    final pos = _filterUsers.indexWhere((x) => _idOf(x) == id);
+    final total = pos >= 0 ? (_filterUsers[pos].emails?.length ?? 0) : 0;
+    _doneById(id, 'Emails actualizados ($total)');
+  }
+
+  Future<bool> _editEmail(
+      String newEmail, String oldEmail, String codigo, String id) async {
+    _setBusyById(id, true, status: 'Actualizando email…');
+
+    final request = {
+      'newEmail': newEmail,
+      'oldEmail': oldEmail,
+      'codCliente': codigo,
+      'isCredito': false
+    };
+    final response = await ApiHelper.editEmail(codigo, request);
+    if (!mounted) return false;
+
+    if (!response.isSuccess) {
+      _failById(id, response.message);
+      return false;
+    }
+
+    _doneById(id, 'Email actualizado');
+    return true;
+  }
+
+  Future<bool> _addEmail(String newEmail, String codigo, String id) async {
+    _setBusyById(id, true, status: 'Agregando email…');
+
+    final request = {
+      'newEmail': newEmail,
+      'oldEmail': '',
+      'codCliente': codigo,
+      'isCredito': false
+    };
+    final response = await ApiHelper.post('api/Users', request);
+    if (!mounted) return false;
+
+    if (!response.isSuccess) {
+      _failById(id, response.message);
+      return false;
+    }
+
+    _doneById(id, 'Email agregado');
+    return true;
+  }
+
+  void agregarEmail(int clienteIndex, String nuevoEmail) async {
+    final cliente = _filterUsers[clienteIndex];
+    final id = _idOf(cliente);
+    final ok = await _addEmail(nuevoEmail, cliente.documento, id);
+    if (ok) {
+      setState(() {
+        cliente.email = nuevoEmail;
+        cliente.emails ??= <String>[];
+        if (!cliente.emails!.contains(nuevoEmail)) {
+          cliente.emails!.add(nuevoEmail);
+        }
+      });
+    }
+  }
+
+  bool esCorreoValido(String correo) {
+    final regexCorreo =
+        RegExp(r'^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    return regexCorreo.hasMatch(correo);
+  }
+
+  void mostrarEditarEmailDialog(Cliente cliente, int clienteIndex) {
+    String emailTemporal = cliente.email;
+    final controller = TextEditingController(text: emailTemporal);
+    final id = _idOf(cliente);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('Editar Correo'),
+        content: TextField(
+          keyboardType: TextInputType.emailAddress,
+          onChanged: (value) => emailTemporal = value,
+          controller: controller,
+          decoration:
+              const InputDecoration(hintText: "Introduce un nuevo correo"),
+        ),
+        actions: <Widget>[
+          TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () => Navigator.of(context).pop()),
+          ElevatedButton(
+              child: const Text('Guardar'),
+              onPressed: () => Navigator.of(context).pop(emailTemporal)),
+        ],
+      ),
+    ).then((nuevoEmail) async {
+      if (nuevoEmail == null) return;
+      if (!esCorreoValido(nuevoEmail)) {
+        Fluttertoast.showToast(
           msg: "Correo no valido",
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.CENTER,
-          timeInSecForIosWeb: 1,
           backgroundColor: Colors.red,
           textColor: Colors.white,
-          fontSize: 16.0
-        ); 
+        );
         return;
       }
-      if (nuevoEmail != null && nuevoEmail.isNotEmpty) {
-        actualizarEmailCliente(clienteIndex, nuevoEmail, cliente.email);
+      if (nuevoEmail.isNotEmpty && nuevoEmail != cliente.email) {
+        final old = cliente.email; // guarda antes de mutar
+        final ok = await _editEmail(nuevoEmail, old, cliente.documento, id);
+        if (ok) {
+          setState(() {
+            cliente.email = nuevoEmail;
+            cliente.emails ??= <String>[];
+            cliente.emails!.remove(old);
+            if (!cliente.emails!.contains(nuevoEmail)) {
+              cliente.emails!.add(nuevoEmail);
+            }
+          });
+        }
       }
     });
   }
 
   void mostrarAgregarEmailDialog(Cliente cliente, int clienteIndex) {
     String emailTemporal = "";
+    final controller = TextEditingController(text: emailTemporal);
+    final id = _idOf(cliente);
 
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Agregar un Correo'),
-          content: TextField(
-              keyboardType: TextInputType.emailAddress,
-            onChanged: (value) {
-              emailTemporal = value;
-            },
-            controller: TextEditingController(text: emailTemporal),
-            decoration: const InputDecoration(hintText: "Introduce un nuevo correo"),
-          ),
-          actions: <Widget>[
-            TextButton(
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('Agregar un Correo'),
+        content: TextField(
+          keyboardType: TextInputType.emailAddress,
+          onChanged: (value) => emailTemporal = value,
+          controller: controller,
+          decoration:
+              const InputDecoration(hintText: "Introduce un nuevo correo"),
+        ),
+        actions: <Widget>[
+          TextButton(
               child: const Text('Cancelar'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop()),
+          ElevatedButton(
               child: const Text('Guardar'),
-              onPressed: () {
-                Navigator.of(context).pop(emailTemporal);
-              },
-            ),
-          ],
-        );
-      },
-    ).then((nuevoEmail) {
-      if(!esCorreoValido(nuevoEmail)){
-         Fluttertoast.showToast(
+              onPressed: () => Navigator.of(context).pop(emailTemporal)),
+        ],
+      ),
+    ).then((nuevoEmail) async {
+      if (nuevoEmail == null) return;
+      if (!esCorreoValido(nuevoEmail)) {
+        Fluttertoast.showToast(
           msg: "Correo no valido",
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.CENTER,
-          timeInSecForIosWeb: 1,
           backgroundColor: Colors.red,
           textColor: Colors.white,
-          fontSize: 16.0
-        ); 
+        );
         return;
       }
-      if (nuevoEmail != null && nuevoEmail.isNotEmpty) {
-        agregarEmail(clienteIndex, nuevoEmail,);
-      }
-    });
-  }
-
-  bool esCorreoValido(String correo) {
-  final regexCorreo = RegExp(
-    r'^[a-zA-Z0-9._]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
-  );
-  return regexCorreo.hasMatch(correo);
-}
-
-  void actualizarEmailCliente(int clienteIndex, String nuevoEmail, String emailAntiguo) async {
-    if( nuevoEmail == emailAntiguo){
-      return;
-    }
-     Cliente cliente = _filterUsers[clienteIndex];
-      bool go = await _editEmail(nuevoEmail, emailAntiguo, cliente.documento);
-    if (go){
-        setState(() {   
-          cliente.email = nuevoEmail;
-          // Comprueba si el nuevo correo ya está en la lista, si no, lo agrega
-         
-        //  cliente.emails!.firstWhere(
-        //     (correo) => correo == emailAntiguo,
-        //     orElse: () => "No encontrado", // Retorna esto si no se encuentra el correo
-        //   );
-        cliente.emails!.remove(emailAntiguo);
-        cliente.emails!.add(nuevoEmail);
-       });
-    }          
-  }
-
-  Widget cardClienteNuevo(Cliente e, Invoice facturaC, int index) {
-  
-  return Card(
-    color: kContrateFondoOscuro,
-    shadowColor: kPrimaryColor,
-    elevation: 8,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-    child: Container(
-      margin: const EdgeInsets.all(10),
-      padding: const EdgeInsets.all(5),
-      child: Column(
-        children: [
-          Text(
-            e.nombre, 
-            style: const TextStyle(
-              fontSize: 19,
-              fontWeight: FontWeight.bold,
-                color: kTextColorBlack,
-            ),
-            textAlign: TextAlign.center,
-          ),                  
-          
-          Text(
-            e.documento , 
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-                color: kColorFondoOscuro,
-            ),
-          ), 
-
-           const Divider(color: Colors.grey),
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                 child:  DropdownButton<String>(
-                       isExpanded: true,
-                    value: e.email,
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        e.email = newValue!;
-                      });
-                    },
-                    items: e.emails!.map<DropdownMenuItem<String>>((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                  ),),
-               
-                  ],
-                ),
-              ),
-            Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-              Container(
-              width: 40,
-              height: 40,
-              decoration: const BoxDecoration(
-                color: Colors.white, // Color de fondo blanco
-                shape: BoxShape.circle, // Forma circular
-              ),
-              child:  IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.orangeAccent,),
-                    onPressed: () => mostrarEditarEmailDialog(e, index),
-                ),
-              ),
-            Container(
-              width: 40,
-              height: 40,
-              decoration: const BoxDecoration(
-                color: Colors.white, // Color de fondo blanco
-                shape: BoxShape.circle, // Forma circular
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.refresh, color: kBlueColorLogo),
-                onPressed: () {
-                _getEmails(e.documento, index);
-                },
-              ),
-              ),
-            Container(
-                 width: 40,
-              height: 40,
-              decoration: const BoxDecoration(
-                color: Colors.white, // Color de fondo blanco
-                shape: BoxShape.circle, // Forma circular
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.add, color: Colors.green),
-                onPressed: () => mostrarAgregarEmailDialog(e, index),
-              ),
-            ),
-            
-            
-          ],
-        ),
-        const SizedBox(height: 10,),
-           Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-             ElevatedButton(
-              style:  ButtonStyle(
-                elevation: WidgetStateProperty.all(8.0),
-                
-              ),
-              child: const Text('Select', style: TextStyle(color: kPrimaryColor),),
-              onPressed: () => _goInfoUser(e),
-            ),
-          ],
-        ),
-          // Aquí puedes incluir más widgets si es necesario
-        ],
-      ),
-    ),
-  );
-}
-
-  Future<void> _getEmails(String codigo, int index) async {
-    setState(() {
-      showLoader = true;
-    });
-    
-    Response response = await ApiHelper.getEmailsBy(codigo);
-    setState(() {
-      showLoader = false;
-    });
-    if (!response.isSuccess) {
-        if (mounted) {       
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text('Error'),
-                content:  Text(response.message),
-                actions: <Widget>[
-                  TextButton(
-                    child: const Text('Aceptar'),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                ],
-              );
-            },
-          );
-        }  
-       return;
-     }
-
-      List<String> correos = response.result;
-
-    setState(() {     
-      for(String item in correos){
-        if (!_filterUsers[index].emails!.contains(item)) {
-           _filterUsers[index].emails!.add(item);
+      if (nuevoEmail.isNotEmpty) {
+        final ok = await _addEmail(nuevoEmail, cliente.documento, id);
+        if (ok) {
+          setState(() {
+            cliente.email = nuevoEmail;
+            cliente.emails ??= <String>[];
+            if (!cliente.emails!.contains(nuevoEmail)) {
+              cliente.emails!.add(nuevoEmail);
+            }
+          });
         }
       }
     });
   }
 
-  Future<bool> _editEmail(String newEmail, String oldEmail, String codigo) async {
+  // =========================
+  // Estado por-ID
+  // =========================
+  void _setBusyById(String id, bool value, {String? status}) {
     setState(() {
-      showLoader = true;
+      if (value) {
+        _busyIds.add(id);
+      } else {
+        _busyIds.remove(id);
+      }
+      if (status != null) _statusById[id] = status;
     });
-
-     Map<String, dynamic> request = 
-      {
-        'newEmail': newEmail,
-        'oldEmail' : oldEmail,
-        'codCliente': codigo,
-        'isCredito' : false
-      };
-    
-    
-    Response response = await ApiHelper.editEmail(codigo, request);
-
-    setState(() {
-      showLoader = false;
-    });
-
-    if (!response.isSuccess) {
-        if (mounted) {       
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text('Error'),
-                content:  Text(response.message),
-                actions: <Widget>[
-                  TextButton(
-                    child: const Text('Aceptar'),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                ],
-              );
-            },
-          );
-        }  
-       return false;
-     }
-
-      return true;
   }
 
-  Future<bool> _addEmail(String newEmail, String codigo) async {
+  void _doneById(String id, String message) {
     setState(() {
-      showLoader = true;
+      _busyIds.remove(id);
+      _statusById[id] = message;
     });
-
-     Map<String, dynamic> request = 
-      {
-        'newEmail': newEmail,
-        'oldEmail' : '',
-        'codCliente': codigo,
-        'isCredito' : false
-      };
-    
-    
-    Response response = await ApiHelper.post('api/Users', request);
-
-    setState(() {
-      showLoader = false;
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      setState(() => _statusById.remove(id));
     });
-
-    if (!response.isSuccess) {
-        if (mounted) {       
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text('Error'),
-                content:  Text(response.message),
-                actions: <Widget>[
-                  TextButton(
-                    child: const Text('Aceptar'),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                ],
-              );
-            },
-          );
-        }  
-       return false;
-     }
-
-      return true;
   }
-  
-  void agregarEmail(int clienteIndex, nuevoEmail) async {
-   
-     Cliente cliente = _filterUsers[clienteIndex];
-      bool go = await _addEmail(nuevoEmail, cliente.documento);
-    if (go){
-        setState(() {   
-          cliente.email = nuevoEmail;    
-          cliente.emails!.add(nuevoEmail);
-       });
-    }
+
+  void _failById(String id, String message) {
+    setState(() {
+      _busyIds.remove(id);
+      _statusById[id] = 'Error: $message';
+    });
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      setState(() => _statusById.remove(id));
+    });
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: <Widget>[
+          TextButton(
+              child: const Text('Aceptar'),
+              onPressed: () => Navigator.of(context).pop()),
+        ],
+      ),
+    );
   }
 }

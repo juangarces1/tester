@@ -1,6 +1,6 @@
 
 import 'package:tester/Models/cliente.dart';
-import 'package:tester/Models/clientecredito.dart';
+
 import 'package:tester/Models/sinpe.dart';
 import 'package:tester/Models/transferencia.dart';
 import 'package:tester/helpers/varios_helpers.dart';
@@ -22,7 +22,7 @@ class Paid {
   String email = ''; 
   bool showTotal=false;  
   bool showFact=false;
-  ClienteCredito clienteCredito = ClienteCredito(
+  Cliente clienteCredito = Cliente(
     placas: [],
      nombre: "",
       documento: "",
@@ -30,7 +30,10 @@ class Paid {
       email: "",
       tipo: "",
       codigo: '',
-      saldoPendiente: 0,
+      puntos: 0,
+      telefono: ""
+
+    
   );
 
   

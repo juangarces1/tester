@@ -524,7 +524,8 @@ Widget _buildTabBar() {
       aplicado: apli.toInt(),
       cuenta: e.cuenta,
       numeroDeposito: e.numeroDeposito,
-      cliente: e.cliente
+      cliente: e.cliente,
+      banco: e.banco
     );
    
   
@@ -629,6 +630,7 @@ bool isNearZero(double value, {double minRange = 0.1, double maxRange = 1.0}) {
        numeroDeposito: element.numeroDeposito,
        cliente: element.cliente,
        monto: element.saldo,
+       banco: element.banco,
      );
      _transferenciasAux.add(transferview);
 

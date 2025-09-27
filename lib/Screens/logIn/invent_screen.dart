@@ -293,7 +293,7 @@ class _InventScreenState extends State<InventScreen> {
 
      final clienteProvider = Provider.of<ClienteProvider>(context, listen: false);
       clienteProvider.setClientesContado(factura.clientesFacturacion);
-       clienteProvider.setClientesCredito(factura.clientesCredito);
+      //  clienteProvider.setClientesCredito(factura.clientesCredito);
 
 
     factura.placa='';

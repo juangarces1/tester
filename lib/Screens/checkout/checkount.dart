@@ -11,6 +11,7 @@ import 'package:tester/Components/client_points.dart';
 import 'package:tester/Components/default_button.dart';
 import 'package:tester/Components/form_pago.dart';
 import 'package:tester/Components/loader_component.dart';
+import 'package:tester/Components/show_actividad_select.dart';
 import 'package:tester/Components/show_client.dart';
 import 'package:tester/Components/show_email.dart';
 import 'package:tester/Models/Facturaccion/factura_service.dart';
@@ -105,8 +106,8 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[                  
-                           const SizedBox(height: 15,),
-                         ClientPoints(factura: facturaC, ruta: 'Contado'), 
+                        const SizedBox(height: 10,),
+                         ClientPoints(factura: facturaC, ruta: 'Contadop'), 
                         const SizedBox(height: 15,),
                          FormPago(
                             key: formPagoKey,
@@ -116,7 +117,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                             ruta: 'Contado',
                            ),
                                     
-                         const SizedBox(height: 20,), 
+                         const SizedBox(height: 10,), 
                         signUpForm(),   
                           const SizedBox(height: 5,),  
                           factura.detail!.isNotEmpty  && factura.saldo == 0 && factura.formPago!.clienteFactura.nombre.isNotEmpty ? 
@@ -130,7 +131,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                             ),
                           )                
                           : Container(),
-                           const SizedBox(height: 60,),  
+                           const SizedBox(height: 80,),  
                       ],
                     ),
                   ),
@@ -211,7 +212,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
            
          children: [
            Container( 
-              padding: const EdgeInsets.only(top: 15),            
+              padding: const EdgeInsets.only(top: 5),            
              decoration: BoxDecoration(
                 color:kNewsurfaceHi,
                  gradient: const LinearGradient(
@@ -227,18 +228,27 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
              child: Column(
                children: [
                  
-                const SizedBox(height: 10,),
+                const SizedBox(height: 5,),
            
                  ShowClient(
                   factura: factura,
                    ruta: 'Contado',
-                   padding: const EdgeInsets.only(left: 40.0, right: 40),
+                   padding: const EdgeInsets.only(left: 20.0, right: 20),
                 ),
-                 factura.formPago!.clienteFactura.nombre.isNotEmpty ?  
+                 const SizedBox(height: 1,),
+               //Email
+                  factura.formPago!.clienteFactura.nombre.isNotEmpty ?  
                     Padding(
-                      padding: const EdgeInsets.only(left: 40, right: 40),
+                      padding: const EdgeInsets.only(left: 20, right: 20),
                       child: ShowEmail(email: factura.formPago!.clienteFactura.email, backgroundColor: kColorFondoOscuro,),
                     ) : Container(),
+                  //Actividad
+                   factura.formPago!.clienteFactura.actividadSeleccionada != null ?  
+                    Padding(
+                      padding: const EdgeInsets.only(left: 20, right: 20),
+                      child: ShowActividadSelect(actividad: factura.formPago!.clienteFactura.actividadSeleccionada!, ),
+                    ) : Container(),
+
                   const SizedBox(height: 15,),
                  showkms(),
                  const SizedBox(height: 15,),
