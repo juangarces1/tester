@@ -83,6 +83,7 @@ class _FuelCard extends StatelessWidget {
     if (n.contains('premium') || n.contains('super')) return Icons.bolt;
     if (n.contains('regular')) return Icons.local_gas_station;
     if (n.contains('diésel') || n.contains('diesel')) return Icons.local_shipping;
+     if (n.contains('exonerado') || n.contains('Exonerado')) return Icons.directions_boat;
     return Icons.help_outline;
   }
 }

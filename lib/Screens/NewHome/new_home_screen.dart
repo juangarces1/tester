@@ -528,28 +528,7 @@ Widget _getAdminMenu() {
                    child: SizedBox()),
           ), 
 
-           ListTile(
-                textColor: kColorMenu,
-              leading:   Container(
-                width: 35,
-                padding: EdgeInsets.all(getProportionateScreenWidth(4)),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F6F9),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child:  const Image(
-                            image: AssetImage('assets/cbs.png'),
-                            fit: BoxFit.contain,
-                        ),
-              ),  
-              title: const Text('Mapa'),
-              onTap: () async { 
-                 final pumps    = await ConsoleApiHelper.getPumpsAndFaces();      // List<PumpData>
-                final statuses = await ConsoleApiHelper.getDispensersStatus();   // List<DispenserStatus>
-                final map = PositionBuilder.build(pumps: pumps, statuses: statuses);
-                print('Mapa con ${map.length} posiciones listo');
-              },
-            ),
+         
 
             ListTile(
                 textColor: kColorMenu,

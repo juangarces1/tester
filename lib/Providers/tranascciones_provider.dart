@@ -31,6 +31,18 @@ class TransaccionesProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void replaceZeroWith(Transaccion serverTx) {
+  // por si acaso: no reemplaces con otro 0
+  if (serverTx.idtransaccion <= 0) return;
+
+  final idx = _items.indexWhere((t) => t.idtransaccion == 0);
+  if (idx == -1) return; // nada que reemplazar
+
+  _items[idx] = serverTx;
+  notifyListeners();
+}
+
+
   /// Inserta/actualiza varias a la vez (1 solo notify).
   void upsertAll(Iterable<Transaccion> list) {
     bool changed = false;

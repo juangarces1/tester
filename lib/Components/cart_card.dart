@@ -38,7 +38,7 @@ class _CartCardState extends State<CartCard> {
                   color: const Color.fromARGB(255, 106, 106, 107),
                   borderRadius: BorderRadius.circular(15),
                 ),
-                child: widget.product.unidad == "Unid" ? CachedNetworkImage(
+                child: widget.product.transaccion == 0 ? CachedNetworkImage(
                          imageUrl:'${Constans.getImagenesUrl()}/${widget.product.imageUrl}',
                           errorWidget: (context, url, error) => const Icon(Icons.error),
                           fit: BoxFit.cover,

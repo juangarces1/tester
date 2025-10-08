@@ -387,7 +387,7 @@ class _FacturasScreenState extends State<FacturasScreen> {
     
     setState(() {
       for (var prod in fact.detalles) {       
-          if(prod.unidad=="L"){
+          if(prod.transaccion !=0){
               widget.factura.transacciones.add(prod);
           } else {
               Product art = widget.factura.productos
@@ -396,20 +396,10 @@ class _FacturasScreenState extends State<FacturasScreen> {
                 codigoArticulo: prod.codigoArticulo,
                 detalle: prod.detalle,
                 precioUnit: prod.precioUnit,
-                cantidad: 0,
-                unidad: prod.unidad,
-                tipoArticulo: "",
-                montoTotal: 0,
-                descuento: 0,
-                nDescuento: 0,
+                cantidad: 0,               
                 subtotal: 0,
                 tasaImp: 0,
-                impMonto: 0,
-                taxid: 0,
-                rateid: 0,
-                factor: 0,
-                precioCompra: 0,
-                codigoCabys: "",
+                impMonto: 0,               
                 transaccion: 0,
                 dispensador: 0,
                 imageUrl: "",

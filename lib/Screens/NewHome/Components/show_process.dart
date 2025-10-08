@@ -50,30 +50,18 @@ extension LegacyTxToProduct on Transaccion {
             : (nombreproducto.isNotEmpty ? nombreproducto : 'Combustible'));
 
     return Product(
-      // Cantidad = litros
       cantidad: volumen,
-      tipoArticulo: tipoArticulo,
+   
       codigoArticulo: codigoArticulo,
-      unidad: unidad,
+   
       detalle: desc,
-      // Precios
-      precioUnit: preciounitario.toDouble(),
-      montoTotal: total.toDouble(),
-      descuento: 0,
-      nDescuento: 0,
+      precioUnit: preciounitario.toDouble(),    
       subtotal: total.toDouble() - impMonto,
       tasaImp: tasaImp,
       impMonto: impMonto,
-      total: total.toDouble(),
-      rateid: rateId,
-      taxid: taxId,
-      precioCompra: precioCompra,
-      codigoCabys: codigoCabys,
-      // Vínculos
-      transaccion: idtransaccion,         // ← importante para no duplicar en facturas
-      factor: 1,
+      total: total.toDouble(),    
+      transaccion: idtransaccion,        
       dispensador: dispensador,
-      // Media / inventario
       imageUrl: imageUrl,
       inventario: inventario,
       images: images,

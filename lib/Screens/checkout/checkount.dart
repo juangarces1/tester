@@ -19,6 +19,7 @@ import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/factura.dart';
 import 'package:tester/Models/product.dart';
 import 'package:tester/Models/response.dart';
+import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/Screens/NewHome/Components/boton_combustibles.dart';
 import 'package:tester/Screens/NewHome/Components/produccts_page.dart';
@@ -231,6 +232,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                 const SizedBox(height: 5,),
            
                  ShowClient(
+                  tipo:   ClienteTipo.contado,
                   factura: factura,
                    ruta: 'Contado',
                    padding: const EdgeInsets.only(left: 20.0, right: 20),
@@ -455,7 +457,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
         'products': facturaApp.detail!.map((e) => e.toApiProducJson()).toList(),
         'idCierre' : facturaApp.cierre!.idcierre,
         'cedualaUsuario' : facturaApp.empleado!.cedulaEmpleado.toString(),
-        'cedulaClienteFactura' : facturaApp.formPago!.clienteFactura.documento,
+        'clienteFactura' : facturaApp.formPago!.clienteFactura.toJson(),
         'totalEfectivo' : facturaApp.formPago!.totalEfectivo,        
         'totalBac' : facturaApp.formPago!.totalBac,
         'totalDav' : facturaApp.formPago!.totalDav,
@@ -468,7 +470,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
         'totalPuntos' : facturaApp.formPago!.totalPuntos,
         'totalTransfer' : facturaApp.formPago!.totalTransfer,
         'saldo' : facturaApp.saldo,
-        'clientePaid' : facturaApp.formPago!.clientePuntos.toJson(),
+        'clientePuntos' : facturaApp.formPago!.clientePuntos.toJson(),
         'Transferencia' : facturaApp.formPago!.transfer.toJson(), 
         'kms': kms.text.isEmpty ? '0' : kms.text,       
         'placa': placa.text.isEmpty ? '' : placa.text,  

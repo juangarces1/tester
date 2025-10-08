@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/ConsoleModels/console_transaction.dart';
 import 'package:tester/Models/product.dart';
+import 'package:tester/Models/response.dart';
+import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/Screens/Peddlers/peddlers_add_screen.dart';
@@ -9,6 +11,7 @@ import 'package:tester/Screens/checkout/checkount.dart';
 import 'package:tester/Screens/credito/credit_process_screen.dart';
 import 'package:tester/Screens/tickets/ticket_screen.dart';
 import 'package:tester/ViewModels/dispatch_control.dart';
+import 'package:tester/helpers/api_helper.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
 class DispatchCard extends StatefulWidget {
@@ -263,6 +266,18 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
                         _miniBtn(context, icon: Icons.receipt_long, label: 'Facturar', onTap: () {
                          _goFacturacion(widget.d);
                         }),
+
+                        _miniBtn(
+                          context,
+                          icon: Icons.warning_amber_rounded,
+                          label: 'Forzar Sin pagar',
+                          onTap: () {
+                            widget.d.markUnpaid();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('markUnpaid() ejecutado')),
+                            );
+                          },
+                        ),
                     ],
                   ),
                   if (widget.d.canRetry)
@@ -294,8 +309,8 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
   // Preferimos la transacción de consola si ya está sincronizada
   final tx = d.consoleTx;
 
-  final volume = tx?.totalVolume ?? d.volumenDispense ?? 0;
-  final total  = tx?.totalValue   ?? d.amountDispense  ?? 0;
+  final volume = tx?.totalVolume ?? d.consoleTx?.totalVolume ?? 0;
+  final total  = tx?.totalValue   ?? d.consoleTx?.totalValue ?? 0;
   final unit   = tx?.unitPrice    ?? d.price           ?? 0;
 
   final isSync = tx != null;
@@ -459,9 +474,40 @@ Widget _pill(String text) => Container(
     );
   }
   
-  void _goFacturacion(DispatchControl control) {
+  void _goFacturacion(DispatchControl control) async {
    final type = control.invoiceType;
-   final tx   = control.consoleTx;
+   final tx   = control.tx;
+
+   // CASO ESPECIAL: producto exonerado (idproducto == 4)
+  // ==========================================================
+  if (tx?.idproducto == 4) {
+    try {
+      // Actualiza el estado a Exonerado en el backend (si aplica)
+       final cp = Provider.of<CierreActivoProvider>(context, listen: false);
+
+
+      tx!.estado ="Exonerado";
+      tx.idcierre = cp.cierreFinal!.idcierre!;
+     Response response  = await ApiHelper.put("TransaccionesApi", tx.idtransaccion.toString(), tx.toJson());
+
+      if (!response.isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al exonerar transacción: ${response.message}')),
+        );
+        return;
+      }
+
+      
+      // Finaliza el proceso visualmente
+      widget.d.markCompleted();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al exonerar transacción: $e')),
+      );
+    }
+    return;
+  }
+
 
   if (type == null) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -479,15 +525,21 @@ Widget _pill(String text) => Container(
   // 1) Crear factura base (sin agregar aún)
   final factProv = context.read<FacturasProvider>();
   final invoice  = factProv.newInvoice(type: type);
-
+  
     // Asegura lista mutable
     invoice.detail = (invoice.detail ?? const <Product>[]).toList();
 
+    Response response = await ApiHelper.getTransaccionAsProductById(tx.idtransaccion);
+
+    if (!response.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al obtener producto: ${response.message}')),
+      );
+      return;
+    }
+
+    final prod = response.result as Product;
     
-    final prod = tx.toInvoiceProduct(
-      codigoArticulo: '000001',
-      detalle: widget.d.fuel?.name ?? 'Combustible',
-    );
     invoice.detail!.add(prod);
 
     // 5) Reaplicar flags por si tu modelo usa booleans

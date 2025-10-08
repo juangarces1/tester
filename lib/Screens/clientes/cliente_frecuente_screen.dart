@@ -59,6 +59,7 @@ class ClienteFrecuenteScreenState extends State<ClienteFrecuenteScreen> with Sin
     return SafeArea(
    
       child: Scaffold(
+       
         appBar:  AppBar(
           backgroundColor: kPrimaryColor,
           elevation: 6.0,

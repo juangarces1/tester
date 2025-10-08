@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:tester/Models/LogIn/inventory_item.dart';
@@ -24,6 +25,7 @@ import 'package:tester/Models/tranferview.dart';
 import 'package:tester/Models/transaccion.dart';
 import 'package:tester/Models/transparcial.dart';
 import 'package:tester/Models/viatico.dart';
+import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/helpers/constans.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
@@ -294,7 +296,7 @@ static Future<Response> getClienteCredito() async {
  }
 
  static Future<Response> getClientesCredito() async {      
-   var url = Uri.parse('${Constans.getAPIUrl()}/api/Users/GetClientesCredito');
+   var url = Uri.parse('${Constans.getAPIUrl()}/api/Clientes/GetClientsYam');
    
     var response = await http.get(
       url,
@@ -307,12 +309,12 @@ static Future<Response> getClienteCredito() async {
     if (response.statusCode >= 400) {
       return Response(isSuccess: false, message: body);
     }
-    List<ClienteCredito> clientes =[];
+    List<Cliente> clientes =[];
     var decodedJson = jsonDecode(body);
      if(decodedJson != null){      
 
        for (var item in decodedJson){
-        clientes.add(ClienteCredito.fromJson(item));
+        clientes.add(Cliente.fromJson(item));
       }
      
      }
@@ -792,6 +794,31 @@ static Future<Response> getBanks() async {
      return Response(isSuccess: true, result: transacciones);    
  }
 
+ static Future<Response> getTransaccionAsProductById(int? id) async {
+    var url = Uri.parse('${Constans.getAPIUrl()}/api/TransaccionesApi/GetTransaccionByIdAsProducts/$id');
+    var response = await http.get(
+      url,
+      headers: {
+        'content-type' : 'application/json',
+        'accept' : 'application/json',
+      },        
+    );
+    var body = response.body;
+    if (response.statusCode >= 400) {
+      return Response(isSuccess: false, message: body);
+    }
+   
+    var decodedJson = jsonDecode(body);
+     if(decodedJson != null){
+       Product product = Product.fromJson(decodedJson);
+     
+     
+     return Response(isSuccess: true, result:product);    
+     } else {
+      return Response(isSuccess: false, message: 'Error al decodificar');
+     }
+ }
+
   static Future<Response> getProducts(int? zona) async {
     var url = Uri.parse('${Constans.getAPIUrl()}/api/TransaccionesApi/GetProducts/$zona');
     var response = await http.get(
@@ -861,28 +888,84 @@ static Future<Response> getBanks() async {
      return Response(isSuccess: true, result: clientes);    
  }
 
- static Future<Response> getClientFrec(String codigo) async {      
-   var url = Uri.parse('${Constans.getAPIUrl()}/api/Clientes/GetClientFrecuente/?codigo=$codigo');
-   
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type' : 'application/json',
-        'accept' : 'application/json',
-      },        
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
-    }
-    Cliente cliente =Cliente(nombre: "", documento: "", codigoTipoID: "", email: "", puntos: 0,  codigo: '', telefono: '');
-    var decodedJson = jsonDecode(body);
-     if(decodedJson != null){      
+ static Future<Response> getClientFrec(String codigo) async {
+  // 1) Validación básica
+  final trimmed = codigo.trim();
+  if (trimmed.isEmpty) {
+    return Response(isSuccess: false, message: 'El código está vacío.');
+  }
 
-      cliente=Cliente.fromJson(decodedJson);
-     }
-     return Response(isSuccess: true, result: cliente);    
- }
+  // 2) Construcción segura de la URL (evita // y hace encoding)
+  final base = Constans.getAPIUrl(); // ojo: ¿"Constans" es intencional?
+  final uri = Uri.parse(base).replace(
+    path: '${Uri.parse(base).path}/api/Clientes/GetClientFrecuenteByCodigoFrecuente/$trimmed',
+  );
+
+  final client = http.Client();
+  try {
+    final resp = await client
+        .get(
+          uri,
+          headers: const {
+            'accept': 'application/json',
+          },
+        )
+        .timeout(const Duration(seconds: 15));
+
+    // 3) Manejo de status codes
+    if (resp.statusCode == 204) {
+      return Response(isSuccess: false, message: 'Sin contenido (204).');
+    }
+    if (resp.statusCode < 200 || resp.statusCode >= 300) {
+      // intenta extraer mensaje legible si el backend lo manda en JSON
+      final msg = _bestEffortMessage(resp.body);
+      return Response(isSuccess: false, message: 'HTTP ${resp.statusCode}: $msg');
+    }
+
+    // 4) Cuerpo vacío / no JSON
+    if (resp.body.isEmpty) {
+      return Response(isSuccess: false, message: 'Respuesta vacía del servidor.');
+    }
+
+    // 5) Parseo tolerante
+    final decoded = jsonDecode(resp.body);
+
+    // Permite backend que devuelva objeto o lista con un solo objeto
+    final dynamic obj = (decoded is List && decoded.isNotEmpty) ? decoded.first : decoded;
+
+    if (obj == null || obj is! Map<String, dynamic>) {
+      return Response(isSuccess: false, message: 'Formato inesperado de respuesta.');
+    }
+
+    final cliente = Cliente.fromJson(obj);
+    return Response(isSuccess: true, result: cliente);
+
+  } on TimeoutException {
+    return Response(isSuccess: false, message: 'Tiempo de espera agotado.');
+  } on SocketException {
+    return Response(isSuccess: false, message: 'Sin conexión a Internet o host no alcanzable.');
+  } on FormatException catch (e) {
+    return Response(isSuccess: false, message: 'JSON inválido: ${e.message}');
+  } on HttpException catch (e) {
+    return Response(isSuccess: false, message: 'Error HTTP: ${e.message}');
+  } catch (e) {
+    return Response(isSuccess: false, message: 'Error inesperado: $e');
+  } finally {
+    client.close();
+  }
+}
+
+static String _bestEffortMessage(String body) {
+  try {
+    final d = jsonDecode(body);
+    if (d is Map && d['message'] is String) return d['message'] as String;
+    if (d is Map && d['error'] is String) return d['error'] as String;
+  } catch (_) {
+    // body no era JSON; devolvemos texto plano truncado
+  }
+  final plain = body.replaceAll(RegExp(r'\s+'), ' ');
+  return plain.length > 300 ? '${plain.substring(0, 300)}…' : plain;
+}
 
 
 
@@ -999,7 +1082,7 @@ static Future<Response> post(String controller, Map<String, dynamic> request) as
       },
       body: jsonEncode(request)
     );    
-      print(response.body);
+     
     if(response.statusCode >= 400){
       return Response(isSuccess: false, message: response.body);
     }     
@@ -1094,6 +1177,40 @@ static Future<Response> delete(String controller, String id) async {
       } catch (e) {
         return Response(isSuccess: false, message: "Exception: ${e.toString()}");
       }
+  }
+  static String get _base => Constans.getAPIUrl();
+
+  static Future<Response> syncActividadesCredito(String documento) async {
+    
+    final doc = Uri.encodeComponent(documento.trim());
+    final url = Uri.parse('$_base/api/Clientes/clientes/$doc/actividades/credito');
+
+    try {
+      final resp = await http.post(
+        url,
+        headers: const {
+          'content-type': 'application/json',
+          'accept': 'application/json',
+        },
+      );
+
+      if (resp.statusCode >= 400) {
+        String msg;
+        try {
+          final body = jsonDecode(resp.body);
+          msg = body is Map && body['message'] is String ? body['message'] : resp.body;
+        } catch (_) {
+          msg = resp.body;
+        }
+        return Response(isSuccess: false, message: msg);
+      }
+
+      final decoded = jsonDecode(resp.body);
+      final cliente = Cliente.fromJson(decoded);
+      return Response(isSuccess: true, result: cliente);
+    } catch (e) {
+      return Response(isSuccess: false, message: "Exception: ${e.toString()}");
+    }
   }
 }
 

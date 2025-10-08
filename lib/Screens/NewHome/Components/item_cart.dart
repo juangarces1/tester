@@ -58,7 +58,7 @@ class CardCartItem extends StatelessWidget {
                   color: const Color.fromARGB(255, 106, 106, 107),
                   borderRadius: BorderRadius.circular(15),
                 ),
-                child: product.unidad == "Unid" ? CachedNetworkImage(
+                child: product.transaccion == 0 ? CachedNetworkImage(
                     imageUrl:'${Constans.getImagenesUrl()}/${product.imageUrl}',
                     errorWidget: (context, url, error) => const Icon(Icons.error),
                     fit: BoxFit.cover,
@@ -92,7 +92,7 @@ class CardCartItem extends StatelessWidget {
                   
                     Text.rich(
                       TextSpan(
-                        text: "Sub-Total ¢${NumberFormat("###,000", "en_US").format(product.montoTotal)}",
+                        text: "Sub-Total ¢${NumberFormat("###,000", "en_US").format(product.subtotal)}",
                         style: const TextStyle(
                             fontWeight: FontWeight.w900, color: Colors.white),
                         children: [
@@ -104,7 +104,7 @@ class CardCartItem extends StatelessWidget {
                       ),
                     ),
                   
-                    product.unidad == "Unid" ? Row(
+                    product.transaccion == 0 ? Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         IconButton(

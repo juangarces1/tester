@@ -23,7 +23,7 @@ class Invoice {
   Empleado? empleado;
   CierreFinal? cierre;
   Peddler? peddler;
-
+ 
 
 
   Invoice(
@@ -42,7 +42,7 @@ class Invoice {
       this.placa,
       this.peddler,
       this.isPromo,
-    
+     
    });
 
    String get tipoInvoice {
@@ -66,7 +66,7 @@ class Invoice {
 
     double totalSuma = 0;
     for (var producto in detail!) {
-      if (producto.unidad == "L") {
+      if (producto.transaccion != 0) {
         totalSuma += producto.total;  // Sumar el campo 'total' si la unidad es 'L'
       } else {
         totalSuma += producto.totalProducto;  // Sumar el campo 'totalProducto' si la unidad no es 'L'
@@ -137,7 +137,7 @@ class Invoice {
   List<Product> buscarAcumulacion (){
        List<Product> acumulacion = [];
       for (var prodCarro in detail!) {
-        if (prodCarro.unidad == "L" && prodCarro.cantidad > 90 ) {     
+        if (prodCarro.transaccion != 0 && prodCarro.cantidad > 90 ) {     
           acumulacion.add(prodCarro);
         }
       }

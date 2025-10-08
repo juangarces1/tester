@@ -338,24 +338,14 @@ extension ConsoleTxToProduct on ConsoleTransaction {
     return Product(
       // opcional: numero
       cantidad: totalVolume,             // litros
-      tipoArticulo: tipoArticulo,
       codigoArticulo: codigoArticulo,
-      unidad: unidad,                    // 'L'
       detalle: desc,
       precioUnit: unitPrice,             // precio por litro
-      montoTotal: totalValue,            // por si lo usas en UI
-      descuento: 0,
-      nDescuento: 0,
       subtotal: (totalValue - impMonto), // si no manejas impuestos, deja = totalValue
       tasaImp: tasaImp,
       impMonto: impMonto,
       total: totalValue,                 // ⚠️ tu Invoice.total usa este cuando unidad == 'L'
-      rateid: rateId,
-      taxid: taxId,
-      precioCompra: precioCompra,
-      codigoCabys: codigoCabys,
       transaccion: id,                   // vínculo para luego marcar como pagada
-      factor: 1,
       dispensador: nozzleNumber,
       imageUrl: imageUrl,
       inventario: inventario,
@@ -366,10 +356,24 @@ extension ConsoleTxToProduct on ConsoleTransaction {
 }
 
 
-
 extension ConsoleTxToLegacyTransaccion on ConsoleTransaction {
+  // Helper privado para nombre por fuelCode
+  static String _fuelName(int code) {
+    switch (code) {
+      case 1:
+        return 'Super';
+      case 2:
+        return 'Regular';
+      case 3:
+        return 'Diésel';
+      case 4:
+        return 'Exonerado';
+      default:
+        return 'Fuel $code';
+    }
+  }
+
   Transaccion toTransaccion({
-    // 👉 Nuevo: permite resolver el id desde Provider si pasas context
     BuildContext? context,
     int? idCierre,
 
@@ -381,50 +385,40 @@ extension ConsoleTxToLegacyTransaccion on ConsoleTransaction {
     String? subir,
     String? nombreCliente,
 
-    // Estrategias
     String Function(DateTime dt)? dateFormat,
     String Function(int saleStatus)? estadoMapper,
     int Function(double valor)? redondeoImporte,
   }) {
-    // 1) Formato de fecha por defecto
     final fmt = dateFormat ?? (dt) => dt.toIso8601String().split('.').first;
-
-    // 2) Mapeo de estado por defecto
-    
-
-    // 3) Redondeo/entero para montos/precios
     final toInt = redondeoImporte ?? ((v) => v.toInt());
 
-    // 4) Resolver idCierre:
-    //    - Si viene por parámetro, manda ese.
-    //    - Si no, intenta leerlo del CierreActivoProvider con context.
-    //    - Si nada de lo anterior existe, 0.
     int resolvedIdCierre = idCierre ??
         (() {
           if (context == null) return 0;
           try {
             final prov = context.read<CierreActivoProvider>();
-            // Usa el getter o el objeto directo, según tu implementación:
             return prov.cierreFinal?.idcierre
                 ?? prov.value?.cierreFinal.idcierre
                 ?? 0;
           } catch (_) {
-            // Provider no está disponible en este contexto
             return 0;
           }
         })();
 
+    // 👉 Nuevo: nombre por defecto según fuelCode
+    final productName = nombreProducto ?? _fuelName(fuelCode);
+
     return Transaccion(
       idtransaccion: 0,
-      numero: id, // o fuelingIndex si prefieres
+      numero: id,
       fechatransaccion: fmt(dateTime),
       dispensador: nozzleNumber,
       idproducto: fuelCode,
-      nombreproducto: nombreProducto ?? 'Fuel $fuelCode',
+      nombreproducto: productName, // ← aplicado el mapeo
       total: toInt(totalValue),
       volumen: totalVolume,
       preciounitario: toInt(unitPrice),
-      idcierre: resolvedIdCierre,         // 👈 ahora viene del provider/param
+      idcierre: resolvedIdCierre,
       estado: 'copiado',
       entregatarjeta: entregoTarjeta,
       canjetarjeta: canjeTarjeta,
@@ -436,4 +430,3 @@ extension ConsoleTxToLegacyTransaccion on ConsoleTransaction {
     );
   }
 }
-

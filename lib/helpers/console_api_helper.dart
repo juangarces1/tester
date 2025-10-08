@@ -201,6 +201,44 @@ static Future<Response> getLastUnpaidByNozzle(
 
   }
 
+  
+static Future<Response> getTransactionLastByNozzle(
+  int nozzle, {
+  Duration timeout = const Duration(seconds: 12),
+}) async {
+  final uri = Uri.parse(
+    '${Constans.baseUrlCoreWeb}horustech/dispatches/nozzle/$nozzle/last',
+  );
+
+  try {
+    final response = await http.get(uri).timeout(timeout);
+
+     if (response.statusCode == 200) {
+
+          final raw = jsonDecode(response.body);
+
+            // A: si usas la clase refactorizada (con _unwrap), puedes pasar raw (si es Map)
+            if (raw is! Map) {
+              throw const FormatException('Se esperaba un objeto JSON (Map), pero llegó otra cosa.');
+            }
+            final tx = ConsoleTransaction.fromJson(raw.cast<String, dynamic>());
+            return Response(isSuccess: true, message: 'Éxito', result: tx);
+        } else if (response.statusCode == 204) {
+          // No content
+          return Response(isSuccess: true, message: '', result: []);
+        } else {
+         // Handle other statuses, maybe something went wrong
+          return Response(isSuccess: false, message: "Error: ${response.body}");
+        }
+    } on TimeoutException {
+      return Response(isSuccess: false, message: 'Tiempo de espera agotado', result: null);
+    } catch (e) {
+      return Response(isSuccess: false, message: 'Error: $e', result: null);
+    }
+
+
+  }
+
 }
 
 

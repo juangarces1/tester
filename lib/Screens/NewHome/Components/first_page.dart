@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:tester/Models/transaccion.dart';
 import 'package:tester/Providers/despachos_provider.dart';
-
 import 'package:tester/Screens/NewHome/Components/dispatch_card.dart';
-
 import 'package:tester/Screens/NewHome/PagesWizard/fuel_stage_page.dart';
 import 'package:tester/ViewModels/dispatch_control.dart';
 import 'package:tester/constans.dart';
@@ -150,6 +147,7 @@ Widget build(BuildContext context) {
     final despachosProv = Provider.of<DespachosProvider>(ctx, listen: false);
     final dispatch = DispatchControl(despachosProv)
       ..id = DateTime.now().millisecondsSinceEpoch.toString();
+    
     despachosProv.addDispatch(dispatch);
 
     // Inicia el wizard de selección (fuel → hose → preset/tanque), el card

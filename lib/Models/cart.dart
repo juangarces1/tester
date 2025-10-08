@@ -15,8 +15,8 @@ class Cart {
   void setTotal(){
     total=0;
     for (var element in products) {
-      if(element.unidad=="Unid")
-        { total+=element.montoTotal;}
+      if(element.transaccion==0)
+        { total+=element.totalProducto;}
      else{
           total+=element.total;
      }

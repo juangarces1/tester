@@ -68,8 +68,7 @@ class _DispensersDashboardState extends State<DispensersDashboard>
    bool _isInitialLoading = true;
   List<DispensadorVisual> _data = [];
 
-   TabController? _tabCtrl;
-
+  
     /* ---------- helpers ---------- */
   void _startTimer() {
     _refreshTimer ??= Timer.periodic(

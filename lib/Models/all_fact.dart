@@ -78,7 +78,7 @@ class AllFact {
 
      void actualizarCantidadProductos(List<Product> ventas) {
       for (var prodCarro in ventas) {
-        if (prodCarro.unidad != "L") {
+        if (prodCarro.transaccion == 0) {
           // Busca el producto en la lista de productos y actualiza su cantidad
           for (var prod in productos) {
             if (prod.codigoArticulo == prodCarro.codigoArticulo) {

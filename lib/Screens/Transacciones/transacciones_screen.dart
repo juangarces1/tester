@@ -13,7 +13,7 @@ import 'package:tester/Models/response.dart'; // si ya lo usas en el proyecto
 
 
 
-enum TxFilter { copiado, efectivo, credito, facturadas, noFacturadas }
+enum TxFilter { todos, efectivo, tarjeta, credito, exonerado, facturadas, noFacturadas }
 
 class TransaccionesScreen extends StatefulWidget {
   const TransaccionesScreen({super.key});
@@ -23,7 +23,7 @@ class TransaccionesScreen extends StatefulWidget {
 }
 
 class _TransaccionesScreenState extends State<TransaccionesScreen> {
-  TxFilter _filter = TxFilter.copiado;
+  TxFilter _filter = TxFilter.todos;
   bool _bootstrapped = false;
   bool _loading = false;
   String? _error;
@@ -77,11 +77,13 @@ class _TransaccionesScreenState extends State<TransaccionesScreen> {
     final prov = context.watch<TransaccionesProvider>();
 
     final List<Transaccion> items = switch (_filter) {
-      TxFilter.copiado   => prov.items.where((t) => t.estado == 'Copiado').toList(),
+      TxFilter.todos   => prov.items.toList(),
       TxFilter.efectivo  => prov.items.where((t) => t.estado == 'Efectivo').toList(),
+       TxFilter.exonerado  => prov.items.where((t) => t.estado == 'Exonerado').toList(),
       TxFilter.credito   => prov.items.where((t) => t.estado == 'Credito').toList(),
       TxFilter.facturadas   => prov.items.where((t) => t.facturada != 'no').toList(),
       TxFilter.noFacturadas   => prov.items.where((t) => t.facturada == 'no').toList(),
+      TxFilter.tarjeta       => prov.items.where((t) => (t.estado ?? '').toLowerCase().contains('tarjeta')).toList(),
     };
 
     final countAll    = prov.length;
@@ -200,12 +202,20 @@ class _FiltersRow extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          chip('Impagas', TxFilter.copiado),
+          chip('Todas', TxFilter.todos),
+          
           const SizedBox(width: 8),
-          chip('Credito', TxFilter.credito),
-          const SizedBox(width: 8),
+
           chip('Efectivo', TxFilter.efectivo),
            const SizedBox(width: 8),
+          chip('Tarjeta', TxFilter.tarjeta),
+         
+           const SizedBox(width: 8),
+            chip('Exonerado', TxFilter.exonerado),
+         
+           const SizedBox(width: 8),
+             chip('Credito', TxFilter.credito),
+          const SizedBox(width: 8),
           chip('Facturadas', TxFilter.facturadas),
            const SizedBox(width: 8),
           chip('No Facturadas', TxFilter.noFacturadas),
@@ -219,6 +229,12 @@ class _FiltersRow extends StatelessWidget {
 class _TxCard extends StatelessWidget {
   final Transaccion tx;
   const _TxCard({required this.tx});
+
+  static bool _isInvoiced(Transaccion t) {
+  final v = (t.facturada ?? '').trim().toLowerCase();
+  // Considera facturada si NO es 'no' (cubre 'si', 'sí', 'pagada', etc.)
+  return v.isNotEmpty && v != 'no';
+}
 
   @override
   Widget build(BuildContext context) {
@@ -263,7 +279,8 @@ class _TxCard extends StatelessWidget {
                       Text(_fuelName(tx),
                           style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
                       const Spacer(),
-                      _StateChip(isUnpaid: tx.isUnpaid), // 👈 estado impaga/pagada
+                      _InvoiceChip(isInvoiced: _isInvoiced(tx)) // basado en facturada
+
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -316,8 +333,8 @@ class _TxCard extends StatelessWidget {
   }
 
   static String _saleTag(Transaccion t) {
-    if (t.numero > 0) return '#${t.numero}';
-    if (t.idtransaccion > 0) return '#${t.idtransaccion}';
+    if (t.numero > 0) return '${t.numero}';
+    if (t.idtransaccion > 0) return '${t.idtransaccion}';
     return '';
   }
 
@@ -359,26 +376,30 @@ class _TxCard extends StatelessWidget {
       case 1: return kSuperColor;      // Súper
       case 3: return kDieselColor;     // Diésel
       default:
-        return const Color(0xFF41506B);
+        return const Color.fromARGB(255, 108, 197, 238);
     }
   }
 }
 
-class _StateChip extends StatelessWidget {
-  final bool isUnpaid;
-  const _StateChip({required this.isUnpaid});
+class _InvoiceChip extends StatelessWidget {
+  final bool isInvoiced;
+  const _InvoiceChip({required this.isInvoiced});
 
   @override
   Widget build(BuildContext context) {
-    final bg = isUnpaid ? const Color(0xFF3A2A00) : const Color(0xFF0A2E1A);
-    final tx = isUnpaid ? const Color(0xFFFFC55A) : const Color(0xFF59D196);
+    final bg = isInvoiced ? const Color(0xFF0A2E1A) : const Color(0xFF3A2A00);
+    final tx = isInvoiced ? const Color(0xFF59D196) : const Color(0xFFFFC55A);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
-      child: Text(isUnpaid ? 'IMPAGA' : 'PAGADA', style: TextStyle(color: tx, fontSize: 11, fontWeight: FontWeight.w700)),
+      child: Text(
+        isInvoiced ? 'FACTURADA' : 'SIN FACTURA',
+        style: TextStyle(color: tx, fontSize: 11, fontWeight: FontWeight.w700),
+      ),
     );
   }
 }
+
 
 class _PayChip extends StatelessWidget {
   final String text;
@@ -410,7 +431,7 @@ class _SaleBadge extends StatelessWidget {
         color: const Color(0xFF20283A),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(text, style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
+      child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
     );
   }
 }

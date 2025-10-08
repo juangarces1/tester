@@ -33,7 +33,7 @@ class ShowActividadSelect extends StatelessWidget {
                   "${actividad.codigo} - ${actividad.descripcion}",
                   style: const TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w400,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),

@@ -1,8 +1,10 @@
 // lib/Providers/despachos_provider.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:tester/Providers/tranascciones_provider.dart';
 import 'package:tester/ViewModels/dispatch_control.dart';
 import 'package:tester/helpers/console_api_helper.dart';
+import 'package:tester/helpers/transactions_api_helper.dart';
 
 enum HoseStatus { available, authorized, busy, fueling, unpaid, stopped, unknown, finished }
 
@@ -11,6 +13,12 @@ class DespachosProvider extends ChangeNotifier {
   final Set<String> _watchedHoses = {};
   final Map<String, HoseStatus> _hoseStatuses = {};
   final Map<String, String> _hoseRaw = {};
+
+   TransaccionesProvider? _transProv;              // <- referencia opcional
+  void bindTransacciones(TransaccionesProvider p) // <- llamada 1 vez en el arranque
+    => _transProv = p;
+
+     final Map<DispatchControl, VoidCallback> _stageWatchers = {}; // <- track de listeners por control
 
   Timer? _pollTimer;
   bool _busy = false;
@@ -47,22 +55,77 @@ class DespachosProvider extends ChangeNotifier {
     // Cada vez que cambie cualquier DispatchControl, esto obliga a FirstPage a reconstruirse
     notifyListeners();
   }
-  void addDispatch(DispatchControl d) {
-    _despachos.add(d);
-    final hoseKey = d.selectedHose?.hoseKey;
-    if (hoseKey != null) addWatchedHose(hoseKey);
-     d.addListener(_onChildChanged);
-    _safeNotify();
+
+
+ void addDispatch(DispatchControl d) {
+  // (A) Hook: cuando el control consiga la Transaccion, persistir y reflejar el ID
+  d.onLastUnpaid ??= (txLocal) async {
+    try {
+      final saved = await TransaccionesApiHelper.postAndFetchFull(txLocal);
+
+      // 1) Actualiza la lista canónica
+      _transProv?.upsert(saved);
+
+      // 2) MUTAR la MISMA instancia que ya está en el control (no reasignar)
+      txLocal.idtransaccion   = saved.idtransaccion;
+      txLocal.numero          = saved.numero;
+      txLocal.fechatransaccion= saved.fechatransaccion;
+      txLocal.total           = saved.total;
+      txLocal.volumen         = saved.volumen;
+      txLocal.preciounitario  = saved.preciounitario;
+      txLocal.estado          = saved.estado;
+      txLocal.facturada       = saved.facturada;
+      // ... añade aquí cualquier otro campo que te interese
+
+      d.notifyListeners(); // refresca cualquier UI que lea d.tx
+    } catch (e) {
+      // TODO: snackbar / reintento / log
+    }
+  };
+
+  // (B) Watcher de etapa
+  void watcher() {
+    _onChildChanged();
+
+    // Lanza el fetch SOLO una vez al entrar a 'unpaid'
+    if (d.stage == DispatchStage.unpaid &&
+        !d.loadingLastSale &&
+        d.consoleTx == null) {
+      d.goGetTr(); // internamente dispara onLastUnpaid(t) en fire-and-forget
+    }
   }
+  d.addListener(watcher);
+  _stageWatchers[d] = watcher;
+
+  // (C) Alta normal
+  _despachos.add(d);
+
+  // (D) Observar manguera si ya viene elegida
+  final hoseKey = d.selectedHose?.hoseKey;
+  if (hoseKey != null) addWatchedHose(hoseKey);
+
+  _safeNotify();
+}
+
 
  
 
   void removeDispatch(DispatchControl d) {
-    d.dispose();          // cancela timers + quita watcher + removeListener(...)
-    _despachos.remove(d); // sácalo de tu colección
-    d.removeListener(_onChildChanged);
-    _safeNotify();
+  // 1) Quita watcher específico
+  final w = _stageWatchers.remove(d);
+  if (w != null) d.removeListener(w);
+
+  // 2) Quita el listener “global” si lo tenías
+  d.removeListener(_onChildChanged);
+
+  // 3) Dispose (cancela timers y deja de observar manguera)
+  d.dispose();
+
+  // 4) Saca de la colección y notifica
+  _despachos.remove(d);
+  _safeNotify();
 }
+
 
   DispatchControl? getById(String id) {
     for (final d in _despachos) { if (d.id == id) return d; }
@@ -71,14 +134,22 @@ class DespachosProvider extends ChangeNotifier {
 
   void refresh() => _safeNotify();
 
-  void clearAll() {
-    _despachos.clear();
-    _watchedHoses.clear();
-    _hoseStatuses.clear();
-    _hoseRaw.clear();
-    _stopPolling();
-    _safeNotify();
+ void clearAll() {
+  for (final d in _despachos) {
+    final w = _stageWatchers.remove(d);
+    if (w != null) d.removeListener(w);
+    d.removeListener(_onChildChanged);
+    d.dispose();
   }
+  _despachos.clear();
+
+  _watchedHoses.clear();
+  _hoseStatuses.clear();
+  _hoseRaw.clear();
+  _stopPolling();
+  _safeNotify();
+}
+
 
   void addWatchedHose(String hoseKey) {
     if (_watchedHoses.add(hoseKey)) {

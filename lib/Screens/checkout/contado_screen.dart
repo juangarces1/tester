@@ -19,6 +19,7 @@ import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/factura.dart';
 import 'package:tester/Models/product.dart';
 import 'package:tester/Models/response.dart';
+import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/Screens/NewHome/Components/boton_combustibles.dart';
 import 'package:tester/Screens/NewHome/Components/produccts_page.dart';
@@ -406,6 +407,7 @@ class _ContadoScreenState extends State<ContadoScreen> {
                   // Cliente
                   _panel(
                     child: ShowClient(
+                       tipo:   ClienteTipo.contado,
                       factura: factura,
                       ruta: 'Contado',
                       padding: const EdgeInsets.symmetric(horizontal: 12),

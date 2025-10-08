@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
+import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Screens/clientes/cliestes_new_screen.dart'; // verifica el nombre real del archivo
 import 'package:tester/constans.dart';
 
@@ -8,12 +9,14 @@ class ShowClient extends StatefulWidget {
   final Invoice factura;
   final String ruta;
   final EdgeInsets? padding;
+   final ClienteTipo tipo;
 
   const ShowClient({
     super.key,
     required this.factura,
     required this.ruta,
     this.padding,
+    required this.tipo,
   });
 
   @override
@@ -42,11 +45,12 @@ class _ShowClientState extends State<ShowClient> {
             leading: _leadingAvatar(hasCliente),
             title: Text(
               hasCliente ? nombre : "Seleccione un cliente",
-              maxLines: 1,
+              maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: kContrateFondoOscuro,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w900,
+
               ),
             ),
             trailing: const Icon(Icons.chevron_right, color: kContrateFondoOscuro),
@@ -78,6 +82,7 @@ class _ShowClientState extends State<ShowClient> {
       context,
       MaterialPageRoute(
         builder: (context) => ClientesNewScreen(
+          tipo: widget.tipo,
           factura: widget.factura,
           ruta: widget.ruta,
         ),

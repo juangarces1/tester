@@ -1,6 +1,3 @@
-
-
-
 class TestPrint {
   // final BluePrintPos _bluetooth = BluePrintPos.instance;
   // final BlueDevice device;

@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import 'package:tester/Components/boton_flotante.dart';
 import 'package:tester/Components/default_button.dart';
 import 'package:tester/Components/loader_component.dart';
+import 'package:tester/Components/show_actividad_select.dart';
+import 'package:tester/Components/show_client.dart';
 import 'package:tester/Components/show_client_credito.dart';
 import 'package:tester/Components/show_email.dart';
 import 'package:tester/Models/Facturaccion/factura_service.dart';
@@ -14,6 +16,7 @@ import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/factura.dart';
 import 'package:tester/Models/product.dart';
 import 'package:tester/Models/response.dart';
+import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/Screens/NewHome/Components/boton_combustibles.dart';
 import 'package:tester/Screens/NewHome/Components/produccts_page.dart';
@@ -153,11 +156,26 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
                 child: Column(
                   children: [
                     SizedBox(height: SizeConfig.screenHeight * 0.02),
-                      ShowClientCredito(
-                        index: widget.index,                       
-                        padding: const EdgeInsets.only(left: 0.0, right: 0),
+                      ShowClient(
+                         tipo:   ClienteTipo.credito,
+                         factura: factura,   
+                         ruta: "ProcessCredito",                    
+                        padding: const EdgeInsets.only(left: 10.0, right: 10),
                       ),
-                   facturaC.formPago!.clienteCredito.nombre!.isNotEmpty ?     ShowEmail(email: facturaC.formPago!.clienteCredito.email!) : Container(),
+
+                         //Email
+                  factura.formPago!.clienteFactura.nombre.isNotEmpty ?  
+                    Padding(
+                      padding: const EdgeInsets.only(left: 10, right: 10),
+                      child: ShowEmail(email: factura.formPago!.clienteFactura.email, backgroundColor: kColorFondoOscuro,),
+                    ) : Container(),
+                  //Actividad
+                   factura.formPago!.clienteFactura.actividadSeleccionada != null ?  
+                    Padding(
+                      padding: const EdgeInsets.only(left: 10, right: 10),
+                      child: ShowActividadSelect(actividad: factura.formPago!.clienteFactura.actividadSeleccionada!, ),
+                    ) : Container(),
+                   facturaC.formPago!.clienteCredito.nombre.isNotEmpty ?     ShowEmail(email: facturaC.formPago!.clienteCredito.email) : Container(),
                     SizedBox(height: SizeConfig.screenHeight * 0.02),
                   //  SelectClienteCredito(factura: widget.factura, ruta: 'Credito',),
                     signUpForm(),  
@@ -243,7 +261,7 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
       child: Text('Seleccione una Placa...'),
     ));
 
-     for (var placa in factura.formPago!.clienteCredito.placas!) {
+     for (var placa in factura.formPago!.clienteFactura.placas) {
        list.add(DropdownMenuItem(
          value: placa.toString(),
          child: Text(placa.toString()),
@@ -359,7 +377,7 @@ Widget showObser() {
             ),
           ),
         
-            factura.detail!.isNotEmpty && factura.formPago!.clienteCredito.nombre!.isNotEmpty ? 
+            factura.detail!.isNotEmpty && factura.formPago!.clienteCredito.nombre.isNotEmpty ? 
                         SizedBox(
                            width: getProportionateScreenWidth(150),
                           child: DefaultButton(

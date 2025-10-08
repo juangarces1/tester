@@ -20,11 +20,13 @@ enum SearchMode { nombre, documento }
 class ClientesNewScreen extends StatefulWidget {
   final Invoice factura;
   final String ruta;
+  final ClienteTipo tipo; 
 
   const ClientesNewScreen({
     super.key,
     required this.factura,
     required this.ruta,
+     required this.tipo,
   });
 
   @override
@@ -75,9 +77,26 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
       }
     });
 
+    
+
     // Precarga de clientes
-    Future.microtask(() {
-      context.read<ClienteProvider>().getClientes();
+  Future.microtask(() {
+      context.read<ClienteProvider>().loadClientesBy(widget.tipo);
+
+      // 👇 Si la factura ya trae cliente, mostrarlo en resultados
+      final clienteSel = widget.factura.formPago?.clienteFactura;
+      if (clienteSel != null && clienteSel.nombre.isNotEmpty) {
+        final id = _idOf(clienteSel);
+        setState(() {
+          _filterUsers
+            ..clear()
+            ..add(clienteSel);
+          _statusById[id] = 'Cliente actual ✓';
+          _isFiltered = true;
+          _resultsListKey = UniqueKey();
+        });
+        _tabController.animateTo(1); // opcional: saltar a Resultados
+      }
     });
   }
 
@@ -110,7 +129,7 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
           backgroundColor: kPrimaryColor,
           elevation: 6.0,
           shadowColor: Colors.white,
-          title: Text('Cliente Contado', style: baseStyle),
+          title: Text(widget.tipo == ClienteTipo.contado  ? 'Clientes Contado': 'Cliente Credito', style: baseStyle),
           leading: Padding(
             padding: const EdgeInsets.all(8.0),
             child: TextButton(
@@ -141,20 +160,27 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
               ),
             ),
           ],
-          bottom: TabBar(
-            indicatorColor: Colors.white,
-            controller: _tabController,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.grey,
-            onTap: (i) {
-              if (i == 0) {
-                // Si el usuario regresa a "Buscar Por", resetea la key para evitar reuso extraño
-                setState(() => _resultsListKey = UniqueKey());
-              } else {
-                _hideKeyboard();
-              }
-            },
-            tabs: const [Tab(text: 'Buscar Por'), Tab(text: 'Resultados')],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(48.0),
+            child: Container(
+              color: kBlueColorLogo,
+              child: TabBar(
+                
+                indicatorColor: Colors.white,
+                controller: _tabController,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.grey,
+                onTap: (i) {
+                  if (i == 0) {
+                    // Si el usuario regresa a "Buscar Por", resetea la key para evitar reuso extraño
+                    setState(() => _resultsListKey = UniqueKey());
+                  } else {
+                    _hideKeyboard();
+                  }
+                },
+                tabs: const [Tab(text: 'Buscar Por'), Tab(text: 'Resultados')],
+              ),
+            ),
           ),
         ),
         body: TabBarView(
@@ -168,7 +194,7 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
           ],
         ),
         floatingActionButton: FloatingActionButton(
-          backgroundColor: kPrimaryColor,
+          backgroundColor: Colors.green,
           onPressed: _goAdd,
           child: const Icon(Icons.add, color: Colors.white, size: 30),
         ),
@@ -342,7 +368,8 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
       }
     }
 
-    final clientes = context.read<ClienteProvider>().clientesContado;
+     // lee la lista según el tipo
+    final clientes = context.read<ClienteProvider>().clientesBy(widget.tipo);
 
    // 👇 Comparación case-insensitive
     final qn = _norm(q);
@@ -452,7 +479,8 @@ void _goAdd() async {
 
     // 1) Persistir en Provider
     final prov = context.read<ClienteProvider>();
-    prov.upsertCliente(created, asFirst: true);
+     prov.upsertClienteBy(created, tipo: widget.tipo, asFirst: true);
+
 
     setState(() {
       // Dedupe por ID estable (documento/código)
@@ -492,16 +520,22 @@ void _goAdd() async {
     final clienteProvider = context.read<ClienteProvider>();
     _setBusyById(id, true, status: 'Sincronizando actividades…');
 
-    await clienteProvider.syncActividades(documento, index);
+     if (widget.tipo == ClienteTipo.credito) {
+        await context.read<ClienteProvider>().syncActividadesCreditoBy(documento);
+      } else {
+        await context.read<ClienteProvider>().syncActividadesContadoBy(documento);
+      }
     if (!mounted) return;
 
     final err = clienteProvider.errorMessage;
 
     // Reemplaza en la lista por ID (no dependas del índice del provider)
-    final actualizado = clienteProvider.clientesContado.firstWhere(
+    final updatedList = clienteProvider.clientesBy(widget.tipo);
+    final actualizado = updatedList.firstWhere(
       (x) => _idOf(x) == id,
       orElse: () => _filterUsers.elementAt(index),
     );
+
     setState(() {
       final pos = _filterUsers.indexWhere((x) => _idOf(x) == id);
       if (pos >= 0) _filterUsers[pos] = actualizado;
@@ -554,16 +588,16 @@ void _goAdd() async {
         final cli = _filterUsers[pos];
         cli.emails ??= <String>[];
         for (final item in correos) {
-          if (!cli.emails!.contains(item)) cli.emails!.add(item);
+          if (!cli.emails.contains(item)) cli.emails.add(item);
         }
-        if (cli.email.isEmpty || !cli.emails!.contains(cli.email)) {
-          cli.email = cli.emails!.isNotEmpty ? cli.emails!.first : '';
+        if (cli.email.isEmpty || !cli.emails.contains(cli.email)) {
+          cli.email = cli.emails.isNotEmpty ? cli.emails.first : '';
         }
       }
     });
 
     final pos = _filterUsers.indexWhere((x) => _idOf(x) == id);
-    final total = pos >= 0 ? (_filterUsers[pos].emails?.length ?? 0) : 0;
+    final total = pos >= 0 ? (_filterUsers[pos].emails.length ?? 0) : 0;
     _doneById(id, 'Emails actualizados ($total)');
   }
 
@@ -618,8 +652,8 @@ void _goAdd() async {
       setState(() {
         cliente.email = nuevoEmail;
         cliente.emails ??= <String>[];
-        if (!cliente.emails!.contains(nuevoEmail)) {
-          cliente.emails!.add(nuevoEmail);
+        if (!cliente.emails.contains(nuevoEmail)) {
+          cliente.emails.add(nuevoEmail);
         }
       });
     }
@@ -675,9 +709,9 @@ void _goAdd() async {
           setState(() {
             cliente.email = nuevoEmail;
             cliente.emails ??= <String>[];
-            cliente.emails!.remove(old);
-            if (!cliente.emails!.contains(nuevoEmail)) {
-              cliente.emails!.add(nuevoEmail);
+            cliente.emails.remove(old);
+            if (!cliente.emails.contains(nuevoEmail)) {
+              cliente.emails.add(nuevoEmail);
             }
           });
         }
@@ -728,8 +762,8 @@ void _goAdd() async {
           setState(() {
             cliente.email = nuevoEmail;
             cliente.emails ??= <String>[];
-            if (!cliente.emails!.contains(nuevoEmail)) {
-              cliente.emails!.add(nuevoEmail);
+            if (!cliente.emails.contains(nuevoEmail)) {
+              cliente.emails.add(nuevoEmail);
             }
           });
         }

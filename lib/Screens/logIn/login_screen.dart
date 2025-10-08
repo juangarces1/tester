@@ -342,18 +342,10 @@ class _LoginScreenState extends State<LoginScreen>
      final clienteProv = Provider.of<ClienteProvider>(context, listen: false);
 
 
-       final responseClienteContado = await ApiHelper.getClienteContado();
-       if (responseClienteContado.isSuccess){
-           clienteProv.setClientesContado(responseClienteContado.result);
-        
-       }
-
+     clienteProv.loadClientesBy(ClienteTipo.contado);
        
-       final responseClienteCredito = await ApiHelper.getClienteCredito();
-       if (responseClienteCredito.isSuccess){
-           clienteProv.setClientesCredito(responseClienteCredito.result);
-        
-       }
+
+       clienteProv.loadClientesBy(ClienteTipo.credito);
 
     setState(() => _showLoader = false);
     // Inicializar datos locales

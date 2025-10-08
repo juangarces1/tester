@@ -38,11 +38,11 @@ class _ClientPointsState extends State<ClientPoints> {
         borderRadius: BorderRadius.circular(10),
         child: ListTile(
           dense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           leading: _leadingAvatar(hasCliente),
           title: Text(
             hasCliente ? "$nombre ($puntos)" : "Seleccione Cliente Frecuente",
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 16,
