@@ -1,10 +1,8 @@
-// lib/Providers/despachos_provider.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:tester/Providers/tranascciones_provider.dart';
 import 'package:tester/ViewModels/dispatch_control.dart';
 import 'package:tester/helpers/console_api_helper.dart';
-import 'package:tester/helpers/transactions_api_helper.dart';
 
 enum HoseStatus { available, authorized, busy, fueling, unpaid, stopped, unknown, finished }
 
@@ -14,11 +12,11 @@ class DespachosProvider extends ChangeNotifier {
   final Map<String, HoseStatus> _hoseStatuses = {};
   final Map<String, String> _hoseRaw = {};
 
-   TransaccionesProvider? _transProv;              // <- referencia opcional
+  TransaccionesProvider? _transProv;              // <- referencia opcional
   void bindTransacciones(TransaccionesProvider p) // <- llamada 1 vez en el arranque
     => _transProv = p;
 
-     final Map<DispatchControl, VoidCallback> _stageWatchers = {}; // <- track de listeners por control
+  final Map<DispatchControl, VoidCallback> _stageWatchers = {}; // <- track de listeners por control
 
   Timer? _pollTimer;
   bool _busy = false;
@@ -50,82 +48,52 @@ class DespachosProvider extends ChangeNotifier {
     }
   }
 
-
   void _onChildChanged() {
     // Cada vez que cambie cualquier DispatchControl, esto obliga a FirstPage a reconstruirse
     notifyListeners();
   }
 
+  void addDispatch(DispatchControl d) {
+    // (A) Watcher de etapa: NO postea. Solo lanza el flujo completo UNA vez al entrar a 'unpaid'
+    void watcher() {
+      _onChildChanged();
 
- void addDispatch(DispatchControl d) {
-  // (A) Hook: cuando el control consiga la Transaccion, persistir y reflejar el ID
-  d.onLastUnpaid ??= (txLocal) async {
-    try {
-      final saved = await TransaccionesApiHelper.postAndFetchFull(txLocal);
-
-      // 1) Actualiza la lista canónica
-      _transProv?.upsert(saved);
-
-      // 2) MUTAR la MISMA instancia que ya está en el control (no reasignar)
-      txLocal.idtransaccion   = saved.idtransaccion;
-      txLocal.numero          = saved.numero;
-      txLocal.fechatransaccion= saved.fechatransaccion;
-      txLocal.total           = saved.total;
-      txLocal.volumen         = saved.volumen;
-      txLocal.preciounitario  = saved.preciounitario;
-      txLocal.estado          = saved.estado;
-      txLocal.facturada       = saved.facturada;
-      // ... añade aquí cualquier otro campo que te interese
-
-      d.notifyListeners(); // refresca cualquier UI que lea d.tx
-    } catch (e) {
-      // TODO: snackbar / reintento / log
+      if (d.stage == DispatchStage.unpaid &&
+          !d.loadingLastSale &&
+          !d.persistingTx &&
+          (d.tx == null || (d.tx?.idtransaccion ?? 0) == 0)) {
+        // markUnpaid ya es anti-paralelo con _unpaidFlowRunning
+        d.markUnpaid();
+      }
     }
-  };
+    d.addListener(watcher);
+    _stageWatchers[d] = watcher;
 
-  // (B) Watcher de etapa
-  void watcher() {
-    _onChildChanged();
+    // (B) Alta normal
+    _despachos.add(d);
 
-    // Lanza el fetch SOLO una vez al entrar a 'unpaid'
-    if (d.stage == DispatchStage.unpaid &&
-        !d.loadingLastSale &&
-        d.consoleTx == null) {
-      d.goGetTr(); // internamente dispara onLastUnpaid(t) en fire-and-forget
-    }
+    // (C) Observar manguera si ya viene elegida
+    final hoseKey = d.selectedHose?.hoseKey;
+    if (hoseKey != null) addWatchedHose(hoseKey);
+
+    _safeNotify();
   }
-  d.addListener(watcher);
-  _stageWatchers[d] = watcher;
-
-  // (C) Alta normal
-  _despachos.add(d);
-
-  // (D) Observar manguera si ya viene elegida
-  final hoseKey = d.selectedHose?.hoseKey;
-  if (hoseKey != null) addWatchedHose(hoseKey);
-
-  _safeNotify();
-}
-
-
- 
 
   void removeDispatch(DispatchControl d) {
-  // 1) Quita watcher específico
-  final w = _stageWatchers.remove(d);
-  if (w != null) d.removeListener(w);
+    // 1) Quita watcher específico
+    final w = _stageWatchers.remove(d);
+    if (w != null) d.removeListener(w);
 
-  // 2) Quita el listener “global” si lo tenías
-  d.removeListener(_onChildChanged);
+    // 2) Quita el listener “global” si lo tenías
+    d.removeListener(_onChildChanged);
 
-  // 3) Dispose (cancela timers y deja de observar manguera)
-  d.dispose();
+    // 3) Dispose (cancela timers y deja de observar manguera)
+    d.dispose();
 
-  // 4) Saca de la colección y notifica
-  _despachos.remove(d);
-  _safeNotify();
-}
-
+    // 4) Saca de la colección y notifica
+    _despachos.remove(d);
+    _safeNotify();
+  }
 
   DispatchControl? getById(String id) {
     for (final d in _despachos) { if (d.id == id) return d; }
@@ -134,22 +102,21 @@ class DespachosProvider extends ChangeNotifier {
 
   void refresh() => _safeNotify();
 
- void clearAll() {
-  for (final d in _despachos) {
-    final w = _stageWatchers.remove(d);
-    if (w != null) d.removeListener(w);
-    d.removeListener(_onChildChanged);
-    d.dispose();
+  void clearAll() {
+    for (final d in _despachos) {
+      final w = _stageWatchers.remove(d);
+      if (w != null) d.removeListener(w);
+      d.removeListener(_onChildChanged);
+      d.dispose();
+    }
+    _despachos.clear();
+
+    _watchedHoses.clear();
+    _hoseStatuses.clear();
+    _hoseRaw.clear();
+    _stopPolling();
+    _safeNotify();
   }
-  _despachos.clear();
-
-  _watchedHoses.clear();
-  _hoseStatuses.clear();
-  _hoseRaw.clear();
-  _stopPolling();
-  _safeNotify();
-}
-
 
   void addWatchedHose(String hoseKey) {
     if (_watchedHoses.add(hoseKey)) {
@@ -259,16 +226,16 @@ class DespachosProvider extends ChangeNotifier {
       case 'unpaid':     return HoseStatus.unpaid;
       case 'stopped':    return HoseStatus.stopped;
       case 'busy':       return HoseStatus.busy;
-      case 'finished':   return HoseStatus.finished; // por compatibilidad si algún día aparece
+      case 'finished':   return HoseStatus.finished; // compat
       default:           return HoseStatus.unknown;
     }
   }
 
   String? _beautifyRaw(String? s) {
     if (s == null || s.trim().isEmpty) return null;
-    final cleaned = s.replaceAll(RegExp(r'[_\\-\\.]+'), ' ').trim();
+    final cleaned = s.replaceAll(RegExp(r'[_\-\.\]+'), ' ').trim();
     return cleaned
-        .split(RegExp(r'\\s+'))
+        .split(RegExp(r'\s+'))
         .map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}')
         .join(' ');
   }

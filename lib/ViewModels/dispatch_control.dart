@@ -1,10 +1,10 @@
-// lib/ViewModels/dispatch_control.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:tester/ConsoleModels/console_transaction.dart';
 import 'package:tester/Models/transaccion.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/helpers/console_api_helper.dart';
+import 'package:tester/helpers/transactions_api_helper.dart';
 import '../ViewModels/new_map.dart' show Fuel, HosePhysical, PositionPhysical;
 
 class DispatchControl extends ChangeNotifier {
@@ -36,7 +36,13 @@ class DispatchControl extends ChangeNotifier {
   // Modelo para Almacenar la última transacción
   ConsoleTransaction? consoleTx;
   Transaccion? tx;
+
   bool _loadingLastSale = false;
+  bool _persistingTx = false;
+  bool _unpaidFlowRunning = false; // candado simple anti-paralelo
+
+  bool get loadingLastSale => _loadingLastSale;
+  bool get persistingTx => _persistingTx;
 
   DispatchStage stage = DispatchStage.idle;
 
@@ -57,7 +63,7 @@ class DispatchControl extends ChangeNotifier {
   bool get isReadyToAuthorize =>
       stage == DispatchStage.readyToAuthorize && hoseStatus == HoseStatus.available;
 
-  bool _unpaidHookFired = false; // evita disparar el hook más de una vez
+  bool _unpaidHookFired = false; // (si mantienes hooks externos)
 
   bool get canEditInvoiceType =>
       stage == DispatchStage.authorized ||
@@ -66,9 +72,9 @@ class DispatchControl extends ChangeNotifier {
       stage == DispatchStage.unpaid;
 
   bool get canRetry =>
-    stage == DispatchStage.readyToAuthorize &&
-    authorizationExpired &&
-    hasAmountOrTank;
+      stage == DispatchStage.readyToAuthorize &&
+      authorizationExpired &&
+      hasAmountOrTank;
 
   String? get notReadyReason {
     if (selectedHose == null) return 'Selecciona manguera/posición';
@@ -99,10 +105,7 @@ class DispatchControl extends ChangeNotifier {
   void setPreset(PresetInfo p) {
     preset = p;
     tankFull = false;
-
-    // amountRequest solo aplica cuando el preset es de monto; si es volumen lo dejamos nulo.
     amountRequest = p.kind == PresetKind.amount ? p.amount : null;
-
     _updateStage();
     notifyListeners();
   }
@@ -117,10 +120,7 @@ class DispatchControl extends ChangeNotifier {
 
   void setTankFull(bool value) {
     tankFull = value;
-    if (value) {
-      preset = PresetInfo.empty();
-      amountRequest = null;
-    }
+    if (value) { preset = PresetInfo.empty(); amountRequest = null; }
     _updateStage();
     notifyListeners();
   }
@@ -152,25 +152,97 @@ class DispatchControl extends ChangeNotifier {
     stage = DispatchStage.completed;
     if (autoUnwatchOnTerminal) _detachWatcher();
     notifyListeners();
+    _provider.removeDispatch(this);
   }
 
-  void goGetTr() {
-    _fetchLastSaleIfNeeded();
-    notifyListeners();
+  /// (opcional) si quieres recuperar solo la parte “fetch”
+  // void goGetTr() {
+  //   _fetchLastSaleIfNeeded();
+  //   notifyListeners();
+  // }
+
+  // ================== NUEVO FLUJO ÚNICO ==================
+  // SOLO hace fetch y crea tx local si falta. NUNCA postea aquí.
+  Future<void> _fetchLastSaleIfNeeded() async {
+    if (_loadingLastSale) return;
+    final nozzle = selectedHose?.nozzleNumber;
+    if (nozzle == null || nozzle == 0) return;
+
+    _loadingLastSale = true;
+    notifyListeners(); // “sincronizando...”
+
+    try {
+      final resp = await ConsoleApiHelper.getTransactionLastByNozzle(nozzle);
+
+      if (resp.isSuccess && resp.result != null) {
+        consoleTx        = resp.result;
+        saleId           = consoleTx?.saleId;
+        saleNumber       = consoleTx?.saleNumber;
+        productId        = consoleTx?.fuelCode;
+        amountDispense   = consoleTx?.totalValue;
+        volumenDispense  = consoleTx?.totalVolume;
+        price            = consoleTx?.unitPrice;
+
+        // ⚠️ Solo crea la Transaccion UNA VEZ; id=0
+        tx ??= consoleTx?.toTransaccion();
+
+        // NO: nada de onLastUnpaid ni POST aquí.
+      } else {
+        _clearConsoleValues();
+      }
+    } catch (_) {
+      _clearConsoleValues();
+    } finally {
+      _loadingLastSale = false;
+      notifyListeners(); // SIEMPRE notifica al terminar
+    }
   }
 
-  void markUnpaid() {
-    if (stage == DispatchStage.unpaid) return; // evita re-entradas
+  // ÚNICO dueño del pipeline unpaid → fetch → persistir
+  Future<void> markUnpaid({Duration? delay}) async {
+    if (_unpaidFlowRunning) return;
+    _unpaidFlowRunning = true;
 
-    _cancelFinishTimer();
-    stage = DispatchStage.unpaid;
-    if (autoUnwatchOnTerminal) _detachWatcher();
+    try {
+      if (stage != DispatchStage.unpaid) {
+        _cancelFinishTimer();
+        stage = DispatchStage.unpaid;
+        if (autoUnwatchOnTerminal) _detachWatcher();
+        notifyListeners();
+      }
 
-    // 1) Notifica inmediatamente el cambio de etapa para que la UI pinte “Sin pagar”
-    notifyListeners();
+      // Delay opcional (default 350 ms)
+      final d = delay ?? const Duration(milliseconds: 350);
+      if (d.inMilliseconds > 0) {
+        await Future.delayed(d);
+      }
 
-    // 2) Lanza el fetch; él mismo notificará al finalizar
-    _fetchLastSaleIfNeeded();
+      // 1) Fetch consola (NO postea)
+      await _fetchLastSaleIfNeeded();
+
+      // 2) Persistir si hay tx (esperar para evitar id=0)
+      final t = tx;
+      if (t == null) return;
+
+      _persistingTx = true;
+      notifyListeners();
+      try {
+        // (opcional) hook previo si mantienes validaciones
+        final hook = onLastUnpaid;
+        if (hook != null) {
+          await hook(t);
+        }
+
+        final saved = await TransaccionesApiHelper.postAndFetchFull(t);
+        tx = saved; // ← ya con idtransaccion asignado
+      } finally {
+        _persistingTx = false;
+        notifyListeners();
+      }
+    } finally {
+      _unpaidFlowRunning = false;
+      notifyListeners();
+    }
   }
 
   void syncWithHoseStatus() {
@@ -181,29 +253,25 @@ class DispatchControl extends ChangeNotifier {
         if (s == HoseStatus.authorized) {
           markAuthorized();
         } else if (s == HoseStatus.fueling) {
-          // a veces brinca directo sin authorized “estable”
           markDispatching();
         }
         break;
 
       case DispatchStage.authorized:
         if (s == HoseStatus.fueling) {
-          // Empezó a despachar
           _cancelAuthLossTimer();
           markDispatching();
         } else if (s != HoseStatus.authorized) {
-          // Posible expiración: debounce corto para evitar flicker
           _authLossTimer ??= Timer(const Duration(milliseconds: 600), () {
             final ss = hoseStatus;
             final sigueAutorizado = (ss == HoseStatus.authorized || ss == HoseStatus.fueling);
             if (stage == DispatchStage.authorized && !sigueAutorizado) {
               authorizationExpired = true;
-              markReadyToAuthorize(); // queda listo para reintentar
+              markReadyToAuthorize();
             }
             _authLossTimer = null;
           });
         } else {
-          // Sigue autorizado estable → cancela cualquier debounce pendiente
           _cancelAuthLossTimer();
         }
         break;
@@ -214,7 +282,6 @@ class DispatchControl extends ChangeNotifier {
           markUnpaid();
           break;
         }
-        // Flow real: termina → vuelve a available (o busy/stopped). Cierra si sale de fueling/authorized.
         final leftFueling = s != HoseStatus.fueling && s != HoseStatus.authorized;
         if (leftFueling) {
           _finishTimer ??= Timer(const Duration(milliseconds: 500), () {
@@ -228,7 +295,7 @@ class DispatchControl extends ChangeNotifier {
             _finishTimer = null;
           });
         } else {
-          _cancelFinishTimer(); // volvió a fueling/authorized → cancela el cierre
+          _cancelFinishTimer();
         }
         break;
 
@@ -302,77 +369,11 @@ class DispatchControl extends ChangeNotifier {
     }
   }
 
-  // Implementación Cancelación por tiempo
-  // Nuevo Timer para vigilancia de inicio de despacho
-
+  // Hook opcional (si quieres validaciones previas al POST)
   Future<void> Function(Transaccion tx)? onLastUnpaid;
-
-  Future<bool> retryAuthorize() async {
-    final uid = _lastUserIdentifier;
-    if (uid == null || uid.isEmpty) {
-      throw Exception('No hay usuario previo para reintentar');
-    }
-    return applyPresetAndAuthorize(uid);
-  }
-
-  Future<void> _fetchLastSaleIfNeeded() async {
-    if (_loadingLastSale) return;
-    final nozzle = selectedHose?.nozzleNumber;
-    if (nozzle == null || nozzle == 0) return;
-
-    _loadingLastSale = true;
-    notifyListeners(); // para que puedas mostrar “sincronizando…”
-
-    try {
-      final resp = await ConsoleApiHelper.getTransactionLastByNozzle(nozzle);
-
-      if (resp.isSuccess && resp.result != null) {
-        consoleTx        = resp.result;
-        saleId           = consoleTx?.saleId;
-        saleNumber       = consoleTx?.saleNumber;
-        productId        = consoleTx?.fuelCode;
-        amountDispense   = consoleTx?.totalValue;
-        volumenDispense  = consoleTx?.totalVolume;
-        price            = consoleTx?.unitPrice;
-
-        // ⚠️ Solo crea la Transaccion UNA VEZ; no la reemplaces después
-        tx ??= consoleTx?.toTransaccion();
-
-        // Dispara el hook solo una vez por ciclo
-        final t = tx;
-        if (!_unpaidHookFired && t != null) {
-          _unpaidHookFired = true;
-          // No bloquees la UI esperando el POST
-          unawaited(onLastUnpaid?.call(t));
-        }
-
-      } else {
-        // Limpia estado para no mostrar valores viejos
-        consoleTx        = null;
-        saleId           = null;
-        saleNumber       = null;
-        productId        = null;
-        amountDispense   = null;
-        volumenDispense  = null;
-        price            = null;
-      }
-    } catch (e) {
-      // log opcional
-      consoleTx        = null;
-      saleId           = null;
-      saleNumber       = null;
-      productId        = null;
-      amountDispense   = null;
-      volumenDispense  = null;
-      price            = null;
-    } finally {
-      _loadingLastSale = false;
-      notifyListeners(); // SIEMPRE notifica al terminar
-    }
-  }
-
-  bool get loadingLastSale => _loadingLastSale;
 }
+
+// ====== Enums y modelos de apoyo (igual que antes) ======
 
 enum DispatchStage {
   idle, hoseSelected, amountOrTankChosen, readyToAuthorize,
@@ -389,10 +390,8 @@ enum PresetKind { amount, volume }
 class PresetInfo {
   final String manguera;
   final PresetKind kind;
-  /// Monto en moneda (cuando kind == amount). Null en volumen.
-  final double? amount;
-  /// Volumen en litros (cuando kind == volume). Null en monto.
-  final double? volume;
+  final double? amount; // monto
+  final double? volume; // litros
 
   const PresetInfo._({
     required this.manguera,
@@ -401,40 +400,16 @@ class PresetInfo {
     required this.volume,
   });
 
-  /// Preset de monto
-  factory PresetInfo.amount({
-    required String manguera,
-    required double amount,
-  }) {
-    return PresetInfo._(
-      manguera: manguera,
-      kind: PresetKind.amount,
-      amount: amount,
-      volume: null,
-    );
+  factory PresetInfo.amount({ required String manguera, required double amount }) {
+    return PresetInfo._(manguera: manguera, kind: PresetKind.amount, amount: amount, volume: null);
   }
 
-  /// Preset de volumen (litros)
-  factory PresetInfo.volume({
-    required String manguera,
-    required double liters,
-  }) {
-    return PresetInfo._(
-      manguera: manguera,
-      kind: PresetKind.volume,
-      amount: null,
-      volume: liters,
-    );
+  factory PresetInfo.volume({ required String manguera, required double liters }) {
+    return PresetInfo._(manguera: manguera, kind: PresetKind.volume, amount: null, volume: liters);
   }
 
-  /// Preset vacío (sin valor)
   factory PresetInfo.empty() {
-    return const PresetInfo._(
-      manguera: '',
-      kind: PresetKind.amount,
-      amount: null,
-      volume: null,
-    );
+    return const PresetInfo._(manguera: '', kind: PresetKind.amount, amount: null, volume: null);
   }
 
   bool get hasValidValue =>
@@ -446,6 +421,17 @@ class PresetInfo {
 }
 
 extension DispatchControlApi on DispatchControl {
+
+
+  /// Reintenta la autorización usando el último usuario que llamó applyPresetAndAuthorize.
+  Future<bool> retryAuthorize() async {
+    final uid = _lastUserIdentifier;
+    if (uid == null || uid.isEmpty) {
+      throw Exception('No hay usuario previo para reintentar');
+    }
+    return applyPresetAndAuthorize(uid);
+  }
+
   Future<bool> applyPresetAndAuthorize(String userIdentifier) async {
     _lastUserIdentifier = userIdentifier;
     if (selectedHose == null) {
@@ -457,7 +443,7 @@ extension DispatchControlApi on DispatchControl {
 
     final nozzle = selectedHose!.nozzleNumber;
 
-    // --- Caso TANQUE LLENO: PostDispenseV2 solo autoriza la máquina ---
+    // --- TANQUE LLENO: PostDispenseV2 solo autoriza la máquina ---
     if (tankFull) {
       try {
         final ok = await ConsoleApiHelper.postDispenseV2(nozzle, userIdentifier, authorize: true);
@@ -465,7 +451,6 @@ extension DispatchControlApi on DispatchControl {
           markAuthorized();
           return true;
         } else {
-          // asegurar que no quedamos en 'authorizing'
           markReadyToAuthorize();
           return false;
         }
@@ -477,7 +462,7 @@ extension DispatchControlApi on DispatchControl {
       }
     }
 
-    // --- Caso PRESET (monto o volumen): PreDispenseV2 autoriza ---
+    // --- PRESET (monto o volumen): PreDispenseV2 autoriza ---
     final isVolume = preset.isVolume;
     final value = isVolume ? preset.volume! : preset.amount!;
 
@@ -495,7 +480,6 @@ extension DispatchControlApi on DispatchControl {
         markAuthorized();
         return true;
       } else {
-        // <- corrección clave
         markReadyToAuthorize();
         return false;
       }
@@ -504,4 +488,14 @@ extension DispatchControlApi on DispatchControl {
       return false;
     }
   }
+  void _clearConsoleValues() {
+    consoleTx       = null;
+    saleId          = null;
+    saleNumber      = null;
+    productId       = null;
+    amountDispense  = null;
+    volumenDispense = null;
+    price           = null;
+  }
 }
+  

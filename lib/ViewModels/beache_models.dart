@@ -191,12 +191,17 @@ Future<List<DispensadorVisual>> _loadData() async {
       );
     }
 
-    final caraA = agrupadas.containsKey('A')
-        ? CaraVisual(letra: 'A', hoses: agrupadas['A']!)
+    // Las caras vienen como 1,2,... desde _mapFaceNumberToLetter
+    final cara1 = agrupadas.containsKey('1')
+        ? CaraVisual(letra: '1', hoses: agrupadas['1']!)
         : null;
-    final caraB = agrupadas.containsKey('B')
-        ? CaraVisual(letra: 'B', hoses: agrupadas['B']!)
+    final cara2 = agrupadas.containsKey('2')
+        ? CaraVisual(letra: '2', hoses: agrupadas['2']!)
         : null;
+
+    // Reusamos las propiedades caraA/caraB del modelo para no romper nada
+    final caraA = cara1;
+    final caraB = cara2;
 
     resultado.add(
       DispensadorVisual(
@@ -262,11 +267,10 @@ Future<List<DispensadorVisual>> _loadData() async {
   }
 
   // convierte 1→A, 2→B, 3→C...
-  String _mapFaceNumberToLetter(int n) {
-    if (n < 1) return '?';
-    final code = 64 + n; // ASCII 'A' = 65
-    return String.fromCharCode(code);
-  }
+ String _mapFaceNumberToLetter(int n) {
+  if (n < 1) return '?';
+  return '$n';
+}
 }
 
 // ======================================================
@@ -302,9 +306,9 @@ class _DispensadorCardVisualState extends State<_DispensadorCardVisual> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: _caraColumn(widget.datos.caraA, 'A')),
+                Expanded(child: _caraColumn(widget.datos.caraA, widget.datos.caraA?.letra ?? '1')),
                 const SizedBox(width: 14),
-                Expanded(child: _caraColumn(widget.datos.caraB, 'B')),
+                Expanded(child: _caraColumn(widget.datos.caraB, widget.datos.caraB?.letra ?? '2')),
               ],
             ),
           ],
@@ -314,20 +318,69 @@ class _DispensadorCardVisualState extends State<_DispensadorCardVisual> {
   }
 
   // ---------- Cara ----------
-  Widget _caraColumn(CaraVisual? cara, String label) {
-    if (cara == null) {
-      return _caraVacia(label);
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _headerCara(label, cara.hoses),
-        ...cara.hoses.map(_hoseRow),
-      ],
-    );
+ Widget _caraColumn(CaraVisual? cara, String label) {
+  if (cara == null) {
+    return _caraVacia(label);
   }
+  // Calculamos estado y lo mostramos en una fila aparte
+  final estado = _getCaraStatus(cara.hoses);
+  final color  = _getCaraStatusColor(estado);
+  final icon   = _getCaraIcon(estado);
 
-  Widget _caraVacia(String label) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _headerCaraTitle(label, cara.hoses.length),
+      const SizedBox(height: 6),
+      _caraStatusRow(estado, color, icon),
+      const SizedBox(height: 6),
+      ...cara.hoses.map(_hoseRow),
+    ],
+  );
+}
+
+// NUEVO: Título simple "Cara 1" / "Cara 2" sin estado dentro
+Widget _headerCaraTitle(String label, int hoseCount) {
+  return Container(
+    decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(12)),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+    margin: const EdgeInsets.only(bottom: 0),
+    child: Row(
+      children: [
+        Text('Cara $label',
+            style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 15)),
+        const Spacer(),
+        Text('$hoseCount manguera${hoseCount == 1 ? '' : 's'}',
+            style: const TextStyle(color: Colors.white38, fontSize: 12)),
+      ],
+    ),
+  );
+}
+
+// NUEVO: Estado en su propia fila (píldora linda)
+Widget _caraStatusRow(String estado, Color color, IconData icon) {
+  return Container(
+    decoration: BoxDecoration(
+      color: Colors.black,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: color.withOpacity(.4), width: 1),
+    ),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+    child: Row(
+      children: [
+        Icon(icon, color: color, size: 18),
+        const SizedBox(width: 6),
+        Text(
+          estado,
+          style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13),
+        ),
+      ],
+    ),
+  );
+}
+
+
+ Widget _caraVacia(String label) {
     return Column(
       children: [
         Container(
@@ -348,31 +401,7 @@ class _DispensadorCardVisualState extends State<_DispensadorCardVisual> {
   }
 
   // ---------- Cabecera de cara ----------
-  Widget _headerCara(String label, List<MangueraVisual> hoses) {
-    final estado = _getCaraStatus(hoses);
-    final color = _getCaraStatusColor(estado);
-    final icon = _getCaraIcon(estado);
-
-    return Container(
-      decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(12)),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Text('Cara $label',
-              style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 15)),
-          const Spacer(),
-          Icon(icon, color: color, size: 18),
-          const SizedBox(width: 4),
-          Text(
-            estado,
-            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13),
-          ),
-        ],
-      ),
-    );
-  }
-
+ 
   // ---------- Fila manguera ----------
   Widget _hoseRow(MangueraVisual mv) {
     final description = mv.descripcion;
@@ -459,25 +488,25 @@ class _DispensadorCardVisualState extends State<_DispensadorCardVisual> {
             ),
             const SizedBox(height: 8),
             // Botón para ver últimos despachos
-            Row(
-              children: [
-                IconButton(
-                  color: Colors.black,
-                  iconSize: 30,
-                  icon: const Icon(Icons.history),       // ⟳ o cualquier ícono
-                  tooltip: 'Ver últimos despachos',
-                 onPressed: () => showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.grey[900],
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                    ),
-                    builder: (_) => DispatchesBottomSheet(nozzle: mv.nozzleNumber, fuelname: fuelName),
-                  ),
-                ),
-              ],
-            ),
+            // Row(
+            //   children: [
+            //     IconButton(
+            //       color: Colors.black,
+            //       iconSize: 30,
+            //       icon: const Icon(Icons.history),       // ⟳ o cualquier ícono
+            //       tooltip: 'Ver últimos despachos',
+            //      onPressed: () => showModalBottomSheet(
+            //         context: context,
+            //         isScrollControlled: true,
+            //         backgroundColor: Colors.grey[900],
+            //         shape: const RoundedRectangleBorder(
+            //           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            //         ),
+            //         builder: (_) => DispatchesBottomSheet(nozzle: mv.nozzleNumber, fuelname: fuelName),
+            //       ),
+            //     ),
+            //   ],
+            // ),
           ],
         ),
       ),
@@ -527,28 +556,29 @@ class _DispensadorCardVisualState extends State<_DispensadorCardVisual> {
 }
 
   // ---------- Cara utils ----------
-  String _getCaraStatus(List<MangueraVisual> hoses) {
-    bool anyDispensing = false;
-    bool anyUnpaid = false;
-    bool anyBlocked = false;
-    bool allAvailable = true;
-    bool anyAuthorized = false;
+ String _getCaraStatus(List<MangueraVisual> hoses) {
+  bool anyDispensing = false;
+  bool anyUnpaid = false;
+  bool anyBlocked = false;
+  bool allAvailable = true;
+  bool anyAuthorized = false;
 
-    for (final h in hoses) {
-      final s = (h.hoseStatus?.status ?? '').toLowerCase();
-      if (s == 'fueling') anyDispensing = true;
-      if (s == 'unpaid') anyUnpaid = true;
-      if (s == 'blocked') anyBlocked = true;
-      if (s != 'available') allAvailable = false;
-      if (s != 'authorized') anyAuthorized = true;
-    }
-    if (anyAuthorized) return 'Autorizado';
-    if (anyDispensing) return 'Despachando';
-    if (anyUnpaid) return 'Pendiente';
-    if (anyBlocked) return 'Bloqueada';
-    if (allAvailable) return 'Disponible';
-    return 'Revisar';
+  for (final h in hoses) {
+    final s = (h.hoseStatus?.status ?? '').toLowerCase();
+    if (s == 'fueling') anyDispensing = true;
+    if (s == 'unpaid') anyUnpaid = true;
+    if (s == 'blocked') anyBlocked = true;
+    if (s != 'available') allAvailable = false;
+    if (s == 'authorized') anyAuthorized = true; // ← FIX: antes estaba al revés
   }
+  if (anyAuthorized) return 'Autorizado';
+  if (anyDispensing) return 'Despachando';
+  if (anyUnpaid)     return 'Pendiente';
+  if (anyBlocked)    return 'Bloqueada';
+  if (allAvailable)  return 'Disponible';
+  return 'Revisar';
+}
+
 
   String translateDispenserStatus(String status) {
   switch (status) {

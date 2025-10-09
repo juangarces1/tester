@@ -529,7 +529,7 @@ class _PaymentTile extends StatelessWidget {
             ],
           ),
           child: Center(
-            child: Row(
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(Icons.send_rounded, color: Colors.white),
