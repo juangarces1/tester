@@ -94,7 +94,6 @@ class DispatchControl extends ChangeNotifier {
     }
     selectedPosition = pos;
     selectedHose = null;
-    id = null;
     fuel = null;
     preset = PresetInfo.empty();
     tankFull = false;
@@ -109,7 +108,6 @@ class DispatchControl extends ChangeNotifier {
     if (selectedHose != null) _provider.removeWatchedHose(selectedHose!.hoseKey);
     selectedPosition = pos;
     selectedHose     = hose;
-    id               = hose.hoseKey;
     fuel             = hose.fuel;
     _provider.addWatchedHose(hose.hoseKey);
     _lastObservedHoseStatus = null;

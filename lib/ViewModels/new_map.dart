@@ -25,9 +25,23 @@ class HosePhysical {
 }
 
 class PositionPhysical {
-  final int number;                 // 1,2,3… global
-  final List<HosePhysical> hoses;   // mangueras de la cara
-  const PositionPhysical({required this.number, required this.hoses});
+  final int number;                   // 1,2,3… global
+  final int pumpId;                   // identificador del surtidor físico
+  final String pumpName;              // nombre descriptivo del surtidor
+  final int faceIndex;                // índice físico de la cara (1,2,…)
+  final String faceLabel;             // etiqueta legible (A/B o 1/2)
+  final String faceDescription;       // descripción proveniente del mapa
+  final List<HosePhysical> hoses;     // mangueras asociadas a la cara
+
+  const PositionPhysical({
+    required this.number,
+    required this.pumpId,
+    required this.pumpName,
+    required this.faceIndex,
+    required this.faceLabel,
+    required this.faceDescription,
+    required this.hoses,
+  });
 }
 
 // -----------------------------  BUILDER  ---------------------------------
@@ -36,55 +50,116 @@ class PositionBuilder {
     required List<PumpData> pumps,
     required List<DispenserStatus> statuses,
   }) {
-    // 1) Índice de caras por id → (pumpId, faceIndex) para ordenar estable
-    final faceMetaById = <String, _FaceMeta>{};
-    for (final p in pumps) {
-      for (final f in p.dispensers) {
-        faceMetaById[f.id] = _FaceMeta(pumpId: p.id, faceIndex: f.numberOfFace);
+    final hoseByNozzle = <int, DispenserHose>{};
+    final hoseByKey = <String, DispenserHose>{};
+    final hoseByDescription = <String, DispenserHose>{};
+
+    for (final status in statuses) {
+      for (final hose in status.hoses) {
+        hoseByNozzle[hose.number] = hose;
+        hoseByKey[hose.key] = hose;
+        final descKey = hose.description.trim().toLowerCase();
+        if (descKey.isNotEmpty && !hoseByDescription.containsKey(descKey)) {
+          hoseByDescription[descKey] = hose;
+        }
       }
     }
 
-    // 2) Agrupar mangueras por cara usando **statuses** (traen descripción y status)
-    final hosesByFaceId = <String, List<HosePhysical>>{};
-    for (final st in statuses) {
-      final faceId = st.key; // Identificador único de la cara
-      final list = hosesByFaceId.putIfAbsent(faceId, () => <HosePhysical>[]);
-
-      for (final h in st.hoses) {
-        final fuel = _fuelFromDispenser(st); // ← descripción tomada del status
-        list.add(HosePhysical(
-          nozzleNumber: h.number,
-          hoseKey     : h.key,
-          fuel        : fuel,
-          status      : h.status,
-        ));
-      }
-    }
-
-    // 3) Orden: primero caras presentes en 'pumps' por (pumpId, faceIndex),
-    //    luego las caras que salgan en statuses pero no existan en pumps.
-    final knownFaceIds = faceMetaById.keys.toSet();
-    final allFaceIds   = hosesByFaceId.keys.toSet();
-
-    final orderedKnown = allFaceIds.where(knownFaceIds.contains).toList()
-      ..sort((a,b) {
-        final am = faceMetaById[a]!;
-        final bm = faceMetaById[b]!;
-        final cmp = am.pumpId.compareTo(bm.pumpId);
-        return (cmp != 0) ? cmp : am.faceIndex.compareTo(bm.faceIndex);
-      });
-
-    final unknownFaces = allFaceIds.where((id) => !knownFaceIds.contains(id)).toList()
-      ..sort(); // orden estable para las no mapeadas
-
-    final faceOrder = <String>[...orderedKnown, ...unknownFaces];
-
-    // 4) Construcción numerada
     final result = <int, PositionPhysical>{};
+    final assignedHoseKeys = <String>{};
     var posCounter = 1;
-    for (final faceId in faceOrder) {
-      final hoses = hosesByFaceId[faceId]!;
-      result[posCounter] = PositionPhysical(number: posCounter, hoses: hoses);
+
+    for (final pump in pumps) {
+      final faces = <int, List<HosePhysical>>{};
+      final faceDescriptions = <int, String>{};
+
+      for (final face in pump.dispensers) {
+        final faceIndex = face.numberOfFace;
+        final hoses = faces.putIfAbsent(faceIndex, () => <HosePhysical>[]);
+
+        if (!faceDescriptions.containsKey(faceIndex) ||
+            faceDescriptions[faceIndex]!.isEmpty) {
+          faceDescriptions[faceIndex] = face.description;
+        }
+
+        final nozzleNumber = int.tryParse(face.id) ?? -1;
+
+        DispenserHose? statusHose;
+        if (nozzleNumber >= 0) statusHose = hoseByNozzle[nozzleNumber];
+        statusHose ??= hoseByKey[face.id];
+        statusHose ??= hoseByDescription[face.description.trim().toLowerCase()];
+
+        final fuel = statusHose != null
+            ? _fuelFromHose(statusHose)
+            : const Fuel(name: 'Desconocido', color: Colors.grey);
+
+        final hoseKey = statusHose?.key ?? '${pump.id}-${face.id}';
+        final hoseStatus = statusHose?.status ?? 'unknown';
+        final resolvedNozzle = statusHose?.number ?? nozzleNumber;
+
+        hoses.add(
+          HosePhysical(
+            nozzleNumber: resolvedNozzle,
+            hoseKey: hoseKey,
+            fuel: fuel,
+            status: hoseStatus,
+          ),
+        );
+
+        assignedHoseKeys.add(hoseKey);
+      }
+
+      final orderedFaces = faces.keys.toList()..sort();
+      for (final faceIndex in orderedFaces) {
+        final hoses = faces[faceIndex]!;
+        hoses.sort((a, b) => a.nozzleNumber.compareTo(b.nozzleNumber));
+        final faceLabel = _faceLabel(faceIndex);
+        final description = faceDescriptions[faceIndex]?.trim() ?? '';
+
+        result[posCounter] = PositionPhysical(
+          number: posCounter,
+          pumpId: pump.id,
+          pumpName: pump.pumpName,
+          faceIndex: faceIndex,
+          faceLabel: faceLabel,
+          faceDescription: description,
+          hoses: List.unmodifiable(hoses),
+        );
+        posCounter++;
+      }
+    }
+
+    for (final status in statuses) {
+      final remainingHoses = status.hoses
+          .where((hose) => !assignedHoseKeys.contains(hose.key))
+          .toList();
+
+      if (remainingHoses.isEmpty) continue;
+
+      remainingHoses.sort((a, b) => a.number.compareTo(b.number));
+      final hoses = remainingHoses
+          .map(
+            (hose) => HosePhysical(
+              nozzleNumber: hose.number,
+              hoseKey: hose.key,
+              fuel: _fuelFromHose(hose),
+              status: hose.status,
+            ),
+          )
+          .toList();
+
+      final fallbackLabel = _faceLabel(status.number);
+      result[posCounter] = PositionPhysical(
+        number: posCounter,
+        pumpId: status.number,
+        pumpName: status.description,
+        faceIndex: status.number,
+        faceLabel: fallbackLabel,
+        faceDescription: status.description,
+        hoses: List.unmodifiable(hoses),
+      );
+
+      assignedHoseKeys.addAll(remainingHoses.map((hose) => hose.key));
       posCounter++;
     }
 
@@ -92,23 +167,16 @@ class PositionBuilder {
   }
 
   // --------------------- Fuel detection (desde DispenserHose) ------------
-  static Fuel _fuelFromHose(DispenserHose hose) {     
-
-   
-    return  Fuel(name: hose.fuelType , color: hose.fuelColor);
-  }
-
-   static Fuel _fuelFromDispenser(DispenserStatus status) { 
-     
-
-    // Fallback
-    return  Fuel(name: status.fuelType , color: status.fuelColor);
+  static Fuel _fuelFromHose(DispenserHose hose) {
+    return Fuel(name: hose.fuelType, color: hose.fuelColor);
   }
 }
 
-// --------------------------- helpers internos ------------------------
-class _FaceMeta {
-  final int pumpId;
-  final int faceIndex;
-  const _FaceMeta({required this.pumpId, required this.faceIndex});
+String _faceLabel(int faceIndex) {
+  if (faceIndex <= 0) return '?';
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  if (faceIndex <= letters.length) {
+    return letters[faceIndex - 1];
+  }
+  return faceIndex.toString();
 }

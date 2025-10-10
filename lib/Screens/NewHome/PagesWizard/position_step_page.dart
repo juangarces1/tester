@@ -160,6 +160,14 @@ class _PositionCard extends StatelessWidget {
     final availableCount = position.hoses
         .where((h) => h.status.toLowerCase() == 'available')
         .length;
+    final pumpLabel = position.pumpName.isNotEmpty &&
+            position.pumpName.toLowerCase() != 'sin mapa'
+        ? position.pumpName
+        : 'Surtidor ${position.pumpId > 0 ? position.pumpId : position.number}';
+    final faceLabel = position.faceLabel.isNotEmpty
+        ? 'Cara ${position.faceLabel}'
+        : 'Cara';
+    final faceDescription = position.faceDescription.trim();
 
     return Material(
       color: Colors.transparent,
@@ -227,25 +235,44 @@ class _PositionCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '$availableCount de ${position.hoses.length} mangueras disponibles',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.85),
+                  pumpLabel,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  faceDescription.isNotEmpty
+                      ? '$faceLabel - $faceDescription'
+                      : faceLabel,
+                  style: const TextStyle(
+                    color: Colors.white60,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Total de mangueras: ${position.hoses.length}',
+                  style: const TextStyle(
+                    color: Colors.white70,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: position.hoses
-                      .map(
-                        (h) => _HoseBadge(
-                          hose: h,
-                        ),
-                      )
-                      .toList(),
+                const SizedBox(height: 6),
+                Text(
+                  'Disponibles ahora: $availableCount',
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
+                const SizedBox(height: 18),
+                _SelectionHint(highlight: statusColor),
               ],
             ),
           ),
@@ -255,52 +282,31 @@ class _PositionCard extends StatelessWidget {
   }
 }
 
-class _HoseBadge extends StatelessWidget {
-  final HosePhysical hose;
-  const _HoseBadge({required this.hose});
+class _SelectionHint extends StatelessWidget {
+  final Color highlight;
+  const _SelectionHint({required this.highlight});
 
   @override
   Widget build(BuildContext context) {
-    final status = hose.status.toLowerCase();
-    final isAvailable = status == 'available';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.20),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isAvailable
-              ? Colors.white.withOpacity(0.6)
-              : Colors.white24,
+    return Row(
+      children: [
+        Icon(
+          Icons.touch_app,
+          color: highlight.withOpacity(0.9),
+          size: 18,
         ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.local_gas_station,
-            size: 16,
-            color: hose.fuel.color.computeLuminance() > 0.5
-                ? Colors.black87
-                : Colors.white,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            'M-${hose.nozzleNumber} · ${hose.fuel.name}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'Toca para ver la lista de mangueras',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.78),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(width: 6),
-          Icon(
-            isAvailable ? Icons.check_circle : Icons.schedule,
-            size: 14,
-            color: isAvailable ? Colors.greenAccent : Colors.orangeAccent,
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
