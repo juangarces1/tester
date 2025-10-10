@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/Screens/NewHome/Components/dispatch_card.dart';
-import 'package:tester/Screens/NewHome/PagesWizard/fuel_stage_page.dart';
+import 'package:tester/Screens/NewHome/PagesWizard/position_step_page.dart';
 import 'package:tester/ViewModels/dispatch_control.dart';
 import 'package:tester/constans.dart';
 
@@ -154,7 +154,9 @@ Widget build(BuildContext context) {
     // aparecerá cuando el wizard dispare la autorización (authorizing).
     await Navigator.push(
       ctx,
-      MaterialPageRoute(builder: (_) => FuelStepPage(dispatchId: dispatch.id!)),
+      MaterialPageRoute(
+        builder: (_) => PositionStepPage(dispatchId: dispatch.id!),
+      ),
     );
   }
 }

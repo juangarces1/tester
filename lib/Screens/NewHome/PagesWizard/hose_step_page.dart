@@ -5,6 +5,7 @@ import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/Screens/NewHome/Components/menu_page.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/preset_step_page.dart';
+import 'package:tester/ViewModels/dispatch_control.dart';
 import 'package:tester/ViewModels/new_map.dart';
 
 class HoseStepPage extends StatefulWidget {
@@ -21,62 +22,47 @@ class _HoseStepPageState extends State<HoseStepPage> {
   @override
   void initState() {
     super.initState();
-    // Después del primer frame, forzar carga del mapa con await
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshMap();
     });
   }
 
   Future<void> _refreshMap() async {
-    final mapProv = Provider.of<MapProvider>(context, listen: false);
-    if (_loadingInFlight) return; // evita recargas concurrentes
+    if (_loadingInFlight) return;
     _loadingInFlight = true;
-    await mapProv.loadMap();
-    _loadingInFlight = false;
+    try {
+      await context.read<MapProvider>().loadMap();
+    } finally {
+      _loadingInFlight = false;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final mapProv = Provider.of<MapProvider>(context);
-    final despachosProv = Provider.of<DespachosProvider>(context, listen: false);
-    final dispatch = despachosProv.getById(widget.dispatchId)!;
+    final mapProv = context.watch<MapProvider>();
+    final despachosProv = context.read<DespachosProvider>();
+    final DispatchControl dispatch =
+        despachosProv.getById(widget.dispatchId)!;
 
-    // Mostrar error una sola vez
-    if (mapProv.isError && !mapProv.toastShown) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error cargando el mapa: ${mapProv.error}')),
-        );
-        mapProv.markToastShown();
-      });
-    }
+    final selectedNumber = dispatch.selectedPosition?.number;
+    final map = mapProv.stationMap;
+    final position =
+        selectedNumber != null && map != null ? map[selectedNumber] : null;
 
-    // Loader mientras se carga o no hay mapa
-    if (mapProv.isLoading || mapProv.stationMap == null) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    final stationMap = mapProv.stationMap!;
-
-    // Filtrar mangueras disponibles para el combustible seleccionado
-    final fuel = dispatch.fuel;
-    final entries = <_HoseEntry>[];
-    stationMap.forEach((_, pos) {
-      for (final h in pos.hoses) {
-        if (h.fuel.name == fuel!.name && h.status == 'Available') {
-     // if (h.fuel.name == fuel!.name ) {
-          entries.add(_HoseEntry(position: pos, hose: h));
-        }
-      }
-    });
+    final hoses = position?.hoses
+            .where((hose) => hose.status.toLowerCase() == 'available')
+            .toList() ??
+        <HosePhysical>[];
 
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('3. Elige Manguera', style: TextStyle(color: Colors.white)),
+        title: Text(
+          selectedNumber == null
+              ? '2. Elige manguera'
+              : '2. POS ${selectedNumber.toString().padLeft(2, '0')}',
+          style: const TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -98,63 +84,210 @@ class _HoseStepPageState extends State<HoseStepPage> {
           ),
         ],
       ),
-      body: entries.isEmpty
-          ? const Center(
-              child: Text(
-                'No hay mangueras para ese combustible',
-                style: TextStyle(color: Colors.white, fontSize: 18),
-              ),
-            )
-          : RefreshIndicator(
-              onRefresh: _refreshMap,
-              child: ListView.separated(
-                padding: const EdgeInsets.all(16),
-                separatorBuilder: (_, __) => const Divider(color: Colors.grey),
-                itemCount: entries.length,
-                itemBuilder: (_, i) {
-                  final e = entries[i];
-                  return ListTile(
-                    leading: CircleAvatar(
-                      radius: 30,
-                      backgroundColor: e.hose.fuel.color,
-                      child: const Icon(
-                        Icons.local_gas_station,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                    title: Text(
-                      'POS ${e.position.number} — M-${e.hose.nozzleNumber}',
-                      style: const TextStyle(color: Colors.white, fontSize: 18),
-                    ),
-                    subtitle: Text(
-                      e.hose.fuel.name,
-                      style: const TextStyle(color: Colors.white70, fontSize: 14),
-                    ),
-                    onTap: () {
-                      dispatch.selectHose(
-                        pos: e.position,
-                        hose: e.hose,
-                      );
-                      despachosProv.refresh();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => PresetStepPage(dispatchId: dispatch.id!),
+      body: mapProv.isLoading && map == null
+          ? const Center(child: CircularProgressIndicator())
+          : map == null
+              ? _NoPositionSelected(
+                  message: 'No pudimos cargar las posiciones. Intenta actualizar.',
+                  onRetry: _refreshMap,
+                )
+              : selectedNumber == null
+                  ? const _NoPositionSelected()
+                  : position == null
+                      ? _NoPositionSelected(
+                      message:
+                          'No encontramos la posición seleccionada. Intenta recargar.',
+                      onRetry: _refreshMap,
+                    )
+                  : hoses.isEmpty
+                      ? _NoAvailableHoses(onRetry: _refreshMap)
+                      : RefreshIndicator(
+                          onRefresh: _refreshMap,
+                          color: Colors.white,
+                          backgroundColor: Colors.black87,
+                          child: GridView.builder(
+                            padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              mainAxisSpacing: 16,
+                              crossAxisSpacing: 16,
+                              childAspectRatio: 3 / 3.6,
+                            ),
+                            physics: const BouncingScrollPhysics(
+                              parent: AlwaysScrollableScrollPhysics(),
+                            ),
+                            itemCount: hoses.length,
+                            itemBuilder: (_, index) {
+                              final hose = hoses[index];
+                              return _HoseCard(
+                                hose: hose,
+                                onTap: () {
+                                  dispatch.selectHose(
+                                    pos: position,
+                                    hose: hose,
+                                  );
+                                  despachosProv.refresh();
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => PresetStepPage(
+                                        dispatchId: widget.dispatchId,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
                         ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
     );
   }
 }
 
-/// Helper interno para agrupar posición + manguera
-class _HoseEntry {
-  final PositionPhysical position;
+class _HoseCard extends StatelessWidget {
   final HosePhysical hose;
-  _HoseEntry({required this.position, required this.hose});
+  final VoidCallback onTap;
+  const _HoseCard({required this.hose, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = hose.fuel.color;
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+        elevation: 6,
+        color: accent,
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                height: 40,
+                width: 40,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.local_gas_station,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'M-${hose.nozzleNumber}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                hose.fuel.name,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.22),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.check_circle, size: 16, color: Colors.greenAccent),
+                    SizedBox(width: 6),
+                    Text(
+                      'Disponible',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NoAvailableHoses extends StatelessWidget {
+  final VoidCallback onRetry;
+  const _NoAvailableHoses({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.block, size: 64, color: Colors.white38),
+          const SizedBox(height: 16),
+          const Text(
+            'No hay mangueras disponibles en esta posición',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white70, fontSize: 18),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Actualizar'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NoPositionSelected extends StatelessWidget {
+  final String message;
+  final VoidCallback? onRetry;
+  const _NoPositionSelected({
+    this.message = 'Selecciona primero una posición',
+    this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.ev_station, size: 60, color: Colors.white38),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white70, fontSize: 18),
+          ),
+          if (onRetry != null) ...[
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reintentar'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }

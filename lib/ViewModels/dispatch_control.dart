@@ -88,11 +88,29 @@ class DispatchControl extends ChangeNotifier {
 
   void setFuel(Fuel v) { fuel = v; notifyListeners(); }
 
+  void selectPosition(PositionPhysical pos) {
+    if (selectedHose != null) {
+      _provider.removeWatchedHose(selectedHose!.hoseKey);
+    }
+    selectedPosition = pos;
+    selectedHose = null;
+    id = null;
+    fuel = null;
+    preset = PresetInfo.empty();
+    tankFull = false;
+    amountRequest = null;
+    authorizationExpired = false;
+    _lastObservedHoseStatus = null;
+    _updateStage();
+    notifyListeners();
+  }
+
   void selectHose({ required PositionPhysical pos, required HosePhysical hose }) {
     if (selectedHose != null) _provider.removeWatchedHose(selectedHose!.hoseKey);
     selectedPosition = pos;
     selectedHose     = hose;
     id               = hose.hoseKey;
+    fuel             = hose.fuel;
     _provider.addWatchedHose(hose.hoseKey);
     _lastObservedHoseStatus = null;
     _updateStage();
