@@ -75,7 +75,7 @@ class ConsoleAppBar extends StatelessWidget implements PreferredSizeWidget {
               Text(
                 subtitle!,
                 style: TextStyle(
-                  color: (foreColor ?? Colors.white).withOpacity(0.85),
+                  color: (foreColor ?? Colors.white).withValues(alpha: 0.85),
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),

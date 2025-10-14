@@ -300,7 +300,9 @@ Future<void> _confirmDelete(BuildContext context) async {
   ) ?? false;
 
   if (ok) {
+    if (context.mounted) {
     await _handleDelete(context);
+    }
   }
 }
 

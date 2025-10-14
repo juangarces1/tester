@@ -48,7 +48,7 @@ class _ProductImagesState extends State<ProductImages> {
             child: Container(
                padding: EdgeInsets.all(getProportionateScreenWidth(10)),
                   decoration: BoxDecoration(
-                    color: kSecondaryColor.withOpacity(0.5),
+                    color: kSecondaryColor.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(15),
                   ),
               child: Hero(
@@ -99,7 +99,7 @@ class _ProductImagesState extends State<ProductImages> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-              color: kPrimaryColor.withOpacity(selectedImage == index ? 1 : 0)),
+              color: kPrimaryColor.withValues(alpha: selectedImage == index ? 1 : 0)),
         ),
         child: CachedNetworkImage(
                         imageUrl: widget.product.images[index],

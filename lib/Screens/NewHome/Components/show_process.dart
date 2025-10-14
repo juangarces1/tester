@@ -1,25 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
-
 import 'package:tester/Components/app_bar_custom.dart';
 import 'package:tester/Components/card_tr.dart';
 import 'package:tester/Components/loader_component.dart';
-
 import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/cierrefinal.dart';
 import 'package:tester/Models/product.dart';
 import 'package:tester/Models/response.dart';
 import 'package:tester/Models/transaccion.dart';
-
+import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
-import 'package:tester/Providers/tranascciones_provider.dart';
-
-
-
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
-
 import 'package:tester/sizeconfig.dart';
 
 // ---------------------------------------------------------------
@@ -71,11 +64,10 @@ extension LegacyTxToProduct on Transaccion {
 }
 
 class ShowProcessMenu extends StatefulWidget {
-  final CierreFinal cierreFinal;
+  
 
   const ShowProcessMenu({
-    super.key,
-    required this.cierreFinal,
+    super.key,    
   });
 
   @override
@@ -131,11 +123,11 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
       child: Scaffold(
         appBar: MyCustomAppBar(
           title: 'Procesar Transacciones',
-          elevation: 3,
+          elevation: 4,
           shadowColor: kPrimaryColor,
           automaticallyImplyLeading: true,
           foreColor: Colors.white,
-          backgroundColor: kBlueColorLogo,
+          backgroundColor: kNewsurface,
           actions: <Widget>[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -265,7 +257,7 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
 
   Widget _noTr() {
     return Container(
-      color: kColorFondoOscuro,
+      color: kNewsurfaceHi,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -276,21 +268,14 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
                 padding: EdgeInsets.all(getProportionateScreenWidth(5)),
                 height: 100,
                 width: 100,
-                color: kColorFondoOscuro,
-                child: AspectRatio(
+              
+                child: const AspectRatio(
                   aspectRatio: 1,
-                  child: Container(
-                    padding: EdgeInsets.all(getProportionateScreenWidth(5)),
-                    decoration: BoxDecoration(
-                      color: kSecondaryColor.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: const Image(
-                      image: AssetImage('assets/NoTr.png'),
-                      fit: BoxFit.cover,
-                      height: 70,
-                      width: 70,
-                    ),
+                  child: Image(
+                    image: AssetImage('assets/NoTr.png'),
+                    fit: BoxFit.cover,
+                    height: 70,
+                    width: 70,
                   ),
                 ),
               ),
@@ -302,7 +287,7 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
               style: TextStyle(
                 fontSize: getProportionateScreenWidth(18),
                 fontWeight: FontWeight.bold,
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
           ),
@@ -314,41 +299,38 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
 
   // ---------- Cargar desde TransaccionesProvider.unpaid ----------
   Future<void> _updateTransactions() async {
-    setState(() => _showLoader = true);
+    try {
+     
+     var cierre = context.read<CierreActivoProvider>().cierreFinal;
 
-    // 1) Tomar impagas desde el provider (legacy)
-    final txProv = Provider.of<TransaccionesProvider>(context, listen: false);
-    final List<Transaccion> unpaid = txProv.unpaid;
+      final rs = await ApiHelper.getTransaccionesAsProduct(cierre!.idzona);
 
-    // 2) Convertir a Product usando la extensión nueva
-    final mapped = unpaid.map((tx) {
-      final isExo = tx.estado.toLowerCase().contains('exoner');
-      final sku = 'FUEL-${tx.idproducto}';
-      final detalle = isExo
-          ? 'Comb Exonerado'
-          : (tx.nombreproducto.isNotEmpty ? tx.nombreproducto : 'Combustible');
+      List<Invoice> facturas = [];
+      if (mounted) {
+        facturas = context.read<FacturasProvider>().facturas;
+      }
 
-      return tx.toInvoiceProduct(
-        codigoArticulo: sku,
-        detalle: detalle,
-      );
-    }).toList();
-
-    // 3) Filtros locales: excluir productos ya en facturas y los del carrito
-    List<Invoice> facturas = [];
-    if (mounted) {
-      facturas = Provider.of<FacturasProvider>(context, listen: false).facturas;
+      if (rs.isSuccess) {
+        final List<Product> items = rs.result;
+        final filtrados = filtrarProductosNoEnFacturas(items, facturas);
+        if (mounted) {
+          setState(() => transacciones = filtrados);
+        }
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(rs.message.isNotEmpty == true ? rs.message : 'No se pudieron cargar transacciones')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al actualizar: $e')),
+        );
+      }
+    } finally {
+      
     }
-    List<Product> filtrados = filtrarProductosNoEnFacturas(mapped, facturas);
-
-    for (final c in cart) {
-      filtrados.removeWhere((p) => p.transaccion == c.transaccion);
-    }
-
-    setState(() {
-      transacciones = filtrados;
-      _showLoader = false;
-    });
   }
 
   List<Product> filtrarProductosNoEnFacturas(List<Product> productosABuscar, List<Invoice> facturas) {
@@ -433,9 +415,11 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
 
     setState(() => _showLoader = true);
 
+    var cierre = context.read<CierreActivoProvider>().cierreFinal;
+
     final Map<String, dynamic> request = {
       'products': cart.map((e) => e.toApiProducJson()).toList(),
-      'idCierre': widget.cierreFinal.idcierre,
+      'idCierre': cierre!.idcierre,
       'estado': state,
     };
 

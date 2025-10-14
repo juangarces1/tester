@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:tester/ConsoleModels/console_transaction.dart';
 import 'package:tester/ConsoleModels/dispenser_last_info_response.dart';
 import 'package:tester/ConsoleModels/dispensersstatusresponse.dart';
+import 'package:tester/ConsoleModels/nozzle_info.dart';
 import 'package:tester/ConsoleModels/pump_faces_model.dart';
 import 'package:tester/ConsoleModels/success_response.dart';
 import 'package:tester/Models/response.dart';
@@ -107,6 +108,19 @@ class ConsoleApiHelper {
       return pumpResponse.data;
     } else {
       throw Exception('Error al obtener pumps: ${response.statusCode}');
+    }
+  }
+
+  static Future<List<NozzleInfo>> getNozzles() async {
+    final url = Uri.parse('${Constans.baseUrlCoreWeb}horustech/nozzles');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final jsonMap = json.decode(response.body);
+      final nozzleResponse = NozzleApiResponse.fromJson(jsonMap);
+      return nozzleResponse.data;
+    } else {
+      throw Exception('Error al obtener nozzles: ${response.statusCode}');
     }
   }
 

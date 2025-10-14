@@ -18,14 +18,14 @@ class StationMapPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     /* --------- Plano: lista de (pos, hose) que cumplen filtros --------- */
-    final hosesToShow = <_HoseInfo>[];
+    final hosesToShow = <HoseInfo>[];
 
     for (final pos in fullMap.values) {
       for (final hose in pos.hoses) {
         if (hose.status == 'Available' &&
             hose.fuel.name.toLowerCase() ==
                 fuelDescription.toLowerCase()) {
-          hosesToShow.add(_HoseInfo(pos: pos, hose: hose));
+          hosesToShow.add(HoseInfo(pos: pos, hose: hose));
         }
       }
     }
@@ -49,17 +49,17 @@ class StationMapPage extends StatelessWidget {
 }
 
 /* Pequeño wrapper para pasar ambos datos al Tile */
-class _HoseInfo {
+class HoseInfo {
   final PositionPhysical pos;
   final HosePhysical     hose;
-  const _HoseInfo({required this.pos, required this.hose});
+  const HoseInfo({required this.pos, required this.hose});
 }
 
 /// ===================
 ///  HoseTile
 /// ===================
 class HoseTile extends StatelessWidget {
-  final _HoseInfo info;
+  final HoseInfo info;
   const HoseTile({super.key, required this.info});
 
   @override

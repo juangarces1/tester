@@ -249,7 +249,7 @@ class _HoseCard extends StatelessWidget {
     final statusLabel = _hoseStatusLabel(hose.status);
     final statusColor = _hoseStatusColor(statusLabel);
     final statusIcon = _hoseStatusIcon(statusLabel);
-    final cardColor = enabled ? accent : accent.withOpacity(0.45);
+    final cardColor = enabled ? accent : accent.withValues(alpha: 0.45);
 
     return GestureDetector(
       onTap: enabled ? onTap : null,
@@ -257,7 +257,7 @@ class _HoseCard extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
         elevation: 6,
         color: cardColor,
-        shadowColor: accent.withOpacity(enabled ? 0.35 : 0.18),
+        shadowColor: accent.withValues(alpha: enabled ? 0.35 : 0.18),
         child: Opacity(
           opacity: enabled ? 1 : 0.65,
           child: Padding(
@@ -269,7 +269,7 @@ class _HoseCard extends StatelessWidget {
                   height: 40,
                   width: 40,
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.15),
+                    color: Colors.black.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   alignment: Alignment.center,
@@ -302,10 +302,10 @@ class _HoseCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.22),
+                    color: Colors.black.withValues(alpha: 0.22),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: statusColor.withOpacity(0.7),
+                      color: statusColor.withValues(alpha: 0.7),
                       width: 1.1,
                     ),
                   ),

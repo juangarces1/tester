@@ -228,7 +228,7 @@ class DispatchControl extends ChangeNotifier {
       }
 
       // Delay opcional (default 350 ms)
-      final d = delay ?? const Duration(milliseconds: 350);
+      final d = delay ?? const Duration(milliseconds: 500);
       if (d.inMilliseconds > 0) {
         await Future.delayed(d);
       }

@@ -165,8 +165,8 @@ class _PositionCard extends StatelessWidget {
         ? position.pumpName
         : 'Surtidor ${position.pumpId > 0 ? position.pumpId : position.number}';
     final faceLabel = position.faceLabel.isNotEmpty
-        ? 'Cara ${position.faceLabel}'
-        : 'Cara';
+        ? 'Posición ${position.faceLabel}'
+        : 'Posición';
     final faceDescription = position.faceDescription.trim();
 
     return Material(
@@ -178,8 +178,8 @@ class _PositionCard extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                accent.withOpacity(0.9),
-                accent.withOpacity(0.55),
+                accent.withValues(alpha: 0.9),
+                accent.withValues(alpha: 0.55),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -190,7 +190,7 @@ class _PositionCard extends StatelessWidget {
                 : null,
             boxShadow: [
               BoxShadow(
-                color: accent.withOpacity(0.35),
+                color: accent.withValues(alpha: 0.35),
                 blurRadius: 18,
                 offset: const Offset(0, 12),
               ),
@@ -218,7 +218,7 @@ class _PositionCard extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.25),
+                        color: statusColor.withValues(alpha: 0.25),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: statusColor, width: 1.3),
                       ),
@@ -292,7 +292,7 @@ class _SelectionHint extends StatelessWidget {
       children: [
         Icon(
           Icons.touch_app,
-          color: highlight.withOpacity(0.9),
+          color: highlight.withValues(alpha: 0.9),
           size: 18,
         ),
         const SizedBox(width: 8),
@@ -300,7 +300,7 @@ class _SelectionHint extends StatelessWidget {
           child: Text(
             'Toca para ver la lista de mangueras',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.78),
+              color: Colors.white.withValues(alpha: 0.78),
               fontSize: 13,
               fontWeight: FontWeight.w500,
             ),

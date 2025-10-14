@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:tester/Components/button_cierre.dart';
-
-
-import 'package:tester/Models/cierreactivo.dart';
 import 'package:tester/constans.dart';
-
-
 class CardFinal extends StatelessWidget {
-  final CierreActivo cierre;
+  
   final Future Function()? precierrePress; 
    final Future Function()? cierrePress; 
   final bool showButton;
-  const CardFinal({super.key, required this.cierre, required this.precierrePress, this.cierrePress, required this.showButton});
+  const CardFinal({super.key, required this.precierrePress, this.cierrePress, required this.showButton});
 
   @override
   Widget build(BuildContext context) {

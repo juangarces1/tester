@@ -316,8 +316,7 @@ class _InventScreenState extends State<InventScreen> {
      Navigator.pushReplacement(
        context, 
        MaterialPageRoute(
-         builder: (context) => NewHomeScreen(factura: factura,
-             )
+         builder: (context) => const NewHomeScreen()
        )
      );
   }

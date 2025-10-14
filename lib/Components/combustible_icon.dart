@@ -33,7 +33,7 @@ class CombustibleIcon extends StatelessWidget {
     }
 
     return CircleAvatar(
-      backgroundColor: color.withOpacity(0.18),
+      backgroundColor: color.withValues(alpha: 0.18),
       radius: size / 2,
       child: Icon(icon, color: color, size: size * 0.7),
     );

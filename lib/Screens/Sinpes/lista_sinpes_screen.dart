@@ -78,7 +78,7 @@ class _ListaSinpesScreenState extends State<ListaSinpesScreen> {
         BoxShadow(
           offset: const Offset(0, 10),
           blurRadius: 50,
-          color: const Color(0xFFDADADA).withOpacity(0.15),
+          color: const Color(0xFFDADADA).withValues(alpha: 0.15),
         )
       ],
    ),

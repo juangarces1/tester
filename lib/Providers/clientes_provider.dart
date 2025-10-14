@@ -33,18 +33,27 @@ class ClienteProvider with ChangeNotifier {
       switch (tipo) {
         case ClienteTipo.contado:
           response = await ApiHelper.getClienteContado();
-          if (response.isSuccess) _clientesContado = response.result;
-          else _errorMessage = 'Error al cargar los clientes al contado';
+          if (response.isSuccess) {
+             _clientesContado = response.result;
+          } else {
+            _errorMessage = 'Error al cargar los clientes al contado';
+          }
           break;
         case ClienteTipo.credito:
           response = await ApiHelper.getClientesCredito();
-          if (response.isSuccess) _clientesCredito = response.result;
-          else _errorMessage = 'Error al cargar los clientes a crédito';
+          if (response.isSuccess) {
+            _clientesCredito = response.result;
+          } else {
+            _errorMessage = 'Error al cargar los clientes a crédito';
+          }
           break;
         case ClienteTipo.promo:
           response = await ApiHelper.getClientesPromo();
-          if (response.isSuccess) _clientesPromo = response.result;
-          else _errorMessage = 'Error al cargar clientes promo';
+          if (response.isSuccess) {
+            _clientesPromo = response.result;
+          } else {
+            _errorMessage = 'Error al cargar clientes promo';
+          }
           break;
       }
     } catch (e) {
@@ -61,9 +70,13 @@ class ClienteProvider with ChangeNotifier {
       final actualizado = res.result as Cliente;
       final id = _idOf(actualizado);
       final ix = _clientesCredito.indexWhere((x) => _idOf(x) == id);
-      if (ix >= 0) _clientesCredito[ix] = actualizado; else _clientesCredito.insert(0, actualizado);
+      if (ix >= 0) {
+        _clientesCredito[ix] = actualizado;
+      } else {
+        _clientesCredito.insert(0, actualizado);
+      }
     } else {
-      _errorMessage = res.message ?? "Error al sincronizar actividades (crédito)";
+      _errorMessage = res.message;
     }
   } catch (e) {
     _errorMessage = "Ocurrió un error: ${e.toString()}";
@@ -80,9 +93,13 @@ Future<void> syncActividadesContadoBy(String documento) async {
       final actualizado = res.result as Cliente;
       final id = _idOf(actualizado);
       final ix = _clientesContado.indexWhere((x) => _idOf(x) == id);
-      if (ix >= 0) _clientesContado[ix] = actualizado; else _clientesContado.insert(0, actualizado);
+      if (ix >= 0) {
+        _clientesContado[ix] = actualizado;
+      } else {
+        _clientesContado.insert(0, actualizado);
+      }
     } else {
-      _errorMessage = res.message ?? "Error al sincronizar actividades (contado)";
+      _errorMessage = res.message;
     }
   } catch (e) {
     _errorMessage = "Ocurrió un error: ${e.toString()}";

@@ -19,13 +19,14 @@ class FormPago extends StatefulWidget {
   final GlobalKey<FormPagoState> key;
   final int index;
   final Color fontColor;
-
   final String ruta;
+  final ExpansibleController expansibleController; // 👈 nuevo
+
   const FormPago({required this.key,
    required this.index,
-   required this.fontColor,
-  
+   required this.fontColor,  
    required this.ruta,
+   required this.expansibleController,
    }) : super(key: key);
 
   @override
@@ -45,6 +46,14 @@ class FormPagoState extends State<FormPago> {
    late TextEditingController  chequeController;
    late TextEditingController  cuponController;
    late TextEditingController  sinpeController;
+
+  static const TextStyle _fieldTextStyle = TextStyle(
+    color: kNewtextPri,
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+  );
+
+  static const double _shortcutSize = 56;
    
   @override
   void initState() {
@@ -62,7 +71,7 @@ class FormPagoState extends State<FormPago> {
        chequeController = TextEditingController(text: factura.formPago!.monedaCheque);
        cuponController = TextEditingController(text: factura.formPago!.monedaCupones);  
        sinpeController = TextEditingController(text: factura.formPago!.monedaSinpe);
-
+       
 
    // setValues();
  
@@ -85,66 +94,175 @@ class FormPagoState extends State<FormPago> {
     super.dispose();
   }
 
+  BoxDecoration _shortcutDecoration() {
+    return BoxDecoration(
+      color: kNewborder,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: kNewborder),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.18),
+          blurRadius: 14,
+          offset: const Offset(0, 8),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImageShortcut(String asset, VoidCallback onTap) {
+    return SizedBox(
+      width: _shortcutSize,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: _shortcutSize,
+          decoration: _shortcutDecoration(),
+          padding: const EdgeInsets.all(10),
+          child: Image.asset(asset),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIconShortcut(IconData icon, VoidCallback onTap) {
+    return SizedBox(
+      width: _shortcutSize,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: _shortcutSize,
+          decoration: _shortcutDecoration(),
+          alignment: Alignment.center,
+          child: Icon(
+            icon,
+            color: kNewtextPri,
+            size: 26,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-   return  Container(
-      decoration: BoxDecoration(
-        color: kNewborder,
-        border: Border.all(color: kTextColorWhite, width: 1),
-        borderRadius: BorderRadius.circular(10),
-        
+  
+   
+    final inputTheme = InputDecorationTheme(
+      filled: true,
+      fillColor: kNewsurfaceHi,
+      labelStyle: const TextStyle(
+        color: kNewtextPri,
+        fontWeight: FontWeight.w600,
       ),
-     
-      child: ExpansionTile(
-        title: Text(
-            'Seleccione la Forma de Pago',
-            style: TextStyle(
-              color: widget.fontColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
-        iconColor:widget. fontColor,
-        collapsedIconColor: widget.fontColor,
-        children: <Widget>[
-          Container(
-            decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 235, 230, 236),
-              gradient: const LinearGradient(
-                colors: [kBlueColorLogo, Color.fromARGB(255, 255, 255, 255)],
-                begin: Alignment.centerRight,
-                end: Alignment(0.95, 0.0),
-                tileMode: TileMode.clamp
-              ),
-              border: Border.all(
-                color: kSecondaryColor,
-                width: 1,
-              ),
-            ),
-            child: Column(
-              children: [
-              
-                const SizedBox(height: 10,),   
-                _showBacAndBn(),    
-                const SizedBox(height: 10,),                
-                _showScotiaDav(),   
-                const SizedBox(height: 10,),
-                _showCashDollar(),
-                const SizedBox(height: 10,),
-                _showPointTransfers(),            
-                const SizedBox(height: 10,),
-                _showChequeCupones(),                  
-                const SizedBox(height: 10,), 
-                _showSinpeRefresh(),
-                const SizedBox(height: 10,),                 
-              ],
-            ),
-          )
-        ],
+      hintStyle: const TextStyle(color: kNewtextMut),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: kNewborder),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: kNewgreen),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: kNewred),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: kNewred),
       ),
     );
 
-  }
+   
+
+   return Container(
+    decoration: BoxDecoration(
+      color: kNewsurface,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: kNewborder),
+      boxShadow: const [ /* ... */ ],
+    ),
+    child: Theme(
+      data: Theme.of(context).copyWith(inputDecorationTheme: inputTheme),
+      child: Expansible(
+        controller: widget.expansibleController,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        maintainState: true,
+        // HEADER: pinta tu cabecera y permite toggle al tocar
+        headerBuilder: (context, anim) {
+          final isOpen = widget.expansibleController.isExpanded;
+          return InkWell(
+            onTap: () => isOpen
+                ? widget.expansibleController.collapse()
+                : widget.expansibleController.expand(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Seleccione la Forma de Pago',
+                      style: TextStyle(
+                        color: widget.fontColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                  // Icono que rota con la animación
+                  AnimatedRotation(
+                    turns: anim.value * 0.5, // 0 → 0°, 1 → 180°
+                    duration: const Duration(milliseconds: 220),
+                    child: Icon(
+                      Icons.expand_more_rounded,
+                      color: widget.fontColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+        // BODY: tu contenido actual de pagos
+        bodyBuilder: (context, anim) {
+          return Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF0F141E), Color(0xFF1A2332)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(18),
+                bottomRight: Radius.circular(18),
+              ),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
+              children: [
+                const SizedBox(height: 4),
+                _showBacAndBn(),
+                const SizedBox(height: 12),
+                _showScotiaDav(),
+                const SizedBox(height: 12),
+                _showCashDollar(),
+                const SizedBox(height: 12),
+                _showPointTransfers(),
+                const SizedBox(height: 12),
+                _showChequeCupones(),
+                const SizedBox(height: 12),
+                _showSinpeRefresh(),
+                const SizedBox(height: 8),
+              ],
+            ),
+          );
+        },
+      ),
+    ),
+  );
+}
 
   Widget _showCashDollar() {
     return
@@ -154,7 +272,8 @@ class FormPagoState extends State<FormPago> {
           children: [
             Flexible(
               child: TextField(   
-                
+                style: _fieldTextStyle,
+                cursorColor: kNewgreen,
                 controller: cashController,
                 keyboardType: TextInputType.number,
                 inputFormatters: <TextInputFormatter>[
@@ -190,29 +309,13 @@ class FormPagoState extends State<FormPago> {
                 },
               ),
             ),
-             SizedBox(
-            width: 60,
-            child: GestureDetector(
-              onTap: _goCashAll,
-              child: AspectRatio(
-                aspectRatio: 1.02,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                     color: kTextColorBlack.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Image(
-                    image: AssetImage('assets/COLON.jpg'),
-                  
-                  )
-                ),
-              )
-              ),
-            ),
+            const SizedBox(width: 12),
+            _buildImageShortcut('assets/COLON.jpg', _goCashAll),
              const SizedBox(width: 10,),
                Flexible(
               child: TextField(   
+                style: _fieldTextStyle,
+                cursorColor: kNewgreen,
                 controller: dollarController,    
                 keyboardType: TextInputType.number,
                 inputFormatters: <TextInputFormatter>[
@@ -250,26 +353,8 @@ class FormPagoState extends State<FormPago> {
                 },
               ),
             ),
-             SizedBox(
-            width: 60,
-            child: GestureDetector(
-              onTap: _goDollar,
-              child: AspectRatio(
-                aspectRatio: 1.02,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                      color: kTextColorBlack.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Image(
-                    image: AssetImage('assets/dollar.png'),
-                  
-                  )
-                ),
-              )
-              ),
-            ),
+            const SizedBox(width: 12),
+            _buildImageShortcut('assets/dollar.png', _goDollar),
 
           ],
         ),
@@ -284,6 +369,8 @@ class FormPagoState extends State<FormPago> {
           children: [
             Flexible(
               child: TextField(  
+                style: _fieldTextStyle,
+                cursorColor: kNewgreen,
                 controller: bacController,      
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
@@ -318,29 +405,13 @@ class FormPagoState extends State<FormPago> {
               ),
             ),
 
-             SizedBox(
-            width: 60,
-            child: GestureDetector(
-              onTap: _goTarjetaBacAll,
-              child: AspectRatio(
-                aspectRatio: 1.02,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: kTextColorBlack.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Image(
-                    image: AssetImage('assets/Bac.png'),
-                  
-                  )
-                ),
-              )
-              ),
-            ),
+            const SizedBox(width: 12),
+            _buildImageShortcut('assets/Bac.png', _goTarjetaBacAll),
             const SizedBox(width: 10,),
              Flexible(
               child: TextField(
+                style: _fieldTextStyle,
+                cursorColor: kNewgreen,
                 controller: bnController,        
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
@@ -377,26 +448,8 @@ class FormPagoState extends State<FormPago> {
               ),
             ),
 
-             SizedBox(
-            width: 60,
-            child: GestureDetector(
-              onTap: _goTarjetaBN,
-              child: AspectRatio(
-                aspectRatio: 1.02,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                     color: kTextColorBlack.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Image(
-                    image: AssetImage('assets/BN.jpg'),
-                  
-                  )
-                ),
-              )
-              ),
-            ),
+            const SizedBox(width: 12),
+            _buildImageShortcut('assets/BN.jpg', _goTarjetaBN),
           
           ],
         ),
@@ -414,6 +467,8 @@ class FormPagoState extends State<FormPago> {
         children: [
           Flexible(
             child: TextField(
+              style: _fieldTextStyle,
+              cursorColor: kNewgreen,
               readOnly: true,   
               controller: pointsController,    
               keyboardType: TextInputType.number,
@@ -426,29 +481,13 @@ class FormPagoState extends State<FormPago> {
               ),          
             ),
           ),
-          SizedBox(
-            width: 60,
-            child: GestureDetector(
-              onTap: _goPoints,
-              child: AspectRatio(
-                aspectRatio: 1.02,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                      color: kTextColorBlack.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Image(
-                    image: AssetImage('assets/points.jpg'),
-                  
-                  )
-                ),
-              )
-              ),
-            ),
-        const SizedBox(width: 10,),
+          const SizedBox(width: 12),
+          _buildImageShortcut('assets/points.jpg', _goPoints),
+        const SizedBox(width: 12,),
            Flexible(
               child: TextField(  
+                style: _fieldTextStyle,
+                cursorColor: kNewgreen,
                 readOnly: true, 
                 controller: transferController,    
                 keyboardType: TextInputType.number,
@@ -458,26 +497,8 @@ class FormPagoState extends State<FormPago> {
                 ),          
               ),
             ),
-            SizedBox(
-            width: 60,
-            child: GestureDetector(
-              onTap: _goTransfers,
-              child: AspectRatio(
-                aspectRatio: 1.02,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                     color: kTextColorBlack.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Image(
-                    image: AssetImage('assets/transferencia.png'),
-                  
-                  )
-                ),
-              )
-              ),
-            ),
+            const SizedBox(width: 12),
+            _buildImageShortcut('assets/transferencia.png', _goTransfers),
       
         ],
       ),
@@ -494,6 +515,8 @@ class FormPagoState extends State<FormPago> {
           children: [
             Flexible(
               child: TextField(   
+                style: _fieldTextStyle,
+                cursorColor: kNewgreen,
                 controller: sctiaController,    
                 keyboardType: TextInputType.number,
                 inputFormatters: <TextInputFormatter>[
@@ -532,29 +555,13 @@ class FormPagoState extends State<FormPago> {
               ),
             ),
 
-           SizedBox(
-            width: 60,
-            child: GestureDetector(
-              onTap: _goTarjetaScotia,
-              child: AspectRatio(
-                aspectRatio: 1.02,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                       color: kTextColorBlack.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Image(
-                    image: AssetImage('assets/Scottia.png'),
-                  
-                  )
-                ),
-              )
-              ),
-            ),
+          const SizedBox(width: 12),
+          _buildImageShortcut('assets/Scottia.png', _goTarjetaScotia),
            const SizedBox(width: 10,),
            Flexible(
               child: TextField(   
+                style: _fieldTextStyle,
+                cursorColor: kNewgreen,
                 controller: davController,    
                 keyboardType: TextInputType.number,
                 inputFormatters: <TextInputFormatter>[
@@ -591,218 +598,153 @@ class FormPagoState extends State<FormPago> {
                 },
               ),
             ),
-             SizedBox(
-            width: 60,
-            child: GestureDetector(
-              onTap: _goTarjetaDav,
-              child: AspectRatio(
-                aspectRatio: 1.02,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                       color: kTextColorBlack.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Image(
-                    image: AssetImage('assets/davicasa.png'),                  
-                  )
-                ),
-              )
-              ),
-            ),
+            const SizedBox(width: 12),
+            _buildImageShortcut('assets/davicasa.png', _goTarjetaDav),
           ],
         ),
       );
   }
   
   Widget _showChequeCupones() {
-    return
-      Container(
-        padding: const EdgeInsets.only(left: 20.0, right: 25),
-        child: Row(
-          children: [
-            Flexible(
-              child: TextField(   
-                controller: chequeController,    
-                keyboardType: TextInputType.number,
-                inputFormatters: <TextInputFormatter>[
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
-                  ],
-                decoration: const InputDecoration(
-                  hintText: 'Ingrese el Monto',
-                  labelText: 'Cheque',            
-                  
-                
-                ),
-                onChanged: (value) {            
-                 if (value.isNotEmpty){ 
-                   setState(() {     
-                         
-                     factura.formPago!.totalCheques = double.parse(value);
-                    
-                      FacturaService.updateFactura(context, factura);           
-                     if(factura.saldo < 0){                 
-                       factura.formPago!.totalCheques = 0;
-                       FacturaService.updateFactura(context, factura);
-                      
-                       cashController.text= value.toString();
-                       Fluttertoast.showToast(
-                        msg: "La cantidad es superior al saldo, por favor vuelva a ingresarla",
-                        toastLength: Toast.LENGTH_SHORT,
-                        gravity: ToastGravity.CENTER,
-                        timeInSecForIosWeb: 1,
-                        backgroundColor: Colors.red,
-                        textColor: Colors.white,
-                        fontSize: 16.0
-                      ); 
-                     }
-                  });  
-                }         
-                },
-              ),
-            ),
-             SizedBox(
-            width: 60,
-            child: GestureDetector(
-              onTap: _goCheque,
-              child: AspectRatio(
-                aspectRatio: 1.02,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: kTextColorBlack.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Image(
-                    image: AssetImage('assets/CHEQUE.jpg'),
-                  
-                  )
-                ),
-              )
-              ),
-            ),
-            const SizedBox(width: 10,),
-             Flexible(
-              child: TextField(   
-                controller: cuponController,    
-                keyboardType: TextInputType.number,
-                inputFormatters: <TextInputFormatter>[
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
-                  ],
-                decoration: const InputDecoration(
-                  hintText: 'Ingrese la cantidad',
-                  labelText: 'Cupones',            
-                  
-                
-                ),
-                onChanged: (value) {            
-                 if (value.isNotEmpty){ 
-                   setState(() {     
-                         
-                     factura.formPago!.totalCupones = double.parse(value);
-                   
-                     FacturaService.updateFactura(context, factura);          
-                     if(factura.saldo < 0){                 
-                       factura.formPago!.totalCupones = 0;                      
-                       FacturaService.updateFactura(context, factura);
-                       cuponController.text= value.toString();
-                       Fluttertoast.showToast(
-                        msg: "La cantidad es superior al saldo, por favor vuelva a ingresarla",
-                        toastLength: Toast.LENGTH_SHORT,
-                        gravity: ToastGravity.CENTER,
-                        timeInSecForIosWeb: 1,
-                        backgroundColor: Colors.red,
-                        textColor: Colors.white,
-                        fontSize: 16.0
-                      ); 
-                     }
-                  });  
-                }         
-                },
-              ),
-            ),
-             SizedBox(
-            width: 60,
-            child: GestureDetector(
-              onTap: _goCupon,
-              child: AspectRatio(
-                aspectRatio: 1.02,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: kTextColorBlack.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Image(
-                    image: AssetImage('assets/CUPONES.png'),
-                  
-                  )
-                ),
-              )
-              ),
-            ),
-          ],
-        ),
-      );
-  }
-
-  Widget _showSinpeRefresh() {
-      if(factura.formPago!.totalSinpe > 0){
-        sinpeController.text = factura.formPago!.totalSinpe.toInt().toString(); 
-      }
-    return
-      Align(
-         alignment: Alignment.centerLeft,
-        child: FractionallySizedBox(
-          widthFactor: 0.52,
-        
-          child: Padding(
-             padding: const EdgeInsets.only(left: 20.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                
-             Flexible(
-                  child: TextField(  
-                    readOnly: true, 
-                    controller: sinpeController,    
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      hintText: 'Select...',
-                      labelText: 'Sinpes',            
-                              
-                    ),          
-                  ),
-                ),
-                SizedBox(
-                width: 60,
-                child: GestureDetector(
-                  onTap: _goSinpes,
-                  child: AspectRatio(
-                    aspectRatio: 1.02,
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                          color: kTextColorBlack.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Image(
-                        image: AssetImage('assets/sinpe.png'),
-                      
-                      )
-                    ),
-                  )
-                  ),
-                ),
-                const SizedBox(width: 20,),
-                            
+    return Padding(
+      padding: const EdgeInsets.only(left: 20.0, right: 25),
+      child: Row(
+        children: [
+          Flexible(
+            child: TextField(
+              controller: chequeController,
+              style: _fieldTextStyle,
+              cursorColor: kNewgreen,
+              keyboardType: TextInputType.number,
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
               ],
+              decoration: const InputDecoration(
+                hintText: 'Ingrese el Monto',
+                labelText: 'Cheque',
+              ),
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  setState(() {
+                    factura.formPago!.totalCheques = double.parse(value);
+                    FacturaService.updateFactura(context, factura);
+
+                    if (factura.saldo < 0) {
+                      factura.formPago!.totalCheques = 0;
+                      FacturaService.updateFactura(context, factura);
+                      chequeController.text = value.toString();
+                      Fluttertoast.showToast(
+                        msg: 'La cantidad es superior al saldo, por favor vuelva a ingresarla',
+                        toastLength: Toast.LENGTH_SHORT,
+                        gravity: ToastGravity.CENTER,
+                        timeInSecForIosWeb: 1,
+                        backgroundColor: Colors.red,
+                        textColor: Colors.white,
+                        fontSize: 16.0,
+                      );
+                    }
+                  });
+                }
+              },
             ),
           ),
-        ),
-      );
+          const SizedBox(width: 12),
+          _buildImageShortcut('assets/CHEQUE.jpg', _goCheque),
+          const SizedBox(width: 12),
+          Flexible(
+            child: TextField(
+              controller: cuponController,
+              style: _fieldTextStyle,
+              cursorColor: kNewgreen,
+              keyboardType: TextInputType.number,
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+              ],
+              decoration: const InputDecoration(
+                hintText: 'Ingrese la cantidad',
+                labelText: 'Cupones',
+              ),
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  setState(() {
+                    factura.formPago!.totalCupones = double.parse(value);
+                    FacturaService.updateFactura(context, factura);
+                    if (factura.saldo < 0) {
+                      factura.formPago!.totalCupones = 0;
+                      FacturaService.updateFactura(context, factura);
+                      cuponController.text = value.toString();
+                      Fluttertoast.showToast(
+                        msg: 'La cantidad es superior al saldo, por favor vuelva a ingresarla',
+                        toastLength: Toast.LENGTH_SHORT,
+                        gravity: ToastGravity.CENTER,
+                        timeInSecForIosWeb: 1,
+                        backgroundColor: Colors.red,
+                        textColor: Colors.white,
+                        fontSize: 16.0,
+                      );
+                    }
+                  });
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+          _buildImageShortcut('assets/CUPONES.png', _goCupon),
+        ],
+      ),
+    );
   }
 
+Widget _showSinpeRefresh() {
+  if (factura.formPago!.totalSinpe > 0) {
+    sinpeController.text = factura.formPago!.totalSinpe.toInt().toString();
+  }
+
+  return Padding(
+    padding: const EdgeInsets.only(left: 20.0, right: 25),
+    child: Row(
+      children: [
+        // Mitad izquierda (TextField + imagen)
+        Expanded(
+          flex: 1,
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  readOnly: true,
+                  controller: sinpeController,
+                  style: _fieldTextStyle,
+                  cursorColor: kNewgreen,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    hintText: 'Select...',
+                    labelText: 'Sinpes',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              _buildImageShortcut('assets/sinpe.png', _goSinpes),
+            ],
+          ),
+        ),
+
+        // Separación opcional entre las dos mitades
+        const SizedBox(width: 12),
+
+        // Mitad derecha (refresh)
+        Expanded(
+          flex: 1,
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: _buildIconShortcut(Icons.refresh_rounded, goRefresh),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+  
   void _goCashAll() {
     if(factura.saldo<=0){        
          Fluttertoast.showToast(

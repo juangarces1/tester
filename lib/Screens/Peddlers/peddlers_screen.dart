@@ -1,23 +1,19 @@
-
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:provider/provider.dart';
 import 'package:tester/Components/app_bar_custom.dart';
 import 'package:tester/Components/loader_component.dart';
-import 'package:tester/Models/all_fact.dart';
+
 import 'package:tester/Models/peddler.dart';
-import 'package:tester/Models/response.dart';
+import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
-import 'package:tester/sizeconfig.dart';
-
-
-
+import 'package:tester/helpers/varios_helpers.dart';
 
 class PeddlersScreen extends StatefulWidget {
-  final AllFact factura;
-  const PeddlersScreen({ super.key, required this.factura });
+  const PeddlersScreen({super.key, });
 
+  
   @override
   State<PeddlersScreen> createState() => _PeddlersScreenState();
 }
@@ -25,263 +21,313 @@ class PeddlersScreen extends StatefulWidget {
 class _PeddlersScreenState extends State<PeddlersScreen> {
   List<Peddler> peddlers = [];
   bool showLoader = false;
-  late double total=0;
+  double total = 0;
 
-
- 
   @override
-
   void initState() {
     super.initState();
     _getPeddlers();
   }
 
-
- 
-   @override
+  @override
   Widget build(BuildContext context) {
-     return SafeArea(
-       child: Scaffold(     
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: kNewbg,
         appBar: MyCustomAppBar(
           title: 'Peddliers',
-          elevation: 6,
-          shadowColor: kColorFondoOscuro,
+          elevation: 4,
+          shadowColor: kPrimaryColor,
           automaticallyImplyLeading: true,
-          foreColor: Colors.white,
-          backgroundColor: kBlueColorLogo,
+          foreColor: kNewtextPri,
+          backgroundColor: kNewbg,
           actions: <Widget>[
             Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ClipOval(child:  Image.asset(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ClipOval(
+                child: Image.asset(
                   'assets/splash.png',
                   width: 30,
                   height: 30,
                   fit: BoxFit.cover,
-                ),), // Ícono de perfil de usuario
-            ),
-          ],      
-        ),
-        body: showLoader ? const LoaderComponent(loadingText: 'Cargando...',) : Container(
-          color: kContrateFondoOscuro,
-          child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: getProportionateScreenWidth(10), vertical: getProportionateScreenHeight(10)),
-          child: ListView.builder(
-            
-            itemCount: peddlers.length,
-            itemBuilder: (context, index)  
-            { 
-              final item = peddlers[index].id.toString();
-              return Card(
-                color: kContrateFondoOscuro,
-                shadowColor: kPrimaryColor,
-                    elevation: 8,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                child: Dismissible(  
-                  resizeDuration: null,          
-                  key: Key(item),
-                  direction: DismissDirection.endToStart,
-                  onDismissed: (direction) async {
-                    final confirmed = await showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Eliminar Peddler'),
-                          content: const Text('¿Estás seguro de que deseas eliminar este Peddler?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: const Text('Cancelar'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(true),
-                              child: const Text('Eliminar'),
-                            ),
-                          ],
-                        ),
-                      );
-
-                      if (confirmed == true) {
-                        _goDelete(peddlers[index]);
-                      }
-                   },
-                      
-                  background: Container(              
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFE6E6),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Row(
-                      children: [
-                        const Spacer(),
-                        SvgPicture.asset("assets/Trash.svg"),
-                      ],
-                    ),
-                  ),
-                  child: Row(
-                    children: [    
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                               Text(
-                                'Cliente: ${peddlers[index].cliente!.nombre}',
-                                style: const TextStyle(
-                                      fontWeight: FontWeight.w600, color: Colors.black, fontSize: 16),
-                                maxLines: 2,
-                              ),
-                                               
-                              Text.rich(
-                                TextSpan(
-                                  text: 'Producto: ${peddlers[index].products![0].detalle}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600, color: kPrimaryColor),
-                                                            
-                                ),
-                              ),
-                                 Text.rich(
-                                TextSpan(
-                                  text: 'Transaccion #: ${peddlers[index].products![0].transaccion}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600, color: kBlueColorLogo),
-                                                            
-                                ),
-                              ),
-                               Text.rich(
-                                TextSpan(
-                                  text: 'Cantidad: ${peddlers[index].products![0].cantidad}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600, color: Colors.black),
-                                                            
-                                ),
-                              ),
-                               Text.rich(
-                                TextSpan(
-                                  text: 'Orden: ${peddlers[index].orden}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600, color: Colors.black),
-                                                            
-                                ),
-                              ),
-                               Text.rich(
-                                TextSpan(
-                                  text: 'Chofer: ${peddlers[index].chofer}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600, color: kPrimaryColor),
-                                                            
-                                ),
-                              ),
-                               Text.rich(
-                                TextSpan(
-                                  text: 'Observaciones: ${peddlers[index].observaciones}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600, color: Colors.black),
-                                                            
-                                ),
-                              ),
-                               Text.rich(
-                                TextSpan(
-                                  text: 'Km: ${peddlers[index].km}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600, color: Colors.black),
-                                                            
-                                ),
-                              ),
-                               Text.rich(
-                                TextSpan(
-                                  text: 'Placa: ${peddlers[index].placa}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600, color: kBlueColorLogo),
-                                                            
-                                ),
-                              ),
-                               Center(
-                                 child: MaterialButton( 
-                                    onPressed: () => _printPeddler(peddlers[index]),                                    
-                                    color: Colors.blueGrey,
-                                    padding: const EdgeInsets.all(5),
-                                    shape: const CircleBorder(),
-                                    child:    const Icon( 
-                                      Icons.print_outlined,
-                                      size: 20,
-                                      color: Colors.white,),
-                                    ),
-                               ),
-                            ],
-                          ),
-                        ),
-                      )
-                    ],
-                  ),
-                  
                 ),
-             ),
-              );
-            }        
-          ),
-          ),
+              ),
+            ),
+          ],
         ),
-       ),
-     );
-
+        body: showLoader
+            ? const LoaderComponent(
+                loadingText: 'Cargando...',
+                backgroundColor: kNewsurface,
+                borderColor: kNewborder,
+              )
+            : Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [kNewbg, Color(0xFF10151C)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    child: peddlers.isEmpty
+                        ? _emptyState()
+                        : ListView.separated(
+                            key: const ValueKey('peddlers-list'),
+                            itemCount: peddlers.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 20),
+                            itemBuilder: (context, index) {
+                              final peddler = peddlers[index];
+                              return Dismissible(
+                                key: ValueKey<int>(peddler.id ?? index),
+                                direction: DismissDirection.endToStart,
+                                background: _dismissBackground(),
+                                confirmDismiss: (_) =>
+                                    _confirmDelete(index, peddler),
+                                child: _peddlerTile(peddler),
+                              );
+                            },
+                          ),
+                  ),
+                ),
+              ),
+        bottomNavigationBar: _totalBar(),
+      ),
+    );
   }
 
-   Future<void> _goDelete(Peddler ped) async {
+  Future<bool> _confirmDelete(int index, Peddler peddler) async {
+    final deleted = await _goDelete(peddler);
+    if (!deleted || !mounted) return false;
+    setState(() {
+      peddlers.removeAt(index);
+      total = peddlers.fold<double>(0, (prev, e) => prev + e.total);
+    });
+    
+    Fluttertoast.showToast(
+      msg: 'Peddler eliminado con �xito',
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.green,
+      textColor: Colors.white,
+      fontSize: 14,
+    );
+    return true;
+  }
 
-     setState(() {
+  Widget _peddlerTile(Peddler p) {
+    final cliente = p.cliente?.nombre ?? 'Sin cliente';
+    final fecha = p.fecha?.split('T').first ?? 'Sin fecha registrada';
+    final placa = p.placa?.isNotEmpty == true ? p.placa! : 'Sin placa';
+    final chofer = p.chofer?.isNotEmpty == true ? p.chofer! : 'Sin chofer';
+    final orden = p.orden?.isNotEmpty == true ? p.orden! : 'Sin orden';
+    final montoFormatted =
+        VariosHelpers.formattedToCurrencyValue(p.total.toStringAsFixed(2));
+
+    return Container(
+      decoration: BoxDecoration(
+        color: kNewsurface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: kNewborder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.28),
+            blurRadius: 22,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            height: 56,
+            width: 56,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Colors.indigo, Colors.indigoAccent],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Image.asset('assets/peddler.png', fit: BoxFit.contain),
+          ),
+          const SizedBox(width: 18),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  cliente,
+                  style: const TextStyle(
+                    color: kNewtextPri,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Fecha: $fecha',
+                  style: const TextStyle(color: kNewtextMut, fontSize: 14),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Orden: $orden',
+                  style: const TextStyle(color: kNewtextSec, fontSize: 13),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Placa: $placa � Chofer: $chofer',
+                  style: const TextStyle(color: kNewtextSec, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: kNewgreen.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(13),
+                  border: Border.all(color: kNewgreen),
+                ),
+                child: Text(
+                  montoFormatted,
+                  style: const TextStyle(
+                    color: kNewgreen,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () => _printPeddler(p),
+                icon: const Icon(Icons.print_outlined, color: kNewtextSec),
+                tooltip: 'Imprimir',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dismissBackground() => Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          gradient: const LinearGradient(
+            colors: [kNewred, kNewredPressed],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+        ),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
+      );
+
+  Widget _emptyState() => Center(
+        key: const ValueKey('peddlers-empty'),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              height: 80,
+              width: 80,
+              decoration: BoxDecoration(
+                color: kNewsurface,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: kNewborder),
+              ),
+              child: const Icon(Icons.fire_truck,
+                  color: kNewtextSec, size: 36),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Aun no hay peddlers',
+              style: TextStyle(
+                color: kNewtextPri,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+           
+          ],
+        ),
+      );
+
+  Widget _totalBar() => Container(
+        color: kNewsurface,
+        padding: const EdgeInsets.fromLTRB(24, 10, 24, 10),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Total Peddlers',
+              style: TextStyle(
+                color: kNewtextSec,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Text(
+              VariosHelpers
+                  .formattedToCurrencyValue(total.toStringAsFixed(2)),
+              style: const TextStyle(
+                color: kNewtextPri,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Future<bool> _goDelete(Peddler ped) async {
+    setState(() {
       showLoader = true;
     });
 
-    
-    Response response = await ApiHelper.delete('/api/Peddler/',ped.id.toString());
+    final response =
+        await ApiHelper.delete('/api/Peddler/', ped.id.toString());
 
     setState(() {
       showLoader = false;
     });
 
-     if (!response.isSuccess) {
-        if (mounted) {       
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text('Error'),
-                content:  Text(response.message),
-                actions: <Widget>[
-                  TextButton(
-                    child: const Text('Aceptar'),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                ],
-              );
-            },
-          );
-        }  
-       return;
-     }
+    if (!response.isSuccess) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Error'),
+              content: Text(response.message),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('Aceptar'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
+      return false;
+    }
 
-     //show floataost whit a mesage pf success
-     Fluttertoast.showToast(
-        msg: "Peddler eliminado con exito",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.CENTER,
-        timeInSecForIosWeb: 1,
-        backgroundColor: Colors.green,
-        textColor: Colors.white,
-        fontSize: 16.0
-      ); 
-
-    setState(() {
-      peddlers.remove(ped); 
-      widget.factura.transacciones.add(ped.products![0]); 
-                           
-    }); 
-    
+    return true;
   }
 
   Future<void> _getPeddlers() async {
@@ -289,53 +335,44 @@ class _PeddlersScreenState extends State<PeddlersScreen> {
       showLoader = true;
     });
 
-    
-    Response response = await ApiHelper.getPeddlersByCierre(widget.factura.cierreActivo!.cierreFinal.idcierre ?? 0);
+    var cierreFinal =  context.read<CierreActivoProvider>().cierreFinal;
+
+    final response = await ApiHelper.getPeddlersByCierre(
+        cierreFinal!.idcierre ?? 0);
 
     setState(() {
       showLoader = false;
     });
 
-     if (!response.isSuccess) {
-        if (mounted) {       
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text('Error'),
-                content:  Text(response.message),
-                actions: <Widget>[
-                  TextButton(
-                    child: const Text('Aceptar'),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                ],
-              );
-            },
-          );
-        }  
-       return;
-     }
-    setState(() {     
-      peddlers=response.result;     
+    if (!response.isSuccess) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Error'),
+              content: Text(response.message),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('Aceptar'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
+      return;
     }
-    );
-  }
-  
-  _printPeddler(Peddler peddler) {
-    //  final printerProv = context.read<PrinterProvider>();
-    // final device = printerProv.device;
-    // if (device == null) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(content: Text('Selecciona antes un dispositivo')),
-    //   );
-    //   return;
-    // }
 
-    // // Llamas a tu clase de impresión
-    // final testPrint = TestPrint(device: device);  
-    // testPrint.printPeddler(peddler);
+    peddlers = List<Peddler>.from(response.result);
+    total = peddlers.fold<double>(0, (prev, e) => prev + e.total);
+    setState(() {});
+  }
+
+  void _printPeddler(Peddler peddler) {
+    // TODO: Implementar impresi�n cuando la funcionalidad est� disponible
   }
 }

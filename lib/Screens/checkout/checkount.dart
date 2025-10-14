@@ -128,9 +128,9 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
     });
 
     SizeConfig().init(context);
-    final double keyboardInset = MediaQuery.of(context).viewInsets.bottom;
-    final bool isKeyboardVisible = keyboardInset > 0;
-    const double bottomOffset = 15;
+    // final double keyboardInset = MediaQuery.of(context).viewInsets.bottom;
+    // final bool isKeyboardVisible = keyboardInset > 0;
+    // const double bottomOffset = 15;
 
     return SafeArea(
       child: Scaffold(
@@ -153,6 +153,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[
+                        const SizedBox(height: 10),
                         CartInlineCompact(
                           index: widget.index,
                           onAddTransactions: () => TransaccionesSheet.open(
@@ -180,15 +181,15 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
 
                         const SizedBox(height: 10),
                         // Pasa SIEMPRE la del provider
-                        ClientPoints(factura: factura, ruta: 'Contadop'),
-                        const SizedBox(height: 15),
-                        FormPago(
+                         FormPago(
                           key: formPagoKey,
                           index: widget.index,
                           fontColor: kNewtextPri,
                           ruta: 'Contado',
                           expansibleController: _pagoCtrl, // ðŸ‘ˆ pÃ¡salo
                         ),
+                        
+                       
                         const SizedBox(height: 10),
                         signUpForm(factura),
                         const SizedBox(height: 5),
@@ -215,50 +216,50 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                   ),
                 ),
               ),
-              if (!isKeyboardVisible)
-                Positioned(
-                  bottom: bottomOffset,
-                  left: 80,
-                  child: SizedBox(
-                    height: 56,
-                    width: 56,
-                    child: GestureDetector(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              ProductsPage(index: widget.index),
-                        ),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.asset(
-                          'assets/AceiteNoFondo.png',
-                          fit: BoxFit.fill,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              if (!isKeyboardVisible)
-                Positioned(
-                  bottom: bottomOffset,
-                  left: 10,
-                  child: BotonTransacciones(
-                    imagePath: 'assets/AddTr.png',
-                    onItemSelected: onItemSelected, // ver abajo
-                    zona: factura.cierre!.idzona!,
-                  ),
-                ),
+              // if (!isKeyboardVisible)
+              //   Positioned(
+              //     bottom: bottomOffset,
+              //     left: 80,
+              //     child: SizedBox(
+              //       height: 56,
+              //       width: 56,
+              //       child: GestureDetector(
+              //         onTap: () => Navigator.push(
+              //           context,
+              //           MaterialPageRoute(
+              //             builder: (context) =>
+              //                 ProductsPage(index: widget.index),
+              //           ),
+              //         ),
+              //         child: ClipRRect(
+              //           borderRadius: BorderRadius.circular(10),
+              //           child: Image.asset(
+              //             'assets/AceiteNoFondo.png',
+              //             fit: BoxFit.fill,
+              //           ),
+              //         ),
+              //       ),
+              //     ),
+              //   ),
+              // if (!isKeyboardVisible)
+              //   Positioned(
+              //     bottom: bottomOffset,
+              //     left: 10,
+              //     child: BotonTransacciones(
+              //       imagePath: 'assets/AddTr.png',
+              //       onItemSelected: onItemSelected, // ver abajo
+              //       zona: factura.cierre!.idzona!,
+              //     ),
+              //   ),
               _showLoader
                   ? const LoaderComponent(loadingText: "Creando Factura...")
                   : Container(),
             ],
           ),
         ),
-        floatingActionButton: isKeyboardVisible
-            ? null
-            : FloatingButtonWithModal(index: widget.index),
+        // floatingActionButton: isKeyboardVisible
+        //     ? null
+        //     : FloatingButtonWithModal(index: widget.index),
       ),
     );
   }
@@ -357,6 +358,11 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
               padding: const EdgeInsets.symmetric(vertical: 18),
               child: Column(
                 children: [
+                    Padding(
+                      padding:const EdgeInsets.symmetric(horizontal: 20),
+                      child: ClientPoints(factura: factura, ruta: 'Contado'),
+                    ),
+                  const SizedBox(height: 15),
                   ShowClient(
                     tipo: ClienteTipo.contado,
                     factura: factura, // â† provider

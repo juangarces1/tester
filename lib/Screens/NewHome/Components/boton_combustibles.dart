@@ -60,8 +60,8 @@ class _BotonTransaccionesState extends State<BotonTransacciones> {
           fit: BoxFit.cover,
           child: InkWell(
             onTap: () => _showModal(context),
-            splashColor: Colors.white.withOpacity(0.12),
-            highlightColor: Colors.white.withOpacity(0.05),
+            splashColor: Colors.white.withValues(alpha: 0.12),
+            highlightColor: Colors.white.withValues(alpha: 0.05),
           ),
         ),
       ),
@@ -126,7 +126,7 @@ class _BotonTransaccionesState extends State<BotonTransacciones> {
               borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.4),
+                  color: Colors.black.withValues(alpha: 0.4),
                   blurRadius: 16,
                   offset: const Offset(0, -4),
                 ),
@@ -173,7 +173,7 @@ class _BotonTransaccionesState extends State<BotonTransacciones> {
                   Positioned.fill(
                     child: IgnorePointer(
                       child: Container(
-                        color: Colors.black.withOpacity(0.15),
+                        color: Colors.black.withValues(alpha: 0.15),
                         alignment: Alignment.center,
                         child: const CircularProgressIndicator(),
                       ),
@@ -203,7 +203,7 @@ class _BotonTransaccionesState extends State<BotonTransacciones> {
                   height: 110,
                   width: 110,
                   decoration: BoxDecoration(
-                    color: kSecondaryColor.withOpacity(0.5),
+                    color: kSecondaryColor.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Padding(
@@ -230,7 +230,7 @@ class _BotonTransaccionesState extends State<BotonTransacciones> {
               'Toca para volver a intentar',
               style: TextStyle(
                 fontSize: getProportionateScreenWidth(13),
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
               ),
             ),
           ],

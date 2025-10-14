@@ -35,7 +35,7 @@ class CardTr extends StatelessWidget {
         borderRadius: radius,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.25),
+            color: Colors.black.withValues(alpha: 0.25),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -61,12 +61,12 @@ class CardTr extends StatelessWidget {
                       child: Material(
                         color: Colors.transparent,
                         child: Ink.image(
-                          image: _assetForFuel((product.detalle ?? '').toLowerCase()),
+                          image: _assetForFuel((product.detalle).toLowerCase()),
                           fit: BoxFit.cover,
                           child: InkWell(
                             onTap: () => onItemSelected?.call(product),
-                            splashColor: Colors.white.withOpacity(0.12),
-                            highlightColor: Colors.white.withOpacity(0.05),
+                            splashColor: Colors.white.withValues(alpha: 0.12),
+                            highlightColor: Colors.white.withValues(alpha: 0.05),
                           ),
                         ),
                       ),
@@ -96,14 +96,14 @@ class CardTr extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _MeterChip(text: 'M-${product.dispensador}'),
+                          _MeterChip(text: 'Disp-${product.dispensador}'),
                           const SizedBox(width: 8),
                           Text(
                             '${product.cantidad.toStringAsFixed(2)} L',
                             style: TextStyle(
                               fontSize: getProportionateScreenWidth(14),
                               fontWeight: FontWeight.w600,
-                              color: Colors.white.withOpacity(0.85),
+                              color: Colors.white.withValues(alpha: 0.85),
                             ),
                             softWrap: false,
                             overflow: TextOverflow.fade,
@@ -126,9 +126,9 @@ class CardTr extends StatelessWidget {
                   curve: Curves.easeOut,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.10),
+                      color: Colors.black.withValues(alpha: 0.10),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.35),
+                        color: Colors.white.withValues(alpha: 0.35),
                         width: 2,
                       ),
                       borderRadius: radius,
@@ -183,7 +183,7 @@ class _MeterChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.20),
+        color: Colors.black.withValues(alpha: 0.20),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.white24),
       ),
@@ -192,7 +192,7 @@ class _MeterChip extends StatelessWidget {
         style: TextStyle(
           fontSize: w < 360 ? 11 : 12,
           fontWeight: FontWeight.w600,
-          color: Colors.white.withOpacity(0.95),
+          color: Colors.white.withValues(alpha: 0.95),
         ),
         softWrap: false,
         overflow: TextOverflow.fade,
@@ -216,11 +216,11 @@ class _ActionCircle extends StatelessWidget {
   Widget build(BuildContext context) {
     final btn = DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.32),
+        color: Colors.black.withValues(alpha: 0.32),
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.45),
+            color: Colors.black.withValues(alpha: 0.45),
             blurRadius: 4,
             offset: const Offset(0, 1),
           ),
@@ -245,11 +245,11 @@ class _CheckBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
+        color: Colors.white.withValues(alpha: 0.95),
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.35),
+            color: Colors.black.withValues(alpha: 0.35),
             blurRadius: 4,
             offset: const Offset(0, 1),
           ),

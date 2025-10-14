@@ -70,7 +70,7 @@ class _ShowClientCreditoState extends State<ShowClientCredito> {
               const SizedBox(width: 10,),        
               Flexible(
                 child: Text(
-                  facturaC.formPago!.clienteCredito.nombre == "" ? "Seleccione Un Cliente": facturaC.formPago!.clienteCredito.nombre! ,
+                  facturaC.formPago!.clienteCredito.nombre == "" ? "Seleccione Un Cliente": facturaC.formPago!.clienteCredito.nombre,
                     style:  const TextStyle(
                       fontSize: 15,
                     color: Colors.white),),

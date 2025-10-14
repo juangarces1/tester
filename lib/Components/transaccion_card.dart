@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:tester/Models/all_fact.dart';
 import 'package:tester/Models/product.dart';
-import '../constans.dart';
 import '../sizeconfig.dart';
 
 class TransactionCard extends StatefulWidget {
@@ -42,7 +41,7 @@ class _TransactionCardState extends State<TransactionCard> {
                 child: Container(
                   padding: EdgeInsets.all(getProportionateScreenWidth(20)),
                   decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 75, 75, 75).withOpacity(0.1),
+                    color: const Color.fromARGB(255, 75, 75, 75).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: Hero(

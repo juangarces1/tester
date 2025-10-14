@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/Screens/NewHome/Components/dispatch_card.dart';
-import 'package:tester/Screens/NewHome/PagesWizard/position_step_page.dart';
+import 'package:tester/Screens/PositionsFlow/faces_list_page.dart';
 import 'package:tester/ViewModels/dispatch_control.dart';
 import 'package:tester/constans.dart';
 
@@ -155,7 +155,7 @@ Widget build(BuildContext context) {
     await Navigator.push(
       ctx,
       MaterialPageRoute(
-        builder: (_) => PositionStepPage(dispatchId: dispatch.id!),
+        builder: (_) => FacesListPage(dispatchId: dispatch.id!),
       ),
     );
   }

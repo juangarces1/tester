@@ -203,8 +203,8 @@ class _PositionCard extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                accent.withOpacity(0.9),
-                accent.withOpacity(0.55),
+                accent.withValues(alpha: 0.9),
+                accent.withValues(alpha: 0.55),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -212,7 +212,7 @@ class _PositionCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: accent.withOpacity(0.35),
+                color: accent.withValues(alpha: 0.35),
                 blurRadius: 18,
                 offset: const Offset(0, 12),
               ),
@@ -240,7 +240,7 @@ class _PositionCard extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.25),
+                        color: statusColor.withValues(alpha: 0.25),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: statusColor, width: 1.3),
                       ),

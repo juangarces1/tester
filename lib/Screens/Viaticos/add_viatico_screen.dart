@@ -1,36 +1,68 @@
+import 'dart:math'; // Importación añadida para la función min
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:tester/Components/default_button.dart';
+import 'package:tester/Components/app_bar_custom.dart';
 import 'package:tester/Components/loader_component.dart';
-import 'package:tester/Components/show_client_credito.dart';
+import 'package:tester/Components/show_client.dart';
+
 import 'package:tester/Models/Facturaccion/factura_service.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
-import 'package:tester/Models/all_fact.dart';
-import 'package:tester/Models/cliente.dart';
-import 'package:tester/Models/paid.dart';
-import 'package:tester/Models/peddler.dart';
+
 import 'package:tester/Models/response.dart';
-import 'package:tester/Models/sinpe.dart';
-import 'package:tester/Models/transferencia.dart';
 import 'package:tester/Models/viatico.dart';
-import 'package:tester/Providers/facturas_provider.dart';
+import 'package:tester/Providers/cierre_activo_provider.dart';
+import 'package:tester/Providers/clientes_provider.dart';
+
 import 'package:tester/Screens/Viaticos/viaticos_screen.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
 import 'package:tester/sizeconfig.dart';
 import 'package:provider/provider.dart';
 
+// Definición de darkDecoration basado en EntregaEfectivoScreen
+InputDecoration darkDecoration({
+  required String label,
+  required String hint,
+  String? errorText,
+  Widget? suffixIcon,
+}) {
+  const borderColor = kNewborder;
+  const errorBorderColor = kNewred;
 
-
+  return InputDecoration(
+    labelText: label,
+    hintText: hint,
+    errorText: errorText,
+    suffixIcon: suffixIcon,
+    labelStyle: const TextStyle(color: kNewtextPri),
+    hintStyle: const TextStyle(color: kNewtextMut),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    filled: true,
+    fillColor: kNewsurfaceHi,
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: borderColor, width: 1.5),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: kNewgreen, width: 2),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: errorBorderColor, width: 1.5),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: errorBorderColor, width: 2),
+    ),
+  );
+}
 
 class AddViaticoScreen extends StatefulWidget {
-final AllFact factura;
-
-
+  
   // ignore: use_key_in_widget_constructors
-  const AddViaticoScreen({ required this.factura});
+  const AddViaticoScreen();
 
   @override
   State<AddViaticoScreen> createState() => _AddViaticoScreenState();
@@ -38,8 +70,8 @@ final AllFact factura;
 
 class _AddViaticoScreenState extends State<AddViaticoScreen> {
   bool _showLoader = false;
-  String monto = '';  
-  String lote = '';  
+  String monto = '';
+  String lote = '';
   String montoError = '';
   bool montoShowError = false;
   String loteError = '';
@@ -49,244 +81,394 @@ class _AddViaticoScreenState extends State<AddViaticoScreen> {
   String datafonoNombre = '';
   String bancoTypeIdError = '';
   bool bancoTypeIdShowError = false;
-  List<Viatico> viaticos = []; 
+  List<Viatico> viaticos = [];
 
-  bool placaTypeIdShowError =false;
-  String placaTypeIdError ='';
-  String placa = ''; 
+  bool placaTypeIdShowError = false;
+  String placaTypeIdError = '';
+  String placa = '';
   late Invoice invoice;
-  int index = -1;
+ 
 
   @override
-  void initState() {
-    invoice =  Invoice(
-    kms:0,
-    observaciones: '',
-    placa: '',
-    detail: [],
-    empleado: widget.factura.cierreActivo!.usuario,
-    cierre: widget.factura.cierreActivo!.cierreFinal,
-    formPago: Paid(
-      totalEfectivo: 0,
-      totalBac: 0, 
-      totalDav: 0, 
-      totalBn: 0, 
-      totalSctia: 0, 
-      totalDollars: 0, 
-      totalCheques: 0, 
-      totalCupones: 0, 
-      totalPuntos: 0, 
-      totalTransfer: 0, 
-      clienteFactura: Cliente(nombre: '', documento: '', codigoTipoID: '', email: '', puntos: 0, codigo: '', telefono: ''),
-      transfer: Transferencia(
-        cliente: Cliente(nombre: '', documento: '', codigoTipoID: '', email: '', puntos: 0, codigo: '', telefono: ''),
-        transfers: [], 
-        monto: 0, 
-        totalTransfer: 0), 
-      showTotal: false,
-      showFact: false, 
-      totalSinpe: 0, 
-      sinpe: Sinpe(
-        id: 0, 
-        numComprobante: '', 
-        nota: '', 
-        idCierre: 0, 
-        nombreEmpleado: '', 
-        fecha: DateTime.now(), 
-        numFact: '', 
-        activo: 1,
-        monto: 0), 
-      clientePuntos: Cliente(nombre: '', documento: '', codigoTipoID: '', email: '', puntos: 0, codigo: '', telefono: ''),
-    ),
-    isCredit: true,
-    isPeddler: false,
-    isProcess: false,
-    isTicket: false,
-    isContado: false,
-    peddler: Peddler(placa: '', km: '', chofer: '',observaciones: '', orden: ''),
-  
-  );
 
-   final facturasProvider = Provider.of<FacturasProvider>(context, listen: false);
-          facturasProvider.facturas.add(invoice);
-          index = facturasProvider.facturas.indexOf(invoice);
- 
+  void initState() {
+
+    var cierre = context.read<CierreActivoProvider>().cierreFinal;
+    var usuario = context.read<CierreActivoProvider>().usuario;
+
+    invoice = Invoice.createInitializedInvoice(cierre!, usuario!);
+
     super.initState();
   }
 
   @override
+  void dispose() {
+    montoController.dispose();
+    loteController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    Invoice facturaC = Provider.of<FacturasProvider>(context).getInvoiceByIndex(index);
+   
     return SafeArea(
       child: Scaffold(
-        appBar:  PreferredSize(
-          preferredSize: const Size.fromHeight(70),
-          child: appBar1(facturaC),
-        ),
-        body: Container(
-          color: kContrateFondoOscuro,
-          child: Stack(
-            children: [
-              SingleChildScrollView(
-                child: Column(
-                  children: <Widget>[
-                
-                     SizedBox(height: SizeConfig.screenHeight * 0.04), // 4%
-                      Text("Complete los Datos", style: myHeadingStyleBlack),  
-                       SizedBox(height: SizeConfig.screenHeight * 0.04),  
-                     ShowClientCredito(
-                        index: index,                       
-                        padding: const EdgeInsets.only(left: 20, right: 20),
-                        
-                      ),
-                        SizedBox(height: SizeConfig.screenHeight * 0.04), 
-                   showPlaca(),
-                    SizedBox(height: SizeConfig.screenHeight * 0.04),
-                   _showMonto(),           
-                    SizedBox(height: SizeConfig.screenHeight * 0.04),
-                    SizedBox(
-                          width: getProportionateScreenWidth(190),
-                          child: DefaultButton(
-                            text: "Crear",
-                            press: () => _goViatico(),
-                            color: kPrimaryColor,
-                            gradient: kPrimaryGradientColor, 
-                          ),
-                        ),
-                  ],
+        backgroundColor: kNewbg,
+        appBar: MyCustomAppBar(
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          title: 'Nuevo Viático',
+          automaticallyImplyLeading: true,
+          foreColor: kNewtextPri,
+          backgroundColor: kNewbg,
+        
+          actions: <Widget>[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/splash.png',
+                  width: 30,
+                  height: 30,
+                  fit: BoxFit.cover,
                 ),
               ),
-              _showLoader
-                  ? const LoaderComponent(
-                      loadingText: 'Por favor espere...',
-                    )
-                  : Container(),
-            ],
-          ),
+            ),
+          ],
         ),
-      ),
-    );
-  }
-
-   Widget appBar1(Invoice facturaApp) {
-   return SafeArea(    
-      child: Container(
-        color: const Color.fromARGB(255, 219, 222, 224),
-        child: Padding(
-          padding:
-              EdgeInsets.symmetric(horizontal: getProportionateScreenWidth(20)),
-          child: Row(  
-             mainAxisAlignment: MainAxisAlignment.spaceBetween,              
-            children: [
-              SizedBox(
-                height: getProportionateScreenHeight(45),
-                width: getProportionateScreenWidth(45),
-                child: TextButton(
-                  style: TextButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-     
-                      borderRadius: BorderRadius.circular(60),
+        body: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Registrar Viático',
+                    style: TextStyle(
+                      fontSize: getProportionateScreenWidth(24),
+                      fontWeight: FontWeight.w700,
+                      color: kNewtextPri,
                     ),
-                   
-                   
-                    backgroundColor: Colors.white,
-                    padding: EdgeInsets.zero,
                   ),
-                  onPressed: (){
-                    FacturaService.eliminarFactura(context, facturaApp);
-                    Navigator.pop(context);
-                  },           
-                  child: SvgPicture.asset(
-                    "assets/Back ICon.svg",
-                    height: 15,
-                    // ignore: deprecated_member_use
-                    color: kBlueColorLogo,
+                  const SizedBox(height: 6),
+                  Text(
+                    'Completa los campos para registrar el viático.',
+                    style: TextStyle(
+                      fontSize: getProportionateScreenWidth(14),
+                      color: kNewtextMut,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 28),
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: kNewsurface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: kNewborder),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x59000000),
+                          blurRadius: 24,
+                          offset: Offset(0, 18),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        ShowClient(factura: invoice,
+                          tipo: ClienteTipo.credito,                         
+                          padding: EdgeInsets
+                              .zero, // Ajustar padding si ShowClientCredito tiene padding interno
+                        ),
+                        const SizedBox(height: 20),
+                        _buildPlacaSelector(invoice),
+                        const SizedBox(height: 20),
+                        _buildMontoField(),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _goViatico,
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor: kNewgreen,
+                        foregroundColor: kNewtextPri,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: const Text(
+                        'Crear Viático',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 10,),            
-              const Text.rich(
-                TextSpan(
-                  text: "Nuevo Viatico",
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: kBlueColorLogo,
-                  ),
-                ),
+            ),
+            if (_showLoader)
+              const LoaderComponent(
+                loadingText: 'Por favor espere...',
+                backgroundColor: kNewsurface,
+                borderColor: kNewborder,
               ),
-              const Spacer(),
-              Container(
-               
-                
-              )
-            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- Widgets de Estilo Reutilizados de EntregaEfectivoScreen ---
+
+  Widget _buildSelectorTile({
+    required String label,
+    required String value,
+    required String placeholder,
+    required VoidCallback onTap,
+    String? errorText,
+  }) {
+    final hasValue = value.trim().isNotEmpty;
+    final displayText = hasValue ? value : placeholder;
+    final borderColor =
+        errorText != null && errorText.isNotEmpty ? kNewred : kNewborder;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: kNewtextPri,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
           ),
         ),
-      ),
-    );
- } 
-
-  List<DropdownMenuItem<String>> _getComboPlacas() {
-    List<DropdownMenuItem<String>> list = [];
-
-    list.add(const DropdownMenuItem(
-      value: '',
-      child: Text('Seleccione una Placa...'),
-    ));
-
-     for (var placa in invoice.formPago!.clienteCredito.placas!) {
-       list.add(DropdownMenuItem(
-         value: placa.toString(),
-         child: Text(placa.toString()),
-       ));
-     }
-
-    return list;
-  }
-
-  Widget showPlaca() {
-    return Container(
-          padding: const EdgeInsets.only(left: 30 , right: 30),
-        child: DropdownButtonFormField(
-                items: _getComboPlacas(),                
-                value: placa,                
-                onChanged: (option) {
-                  setState(() {
-                    placa = option as String; 
-                                 
-                  });
-                },
-                decoration: InputDecoration(
-                  hintText: 'Seleccione una Placa...',
-                  labelText: 'Placas',
-                  errorText:
-                      placaTypeIdShowError ? placaTypeIdError : null,
-                 
-                ),
-                
-              ));
-  }
-
-   Widget _showMonto() {
-    return Container(
-         padding: const EdgeInsets.only(left: 30 , right: 30),
-      child: TextField(
-        controller: montoController,
-        keyboardType: TextInputType.number,
-        decoration: InputDecoration(
-          hintText: 'Ingresa el Monto...',
-          labelText: 'Monto',
-          errorText: montoShowError ? montoError : null,
-          suffixIcon: const Icon(Icons.attach_money_rounded),
-         
+        const SizedBox(height: 8),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              decoration: BoxDecoration(
+                color: kNewsurfaceHi,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: borderColor, width: 1.5),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      displayText,
+                      style: TextStyle(
+                        color: hasValue ? kNewtextPri : kNewtextMut,
+                        fontWeight:
+                            hasValue ? FontWeight.w600 : FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.expand_more, color: kNewtextSec),
+                ],
+              ),
+            ),
+          ),
         ),
-        onChanged: (value) {
-          monto =  value;
-        },
-      ),
+        if (errorText != null && errorText.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              errorText,
+              style: const TextStyle(
+                color: kNewred,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+      ],
     );
   }
+
+  Future<T?> _showSelectionSheet<T>({
+    required String title,
+    required List<T> options,
+    required String Function(T) labelBuilder,
+    required bool Function(T) isSelected,
+  }) {
+    if (options.isEmpty) {
+      return Future<T?>.value(null);
+    }
+
+    return showModalBottomSheet<T>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final double maxHeight = min(
+          options.length * 56.0 + 120.0,
+          MediaQuery.of(context).size.height * 0.6,
+        );
+
+        return Container(
+          decoration: const BoxDecoration(
+            color: kNewsurface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: SafeArea(
+            child: SizedBox(
+              height: maxHeight,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: kNewborder,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        color: kNewtextPri,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const Divider(color: kNewborder, height: 1),
+                  Expanded(
+                    child: ListView.separated(
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: options.length,
+                      separatorBuilder: (_, __) =>
+                          const Divider(color: kNewborder, height: 1),
+                      itemBuilder: (context, index) {
+                        final option = options[index];
+                        final label = labelBuilder(option);
+                        final selected = isSelected(option);
+                        return ListTile(
+                          title: Text(
+                            label,
+                            style: TextStyle(
+                              color: kNewtextPri,
+                              fontWeight:
+                                  selected ? FontWeight.w700 : FontWeight.w500,
+                            ),
+                          ),
+                          trailing: selected
+                              ? const Icon(Icons.check_circle, color: kNewgreen)
+                              : null,
+                          onTap: () => Navigator.of(context).pop(option),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPlacaSelector(Invoice facturaC) {
+
+     // final List<String> placas = facturaC.formPago!.clienteFactura.placas;
+    final List<String> placas = ['ABC123', 'XYZ789', 'LMN456']; // Ejemplo de placas
+    facturaC.formPago!.clienteFactura.placas = placas;
+  
+    if (facturaC.formPago!.clienteFactura.nombre.isEmpty) {
+      return const Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          'Selecciona un cliente para ver las placas...',
+          style: TextStyle(color: kNewtextMut),
+        ),
+      );
+    }
+    if (placas.isEmpty) {
+      return const Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          'El cliente no tiene placas asociadas.',
+          style: TextStyle(color: kNewtextMut),
+        ),
+      );
+    }
+
+    return _buildSelectorTile(
+      label: 'Placa',
+      value: placa,
+      placeholder: 'Selecciona una placa',
+      errorText: placaTypeIdShowError ? placaTypeIdError : null,
+      onTap: () => _onSelectPlaca(placas),
+    );
+  }
+
+  Future<void> _onSelectPlaca(List<String> placas) async {
+    if (placas.isEmpty) {
+      return;
+    }
+
+    final selected = await _showSelectionSheet<String>(
+      title: 'Selecciona una placa',
+      options: placas,
+      labelBuilder: (p) => p,
+      isSelected: (p) => p == placa,
+    );
+
+    if (selected == null) {
+      return;
+    }
+
+    setState(() {
+      placa = selected;
+      placaTypeIdShowError = false;
+    });
+  }
+
+  Widget _buildMontoField() {
+    return TextField(
+      controller: montoController,
+      keyboardType: TextInputType.number,
+      style: const TextStyle(
+        color: kNewtextPri,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+      ),
+      cursorColor: kNewred,
+      decoration: darkDecoration(
+        label: 'Monto',
+        hint: 'Ingresa el monto',
+        errorText: montoShowError ? montoError : null,
+        suffixIcon: const Icon(Icons.attach_money_rounded, color: kNewtextSec),
+      ),
+      onChanged: (value) {
+        monto = value;
+        setState(() {
+          montoShowError = false;
+        });
+      },
+    );
+  }
+
+  // --- Lógica del Viático ---
 
   void _goViatico() async {
     if (!_validateFields()) {
@@ -297,41 +479,35 @@ class _AddViaticoScreenState extends State<AddViaticoScreen> {
   }
 
   bool _validateFields() {
-   
     bool isValid = true;
-  
-    if(invoice.formPago!.clienteCredito.nombre!.isEmpty){                
-                   
-        Fluttertoast.showToast(
-        msg: " Seleccione un cliente",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.TOP,
-        timeInSecForIosWeb: 1,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-        fontSize: 16.0
-      ); 
-        isValid = false;
-      }
 
-  
+    // Client validation (Toast in original, keep as is but re-evaluate isValid)
+    if (invoice.formPago!.clienteFactura.nombre.isEmpty) {
+      Fluttertoast.showToast(
+          msg: " Seleccione un cliente",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.TOP,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0);
+      isValid = false;
+    }
 
     if (monto.isEmpty) {
-   
+      isValid = false;
       montoShowError = true;
       montoError = 'Debes ingresar el monto.';
     } else {
       montoShowError = false;
-    }   
-
-   
+    }
 
     if (placa.isEmpty) {
       isValid = false;
       placaTypeIdShowError = true;
       placaTypeIdError = 'Debes seleccionar una Placa.';
     } else {
-      bancoTypeIdShowError = false;
+      placaTypeIdShowError = false;
     }
 
     setState(() {});
@@ -339,95 +515,82 @@ class _AddViaticoScreenState extends State<AddViaticoScreen> {
   }
 
   void _addViatico() async {
-       
-   if  (_validateFields()==false){
-          return;
-   }
-   
-   
+    if (_validateFields() == false) {
+      return;
+    }
+
     setState(() {
       _showLoader = true;
-    });    
-   
+    });
 
- 
+     final cierreActPro = Provider.of<CierreActivoProvider>(context, listen: false);
     
 
-    Viatico viatico =  Viatico(idviatico: 0,
-     monto: int.parse(monto),
-     fecha: "2023-07-11T00:00:00",
-     cedulaempleado:  widget.factura.cierreActivo!.usuario.cedulaEmpleado,     
-     idcierre: widget.factura.cierreActivo!.cierreFinal.idcierre,
-    //  idcliente:int.parse( widget.factura.formPago!.clientePaid.codigo),
+    Viatico viatico = Viatico(
+      idviatico: 0,
+      monto: int.parse(monto),
+      fecha: "2023-07-11T00:00:00",
+      cedulaempleado: cierreActPro.usuario!.cedulaEmpleado,
+      idcierre: cierreActPro.cierreFinal!.idcierre,
       placa: placa,
-      estado: 'PENDIENTE',  
-      idcliente: int.parse( invoice.formPago!.clienteCredito.codigo!),
+      estado: 'PENDIENTE',
+      idcliente: int.parse(invoice.formPago!.clienteFactura.codigo),
+    );
 
-
-
-
-     );
-   
-   Map<String, dynamic> request = viatico.toJson();
-
-    
+    Map<String, dynamic> request = viatico.toJson();
 
     Response response = await ApiHelper.post(
       'api/Viaticos/',
       request,
     );
 
+    if (!mounted) return;
+
     setState(() {
       _showLoader = false;
     });
 
     if (!response.isSuccess) {
-        if (mounted) {       
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text('Error'),
-                content:  Text(response.message),
-                actions: <Widget>[
-                  TextButton(
-                    child: const Text('Aceptar'),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                ],
-              );
-            },
-          );
-        }  
-       return;
-     }
-
-   // widget.factura.formPago!.clientePaid= Cliente(nombre: '', documento: '', codigoTipoID: '', email: '', puntos:0, codigo: '',telefono: '');
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Error'),
+              content: Text(response.message),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('Aceptar'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
+      return;
+    }
 
     Fluttertoast.showToast(
-            msg: "Viatico Creado Correctamente.",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.CENTER,
-            timeInSecForIosWeb: 1,
-            backgroundColor: const Color.fromARGB(255, 20, 91, 22),
-            textColor: Colors.white,
-            fontSize: 16.0
-          ); 
-   
+        msg: "Viatico Creado Correctamente.",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        timeInSecForIosWeb: 1,
+        backgroundColor: const Color.fromARGB(255, 20, 91, 22),
+        textColor: Colors.white,
+        fontSize: 16.0);
 
-     // ignore: use_build_context_synchronously
-      if(!mounted){
-        return;
-      }
-       FacturaService.eliminarFactura(context, invoice);
-                    Navigator.pop(context);
-     Navigator.pushReplacement(context,
-                      MaterialPageRoute(
-                          builder: (context) =>  ViaticosScreen(factura: widget.factura))
-        );  
+    // ignore: use_build_context_synchronously
+    if (!mounted) {
+      return;
+    }
+    FacturaService.eliminarFactura(context, invoice);
+    Navigator.pop(context);
+    Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+            builder: (context) => const ViaticosScreen()));
   }
-
-
 }

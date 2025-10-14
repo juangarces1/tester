@@ -12,7 +12,7 @@ import 'package:tester/Models/cashback.dart';
 import 'package:tester/Models/cierreactivo.dart';
 import 'package:tester/Models/cierredatafono.dart';
 import 'package:tester/Models/cliente.dart';
-import 'package:tester/Models/clientecredito.dart';
+
 import 'package:tester/Models/datafono.dart';
 import 'package:tester/Models/deposito.dart';
 import 'package:tester/Models/factura.dart';
@@ -25,7 +25,7 @@ import 'package:tester/Models/tranferview.dart';
 import 'package:tester/Models/transaccion.dart';
 import 'package:tester/Models/transparcial.dart';
 import 'package:tester/Models/viatico.dart';
-import 'package:tester/Providers/clientes_provider.dart';
+
 import 'package:tester/helpers/constans.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 

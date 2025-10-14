@@ -87,8 +87,8 @@ class _ClienteCardState extends State<ClienteCard> {
     final Color onBgMuted = isDark ? Colors.white70 : Colors.black54;
 
     final Color statusBg = _statusIsError(widget.statusText)
-        ? Colors.red.withOpacity(0.12)
-        : Colors.green.withOpacity(0.12);
+        ? Colors.red.withValues(alpha: 0.12)
+        : Colors.green.withValues(alpha: 0.12);
     final Color statusFg = _statusIsError(widget.statusText)
         ? Colors.red
         : Colors.green;
@@ -181,7 +181,7 @@ class _ClienteCardState extends State<ClienteCard> {
                   labelStyle: TextStyle(color: onBgMuted),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: onBgMuted.withOpacity(0.4)),
+                    borderSide: BorderSide(color: onBgMuted.withValues(alpha: 0.4)),
                   ),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
@@ -198,8 +198,8 @@ class _ClienteCardState extends State<ClienteCard> {
                           // asegúrate de dejar dedupe aplicado
                           widget.cliente.emails = _dedupeEmails(widget.cliente.emails);
                           if (newValue != null &&
-                              !widget.cliente.emails!.any((v) => v.toLowerCase() == newValue.toLowerCase())) {
-                            widget.cliente.emails!.insert(0, newValue);
+                              !widget.cliente.emails.any((v) => v.toLowerCase() == newValue.toLowerCase())) {
+                            widget.cliente.emails.insert(0, newValue);
                           }
                         });
                       },
@@ -262,7 +262,7 @@ class _ClienteCardState extends State<ClienteCard> {
                       label: const Text('Cargar desde Hacienda'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: onBg,
-                        side: BorderSide(color: onBgMuted.withOpacity(0.6)),
+                        side: BorderSide(color: onBgMuted.withValues(alpha: 0.6)),
                       ),
                       onPressed: disabled ? null : () => widget.onSyncActividades?.call(e.documento, widget.index),
                     ),
@@ -277,7 +277,7 @@ class _ClienteCardState extends State<ClienteCard> {
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: onBgMuted.withOpacity(0.4)),
+                          border: Border.all(color: onBgMuted.withValues(alpha: 0.4)),
                         ),
                         child: Row(
                           children: [
@@ -314,7 +314,7 @@ class _ClienteCardState extends State<ClienteCard> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: Colors.amber.withOpacity(0.2),
+                                    color: Colors.amber.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Text('Principal', style: TextStyle(fontSize: 11)),
@@ -341,7 +341,7 @@ class _ClienteCardState extends State<ClienteCard> {
                           label: const Text('Re-sincronizar Hacienda'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: onBg,
-                            side: BorderSide(color: onBgMuted.withOpacity(0.6)),
+                            side: BorderSide(color: onBgMuted.withValues(alpha: 0.6)),
                           ),
                           onPressed: disabled ? null : () => widget.onSyncActividades?.call(e.documento, widget.index),
                         ),
@@ -406,7 +406,7 @@ class _ClienteCardState extends State<ClienteCard> {
       onTap: onTap,
       child: CircleAvatar(
         radius: 18,
-        backgroundColor: (disabled ? Colors.grey : color).withOpacity(0.15),
+        backgroundColor: (disabled ? Colors.grey : color).withValues(alpha: 0.15),
         child: Icon(icon, color: disabled ? Colors.grey : color, size: 20),
       ),
     );

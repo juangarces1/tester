@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:tester/Components/boton_flotante.dart';
 import 'package:tester/Components/default_button.dart';
 import 'package:tester/Components/loader_component.dart';
+import 'package:tester/Components/show_client.dart';
 import 'package:tester/Components/show_client_credito.dart';
 import 'package:tester/Components/show_email.dart';
 import 'package:tester/Models/Facturaccion/factura_service.dart';
@@ -12,6 +13,7 @@ import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/peddler.dart';
 import 'package:tester/Models/product.dart';
 import 'package:tester/Models/response.dart';
+import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/Screens/NewHome/Components/boton_combustibles.dart';
 import 'package:tester/constans.dart';
@@ -215,12 +217,13 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
                  children: [
                                 
                    SizedBox(height: SizeConfig.screenHeight * 0.02),
-                    ShowClientCredito(
-                      index: widget.index,                       
-                      padding: const EdgeInsets.only(left: 0.0, right: 0),
+                    ShowClient(
+                      factura: facturaC,                       
+                      padding: const EdgeInsets.only(left: 0.0, right: 0),                     
+                      tipo: ClienteTipo.credito
                     ),
-                    facturaC.formPago!.clienteCredito.nombre!.isNotEmpty ? 
-                    ShowEmail(email: facturaC.formPago!.clienteCredito.email!)
+                    facturaC.formPago!.clienteCredito.nombre.isNotEmpty ? 
+                    ShowEmail(email: facturaC.formPago!.clienteCredito.email)
                     : Container(),
                     SizedBox(height: SizeConfig.screenHeight * 0.02),
                     signUpForm(facturaC),  
@@ -276,7 +279,7 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
        value: '',
        child: Text('Seleccione una Placa...'),
      ));
-      for (var placa in factura.formPago!.clienteCredito.placas!) {
+      for (var placa in factura.formPago!.clienteCredito.placas) {
         list.add(DropdownMenuItem(
           value: placa.toString(),
           child: Text(placa.toString()),
@@ -496,7 +499,7 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
                ],
              ),
            ),
-           facturaC.formPago!.clienteCredito.nombre!.isNotEmpty && facturaC.detail!.isNotEmpty
+           facturaC.formPago!.clienteCredito.nombre.isNotEmpty && facturaC.detail!.isNotEmpty
          ?    SizedBox(
              width: getProportionateScreenWidth(160),
              child: DefaultButton(

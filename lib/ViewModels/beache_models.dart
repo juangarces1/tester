@@ -363,7 +363,7 @@ Widget _caraStatusRow(String estado, Color color, IconData icon) {
     decoration: BoxDecoration(
       color: Colors.black,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: color.withOpacity(.4), width: 1),
+      border: Border.all(color: color.withValues(alpha: .4), width: 1),
     ),
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
     child: Row(

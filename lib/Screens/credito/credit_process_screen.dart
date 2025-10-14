@@ -9,7 +9,7 @@ import 'package:tester/Components/default_button.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Components/show_actividad_select.dart';
 import 'package:tester/Components/show_client.dart';
-import 'package:tester/Components/show_client_credito.dart';
+
 import 'package:tester/Components/show_email.dart';
 import 'package:tester/Models/Facturaccion/factura_service.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
@@ -158,8 +158,7 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
                     SizedBox(height: SizeConfig.screenHeight * 0.02),
                       ShowClient(
                          tipo:   ClienteTipo.credito,
-                         factura: factura,   
-                         ruta: "ProcessCredito",                    
+                         factura: factura,                                        
                         padding: const EdgeInsets.only(left: 10.0, right: 10),
                       ),
 

@@ -1,12 +1,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:provider/provider.dart';
 import 'package:tester/Components/app_bar_custom.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Models/all_fact.dart';
 import 'package:tester/Models/factura.dart';
 import 'package:tester/Models/product.dart';
 import 'package:tester/Models/response.dart';
+import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Screens/Facturas/Components/factura_card.dart';
 import 'package:tester/Screens/Facturas/detale_factura_screen.dart';
 import 'package:tester/constans.dart';
@@ -16,12 +18,10 @@ import 'package:tester/helpers/varios_helpers.dart';
 
 
 class FacturasScreen extends StatefulWidget {
-  final AllFact factura;
-
+ 
   final String tipo;
   // ignore: use_key_in_widget_constructors
-  const FacturasScreen({   
-    required this.factura,
+  const FacturasScreen({     
   
     required this.tipo,
    });
@@ -102,14 +102,17 @@ class _FacturasScreenState extends State<FacturasScreen> {
     setState(() {
       _showLoader = true;
     });
+
+    var cierreFinal = Provider.of<CierreActivoProvider>(context, listen: false).cierreFinal!;
+
     Response response = Response(isSuccess: false);
 
     if(widget.tipo=='Contado'){
-      response = await ApiHelper.getFacturasByCierre(widget.factura.cierreActivo!.cierreFinal.idcierre);
+      response = await ApiHelper.getFacturasByCierre(cierreFinal.idcierre);
 
     }
     else{
-       response = await ApiHelper.getFacturasCredito(widget.factura.cierreActivo!.cierreFinal.idcierre);
+       response = await ApiHelper.getFacturasCredito(cierreFinal.idcierre);
     }
    
     setState(() {
@@ -337,12 +340,15 @@ class _FacturasScreenState extends State<FacturasScreen> {
       _showLoader = true;
     });  
 
+    var cierreFinal = Provider.of<CierreActivoProvider>(context, listen: false).cierreFinal!;
+    var usuario = Provider.of<CierreActivoProvider>(context, listen: false).usuario!;
+
         Map<String, dynamic> request = 
       {
         'nFact': fact.nFactura,
-        'idZona' : widget.factura.cierreActivo!.cierreFinal.idzona,
-        'idCierre' : widget.factura.cierreActivo!.cierreFinal.idcierre,
-        'cedulaUsuario' : widget.factura.cierreActivo!.usuario.cedulaEmpleado.toString(),
+        'idZona' : cierreFinal.idzona,
+        'idCierre' : cierreFinal.idcierre,
+        'cedulaUsuario' : usuario.cedulaEmpleado.toString(),
       
       };
 
@@ -385,37 +391,37 @@ class _FacturasScreenState extends State<FacturasScreen> {
           fontSize: 16.0
         );
     
-    setState(() {
-      for (var prod in fact.detalles) {       
-          if(prod.transaccion !=0){
-              widget.factura.transacciones.add(prod);
-          } else {
-              Product art = widget.factura.productos
-              .firstWhere((element) => element.codigoArticulo == prod.codigoArticulo, orElse:
-               () => Product(
-                codigoArticulo: prod.codigoArticulo,
-                detalle: prod.detalle,
-                precioUnit: prod.precioUnit,
-                cantidad: 0,               
-                subtotal: 0,
-                tasaImp: 0,
-                impMonto: 0,               
-                transaccion: 0,
-                dispensador: 0,
-                imageUrl: "",
-                inventario: 0,
-                images: [],
-                colors: [],
-                total: 0));
+    // setState(() {
+    //   for (var prod in fact.detalles) {       
+    //       if(prod.transaccion !=0){
+    //           widget.factura.transacciones.add(prod);
+    //       } else {
+    //           Product art = widget.factura.productos
+    //           .firstWhere((element) => element.codigoArticulo == prod.codigoArticulo, orElse:
+    //            () => Product(
+    //             codigoArticulo: prod.codigoArticulo,
+    //             detalle: prod.detalle,
+    //             precioUnit: prod.precioUnit,
+    //             cantidad: 0,               
+    //             subtotal: 0,
+    //             tasaImp: 0,
+    //             impMonto: 0,               
+    //             transaccion: 0,
+    //             dispensador: 0,
+    //             imageUrl: "",
+    //             inventario: 0,
+    //             images: [],
+    //             colors: [],
+    //             total: 0));
 
-             if (art.cantidad != 0){
-               art.inventario = art.inventario +  prod.cantidad.toInt();
-             }  
-          }
+    //          if (art.cantidad != 0){
+    //            art.inventario = art.inventario +  prod.cantidad.toInt();
+    //          }  
+    //       }
          
         
-        }
-    });
+    //     }
+    // });
 
     Future.delayed(const Duration(milliseconds: 1000), () {
        _getFacturas();
@@ -425,7 +431,10 @@ class _FacturasScreenState extends State<FacturasScreen> {
   }
   
   _printFactura(Factura e) {
-    e.usuario ='${widget.factura.cierreActivo!.usuario.nombre} ${widget.factura.cierreActivo!.usuario.apellido1}'; 
+
+    var usuario = Provider.of<CierreActivoProvider>(context, listen: false).usuario!;
+
+    e.usuario ='${usuario.nombre} ${usuario.apellido1}'; 
     String tipoDocumento = e.isFactura ? 'FACTURA' : 'TICKET';
     e.isDevolucion ? tipoDocumento = 'NOTA DE CREDITO' : tipoDocumento = tipoDocumento;
     String tipoPago = e.plazo==0 ? 'CONTADO' : 'CREDITO';

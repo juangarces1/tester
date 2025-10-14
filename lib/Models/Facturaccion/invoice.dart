@@ -1,3 +1,4 @@
+
 import 'package:tester/Models/cierrefinal.dart';
 import 'package:tester/Models/cliente.dart';
 import 'package:tester/Models/empleado.dart';
@@ -6,6 +7,7 @@ import 'package:tester/Models/peddler.dart';
 import 'package:tester/Models/product.dart';
 import 'package:tester/Models/sinpe.dart';
 import 'package:tester/Models/transferencia.dart';
+
 
 class Invoice {
   Cliente? cliente;
@@ -79,6 +81,82 @@ class Invoice {
    return detail == null || detail!.isEmpty ? 0 :   detail!.length;
   }
 
+  static Invoice createInitializedInvoice(CierreFinal? cierre, Empleado? usuario) {
+
+    // Cliente por defecto
+    final defaultCliente = Cliente(
+        nombre: '',
+        documento: '',
+        codigoTipoID: '',
+        email: '',
+        puntos: 0,
+        codigo: '',
+        telefono: '');
+
+    // Transferencia por defecto
+    final defaultTransferencia = Transferencia(
+        cliente: defaultCliente, transfers: [], monto: 0, totalTransfer: 0);
+
+    // Sinpe por defecto
+    final defaultSinpe = Sinpe(
+        id: 0,
+        numComprobante: '',
+        nota: '',
+        idCierre: 0,
+        nombreEmpleado: '',
+        fecha: DateTime.now(),
+        numFact: '',
+        activo: 0, // Usar 0 o 1 según el valor inicial esperado
+        monto: 0);
+
+    // Paid (forma de pago) por defecto
+    final defaultFormPago = Paid(
+      totalEfectivo: 0,
+      totalBac: 0,
+      totalDav: 0,
+      totalBn: 0,
+      totalSctia: 0,
+      totalDollars: 0,
+      totalCheques: 0,
+      totalCupones: 0,
+      totalPuntos: 0,
+      totalTransfer: 0,
+      clienteFactura: defaultCliente,
+      transfer: defaultTransferencia,
+      showTotal: false,
+      showFact: false,
+      totalSinpe: 0,
+      sinpe: defaultSinpe,
+      clientePuntos: defaultCliente,
+    );
+
+    // Peddler por defecto
+    final defaultPeddler = Peddler(
+        placa: '', km: '', chofer: '', observaciones: '', orden: '');
+
+    return Invoice(
+      cliente: defaultCliente,
+      formPago: defaultFormPago,
+      detail: [],
+      isCredit: false,
+      isPeddler: false,
+      isContado: false,
+      isTicket: false,
+      isProcess: false,
+      isPromo: false,
+      placa: '',
+      kms: 0,
+      observaciones: '',
+      empleado: usuario, // Se puede pasar o será null
+      cierre: cierre, // Se puede pasar o será null
+      peddler: defaultPeddler,
+    );
+  }
+
+ 
+
+  
+   
    void resetFactura() {
       detail!.clear();
       formPago!.totalBac = 0;

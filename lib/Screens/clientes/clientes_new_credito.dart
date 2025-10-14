@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:http/http.dart';
+
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Models/Facturaccion/factura_service.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/cliente.dart';
-import 'package:tester/Models/clientecredito.dart';
-import 'package:tester/Models/response.dart';
+
 import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/constans.dart';
@@ -311,7 +310,7 @@ class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTicke
 }
 
    void _goInfoUser(Cliente clienteSel, Invoice facturaC) async {   
-    clienteSel.placas ?? [];
+    clienteSel.placas;
     facturaC.formPago!.clienteCredito=clienteSel;    
     FacturaService.updateFactura(context, facturaC);
     Navigator.of(context).pop();    
@@ -441,8 +440,8 @@ class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTicke
         //     (correo) => correo == emailAntiguo,
         //     orElse: () => "No encontrado", // Retorna esto si no se encuentra el correo
         //   );
-        cliente.emails!.remove(emailAntiguo);
-        cliente.emails!.add(nuevoEmail);
+        cliente.emails.remove(emailAntiguo);
+        cliente.emails.add(nuevoEmail);
        });
     }
      
@@ -463,7 +462,7 @@ class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTicke
       child: Column(
         children: [
           Text(
-            e.nombre??'', 
+            e.nombre, 
             style: const TextStyle(
               fontSize: 19,
               fontWeight: FontWeight.bold,
@@ -473,7 +472,7 @@ class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTicke
           ),                  
           
           Text(
-            e.documento??'', 
+            e.documento, 
             style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
@@ -496,7 +495,7 @@ class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTicke
                         e.email = newValue!;
                       });
                     },
-                    items: e.emails!.map<DropdownMenuItem<String>>((String value) {
+                    items: e.emails.map<DropdownMenuItem<String>>((String value) {
                       return DropdownMenuItem<String>(
                         value: value,
                         child: Text(value),
@@ -615,8 +614,8 @@ class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTicke
     
 
       for(String item in correos){
-        if (!_filterUsers[index].emails!.contains(item)) {
-           _filterUsers[index].emails!.add(item);
+        if (!_filterUsers[index].emails.contains(item)) {
+           _filterUsers[index].emails.add(item);
         }
       }
      
@@ -723,7 +722,7 @@ class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTicke
     if (go){
         setState(() {   
           cliente.email = nuevoEmail;    
-          cliente.emails!.add(nuevoEmail);
+          cliente.emails.add(nuevoEmail);
        });
     }
   }

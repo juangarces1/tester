@@ -3,16 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 
-import 'package:tester/Components/app_bar_custom.dart'; // si quieres puedes quitarlo; dejo SliverAppBar nativa
-import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Components/product_card.dart';
-import 'package:tester/Models/Facturaccion/invoice.dart';
+
 import 'package:tester/Models/product.dart';
 import 'package:tester/Models/response.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
-import 'package:tester/sizeconfig.dart';
+
 
 class ProductsPage extends StatefulWidget {
   final int index;
@@ -296,7 +294,7 @@ class GlassBackButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white.withOpacity(0.18),
+      color: Colors.white.withValues(alpha: 0.18),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       elevation: 0,
       child: InkWell(
@@ -307,10 +305,10 @@ class GlassBackButton extends StatelessWidget {
           height: 40,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withOpacity(0.35), width: 1),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 1),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.15),
+                color: Colors.black.withValues(alpha: 0.15),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -586,7 +584,7 @@ class _ErrorState extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 "Ups…",
-                style: TextStyle(color: Colors.white.withOpacity(.95), fontSize: 18, fontWeight: FontWeight.w700),
+                style: TextStyle(color: Colors.white.withValues(alpha: .95), fontSize: 18, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 6),
               Text(

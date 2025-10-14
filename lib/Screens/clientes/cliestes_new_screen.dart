@@ -18,14 +18,12 @@ import 'package:tester/helpers/api_helper.dart';
 enum SearchMode { nombre, documento }
 
 class ClientesNewScreen extends StatefulWidget {
-  final Invoice factura;
-  final String ruta;
+  final Invoice factura; 
   final ClienteTipo tipo; 
 
   const ClientesNewScreen({
     super.key,
-    required this.factura,
-    required this.ruta,
+    required this.factura,    
      required this.tipo,
   });
 
@@ -81,8 +79,10 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
 
     // Precarga de clientes
   Future.microtask(() {
-      context.read<ClienteProvider>().loadClientesBy(widget.tipo);
-
+        if(mounted) {
+          context.read<ClienteProvider>().loadClientesBy(widget.tipo);
+        }
+     
       // 👇 Si la factura ya trae cliente, mostrarlo en resultados
       final clienteSel = widget.factura.formPago?.clienteFactura;
       if (clienteSel != null && clienteSel.nombre.isNotEmpty) {
@@ -111,7 +111,7 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
 
   // ID estable para cada cliente
   String _idOf(Cliente c) {
-    final codigo = (c.codigo ?? '').trim();
+    final codigo = (c.codigo).trim();
     if (codigo.isNotEmpty) return codigo;
     return c.documento.trim();
   }
@@ -194,6 +194,7 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
           ],
         ),
         floatingActionButton: FloatingActionButton(
+          heroTag: UniqueKey(),
           backgroundColor: Colors.green,
           onPressed: _goAdd,
           child: const Icon(Icons.add, color: Colors.white, size: 30),
@@ -242,7 +243,7 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
                 style: ButtonStyle(
                   backgroundColor:
                       WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected)
-                          ? kPrimaryColor.withOpacity(0.15)
+                          ? kPrimaryColor.withValues(alpha: 0.15)
                           : null),
                   foregroundColor:
                       WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected)
@@ -324,7 +325,7 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
               _mode == SearchMode.nombre
                   ? 'Tip: escribe al menos $_minLenName letras para filtrar por nombre.'
                   : 'Tip: escribe al menos $_minLenDoc dígitos para filtrar por documento.',
-              style: TextStyle(color: Colors.white.withOpacity(0.7)),
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
             ),
           ],
         ),
@@ -465,7 +466,7 @@ void _goAdd() async {
     MaterialPageRoute(
       builder: (context) => ClietesAddScreen(
         factura: widget.factura,
-        ruta: widget.ruta,
+       
       ),
     ),
   );
@@ -586,7 +587,7 @@ void _goAdd() async {
       final pos = _filterUsers.indexWhere((x) => _idOf(x) == id);
       if (pos >= 0) {
         final cli = _filterUsers[pos];
-        cli.emails ??= <String>[];
+        cli.emails;
         for (final item in correos) {
           if (!cli.emails.contains(item)) cli.emails.add(item);
         }
@@ -597,7 +598,7 @@ void _goAdd() async {
     });
 
     final pos = _filterUsers.indexWhere((x) => _idOf(x) == id);
-    final total = pos >= 0 ? (_filterUsers[pos].emails.length ?? 0) : 0;
+    final total = pos >= 0 ? (_filterUsers[pos].emails.length) : 0;
     _doneById(id, 'Emails actualizados ($total)');
   }
 
@@ -651,7 +652,7 @@ void _goAdd() async {
     if (ok) {
       setState(() {
         cliente.email = nuevoEmail;
-        cliente.emails ??= <String>[];
+        cliente.emails;
         if (!cliente.emails.contains(nuevoEmail)) {
           cliente.emails.add(nuevoEmail);
         }
@@ -708,7 +709,7 @@ void _goAdd() async {
         if (ok) {
           setState(() {
             cliente.email = nuevoEmail;
-            cliente.emails ??= <String>[];
+            cliente.emails;
             cliente.emails.remove(old);
             if (!cliente.emails.contains(nuevoEmail)) {
               cliente.emails.add(nuevoEmail);
@@ -761,7 +762,7 @@ void _goAdd() async {
         if (ok) {
           setState(() {
             cliente.email = nuevoEmail;
-            cliente.emails ??= <String>[];
+            cliente.emails;
             if (!cliente.emails.contains(nuevoEmail)) {
               cliente.emails.add(nuevoEmail);
             }

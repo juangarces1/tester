@@ -1,27 +1,21 @@
-
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
+import 'package:provider/provider.dart';
 import 'package:tester/Components/app_bar_custom.dart';
 import 'package:tester/Components/loader_component.dart';
-import 'package:tester/Models/all_fact.dart';
+
 import 'package:tester/Models/cierredatafono.dart';
 import 'package:tester/Models/response.dart';
+import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Screens/CierreDatafonos/add_datafono_screen.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
 import 'package:tester/helpers/varios_helpers.dart';
-import 'package:tester/sizeconfig.dart';
-
-
-
-
-
 
 class CierreDatafonosScreen extends StatefulWidget {
+  
 
-  final AllFact factura;
   // ignore: use_key_in_widget_constructors
-  const CierreDatafonosScreen({ required this.factura});
+  const CierreDatafonosScreen();
 
   @override
   State<CierreDatafonosScreen> createState() => _CierreDatafonosScreenState();
@@ -29,295 +23,519 @@ class CierreDatafonosScreen extends StatefulWidget {
 
 class _CierreDatafonosScreenState extends State<CierreDatafonosScreen> {
   List<CierreDatafono> cierres = [];
-   bool showLoader = false;
-    late double total=0;
+  bool showLoader = false;
+  double total = 0;
 
-  
   @override
-
   void initState() {
     super.initState();
-    _getcierres();
+    _getCierres();
   }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
+        backgroundColor: kNewbg,
         appBar: MyCustomAppBar(
-          title: 'Cierre Datafonos',
-          elevation: 6,
-          shadowColor: kColorFondoOscuro,
+          title: 'Cierres de Datafonos',
+          elevation: 4,
+          shadowColor: kPrimaryColor,
           automaticallyImplyLeading: true,
-          foreColor: Colors.white,
-          backgroundColor: kBlueColorLogo,
-          actions: <Widget>[
+          foreColor: kNewtextPri,
+          backgroundColor: kNewbg,
+          actions:  <Widget>[
             Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ClipOval(child:  Image.asset(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ClipOval(
+                child: Image.asset(
                   'assets/splash.png',
                   width: 30,
                   height: 30,
                   fit: BoxFit.cover,
-                ),), // Ícono de perfil de usuario
-            ),
-          ],      
-        ),
-        body: showLoader ? const LoaderComponent(loadingText: 'Cargando...',) : Container(
-          color: kContrateFondoOscuro,
-          child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: getProportionateScreenWidth(10), vertical: getProportionateScreenHeight(10)),
-          child: ListView.builder(
-            
-            itemCount: cierres.length,
-            itemBuilder: (context, index)  
-            { 
-              final item = cierres[index].idcierre.toString();
-              return Card(
-                color: kContrateFondoOscuro,
-               shadowColor: Colors.blueGrey,
-                    elevation: 8,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                child: Dismissible(            
-                  key: Key(item),
-                  direction: DismissDirection.endToStart,
-                  onDismissed: (direction) {              
-                  _goDelete(cierres[index].idregistrodatafono ?? 0);        
-                  setState(() {
-                    cierres.removeAt(index);
-                    total=0;               
-                    for (var element in cierres) {
-                      total+=element.monto??0;
-                    } 
-                  });     
-                  },
-                  background: Container(              
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFE6E6),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Row(
-                      children: [
-                        const Spacer(),
-                        SvgPicture.asset("assets/Trash.svg"),
-                      ],
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 88,
-                        child: AspectRatio(
-                          aspectRatio: 0.88,
-                          child: Container(
-                            padding: EdgeInsets.all(getProportionateScreenWidth(10)),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF5F6F9),
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                            child:  const Image(
-                                        image: AssetImage('assets/data.png'),
-                                    ),
-                          ),
-                        ),
-                      ),                         
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                             Text(
-                              cierres[index].banco ?? "",
-                              style: const TextStyle(color: Colors.black, fontSize: 16),
-                              maxLines: 2,
-                            ),
-                            Text.rich(
-                              TextSpan(
-                                text: 'Datafono: ${cierres[index].terminal}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600, color: kTextColor),
-                                                          
-                              ),
-                            ),
-                             Text.rich(
-                              TextSpan(
-                                text: 'Lote : ${cierres[index].idcierredatafono}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600, color: kTextColor),
-                                                          
-                              ),
-                            ),
-                            Text.rich(
-                              TextSpan(
-                                 text: 'Monto: ${VariosHelpers.formattedToCurrencyValue(cierres[index].monto.toString())}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600, color: kPrimaryColor),
-                                                          
-                              ),
-                            ),
-                           
-                          ],
-                        ),
-                      ),
-                       Flexible(
-                        child: MaterialButton(
-                          onPressed: () => onPrintPressed(cierres[index]),
-                          color: Colors.blueGrey,
-                          padding: const EdgeInsets.all(5),
-                          shape: const CircleBorder(),
-                          child: const Icon(
-                            Icons.print_outlined,
-                            size: 20,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  
                 ),
-             ),
-              );
-            }        
-          ),
+              ),
+            ),
+          ],
+        ),
+        body: showLoader
+            ? const LoaderComponent(
+                loadingText: 'Cargando...',
+                backgroundColor: kNewsurface,
+                borderColor: kNewborder,
+              )
+            : Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [kNewbg, Color(0xFF10151C)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    child: cierres.isEmpty
+                        ? _emptyState()
+                        : ListView.separated(
+                            key: const ValueKey('datafono-list'),
+                            itemCount: cierres.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 20),
+                            itemBuilder: (context, index) {
+                              final CierreDatafono cierre = cierres[index];
+                              return Dismissible(
+                                key: ValueKey<int>(
+                                  cierre.idregistrodatafono ?? index,
+                                ),
+                                direction: DismissDirection.endToStart,
+                                background: _dismissBackground(),
+                                confirmDismiss: (_) =>
+                                    _confirmDelete(index, cierre),
+                                child: _cierreTile(cierre),
+                              );
+                            },
+                          ),
+                  ),
+                ),
+              ),
+        bottomNavigationBar: _totalBar(),
+        floatingActionButton: FloatingActionButton.extended(
+          backgroundColor: kNewgreen,
+          foregroundColor: kNewtextPri,
+          elevation: 0,
+          onPressed: _goAdd,
+          icon: const Icon(Icons.add),
+          label: const Text(
+            'Nuevo',
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
-    
-           bottomNavigationBar: BottomAppBar(
-          color: kBlueColorLogo,
-         
-          child: IconTheme(
-            data: IconThemeData(color: Theme.of(context).colorScheme.onPrimary),
-            child: Row(
-             mainAxisSize: MainAxisSize.max,
-             mainAxisAlignment: MainAxisAlignment.start,
-              children: <Widget>[
-                IconButton(
-                tooltip: 'Open navigation menu',
-                icon: const Icon(Icons.menu),
-                onPressed: () {},
-              ),
-               const Text('Total: ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),),
-                  Text(VariosHelpers.formattedToCurrencyValue(total.toString()), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),),
-                
-               ],          
-             ),
-          ),
-         ), 
-        floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
-        
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: kPrimaryColor,
-          onPressed: () => _goAdd(),
-          child: const Icon(Icons.add, size: 35, color: Colors.white,),
-        )
       ),
     );
   }
 
-  Future<void> _getcierres() async {
+  Future<void> _getCierres() async {
     setState(() {
       showLoader = true;
     });
 
     
-    Response response = await ApiHelper.getCierresDatafonos(widget.factura.cierreActivo!.cierreFinal.idcierre ?? 0);
+    final cierreActPro = Provider.of<CierreActivoProvider>(context, listen: false);
+    
+
+    final Response response = await ApiHelper.getCierresDatafonos(
+      cierreActPro.cierreFinal!.idcierre ?? 0,
+    );
+
+    if (!mounted) {
+      return;
+    }
 
     setState(() {
       showLoader = false;
     });
 
     if (!response.isSuccess) {
-        if (mounted) {       
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text('Error'),
-                content:  Text(response.message),
-                actions: <Widget>[
-                  TextButton(
-                    child: const Text('Aceptar'),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                ],
-              );
-            },
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Error'),
+            content: Text(response.message),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Aceptar'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
           );
-        }  
-       return;
-     }
+        },
+      );
+      return;
+    }
 
-    total=0;
-    cierres=response.result;
-    for (var element in cierres) {
-      total+=element.monto??0;
-    } 
+    final List<CierreDatafono> fetched = response.result;
 
     setState(() {
-      cierres;
-      total;
+      cierres = fetched;
+      total = cierres.fold<double>(
+        0,
+        (previousValue, element) => previousValue + (element.monto ?? 0),
+      );
     });
   }
 
-   Future<void> _goDelete(int id) async {
+  Future<bool> _confirmDelete(int index, CierreDatafono cierre) async {
+    final bool? shouldDelete = await _showDeleteDialog(cierre);
 
-     setState(() {
+    if (shouldDelete != true) {
+      return false;
+    }
+
+    final bool deleted = await _goDelete(cierre.idregistrodatafono ?? 0);
+
+    if (!deleted || !mounted) {
+      return false;
+    }
+
+    setState(() {
+      cierres.removeAt(index);
+      total = cierres.fold<double>(
+        0,
+        (previousValue, element) => previousValue + (element.monto ?? 0),
+      );
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Cierre eliminado correctamente.')),
+    );
+
+    return true;
+  }
+
+  Future<bool?> _showDeleteDialog(CierreDatafono cierre) {
+    final String terminal = cierre.terminal ?? 'Terminal sin nombre';
+    final String montoFormatted =
+        VariosHelpers.formattedToCurrencyValue((cierre.monto ?? 0).toString());
+    final String fecha =
+        cierre.fechacierre?.split('T').first ?? 'Sin fecha registrada';
+
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: kNewsurface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: const Text(
+            'Eliminar cierre',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: kNewtextPri,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Esta accion no se puede deshacer. Deseas continuar?',
+                style: TextStyle(color: kNewtextSec),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Terminal: $terminal',
+                style: const TextStyle(color: kNewtextPri, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Fecha: $fecha',
+                style: const TextStyle(color: kNewtextMut),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Monto: $montoFormatted',
+                style: const TextStyle(color: kNewtextMut),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: kNewtextSec, fontWeight: FontWeight.w600),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kNewred,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  'Eliminar',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _cierreTile(CierreDatafono cierre) {
+    final String montoFormatted =
+        VariosHelpers.formattedToCurrencyValue((cierre.monto ?? 0).toString());
+    final String fecha =
+        cierre.fechacierre?.split('T').first ?? 'Sin fecha registrada';
+    final String terminal = cierre.terminal ?? 'Terminal sin nombre';
+    final String banco = cierre.banco ?? 'Banco sin asignar';
+    final String lote =
+        cierre.idcierredatafono != null ? '#${cierre.idcierredatafono}' : '--';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: kNewsurface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: kNewborder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.28),
+            blurRadius: 22,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            height: 56,
+            width: 56,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Colors.indigo, Colors.indigoAccent],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Image.asset('assets/data.png', fit: BoxFit.contain),
+          ),
+          const SizedBox(width: 18),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(                 
+                  terminal,
+                  style: const TextStyle(
+                    color: kNewtextPri,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                    
+                  ),
+                   maxLines: 1,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  banco,
+                  style: const TextStyle(color: kContrateFondoOscuro, fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                 Text(
+                  'Lote: $lote',
+                  style: const TextStyle(color: kContrateFondoOscuro, fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Fecha: $fecha',
+                  style: const TextStyle(color: kContrateFondoOscuro, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: kNewgreen.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(13),
+                  border: Border.all(color: kNewgreen),
+                ),
+                child: Text(
+                  montoFormatted,
+                  style: const TextStyle(
+                    color: kNewgreen,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () => onPrintPressed(cierre),
+                icon: const Icon(Icons.print_outlined, color: kNewtextSec),
+                tooltip: 'Imprimir cierre',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dismissBackground() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: const LinearGradient(
+          colors: [kNewred, kNewredPressed],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+      ),
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: const Icon(
+        Icons.delete_outline,
+        color: Colors.white,
+        size: 28,
+      ),
+    );
+  }
+
+  Widget _emptyState() {
+    return Center(
+      key: const ValueKey('datafono-empty'),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            height: 80,
+            width: 80,
+            decoration: BoxDecoration(
+              color: kNewsurface,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: kNewborder),
+            ),
+            child: const Icon(
+              Icons.point_of_sale_outlined,
+              color: kNewtextSec,
+              size: 36,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Aun no hay cierres',
+            style: TextStyle(
+              color: kNewtextPri,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Registra un datafono para verlo aqui.',
+            style: TextStyle(
+              color: kNewtextMut,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 24),
+          OutlinedButton.icon(
+            onPressed: _goAdd,
+            icon: const Icon(Icons.add, color: kNewtextPri),
+            label: const Text(
+              'Crear cierre',
+              style: TextStyle(color: kNewtextPri),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: kNewborder),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _totalBar() {
+    return Container(
+      color: kNewsurface,
+      padding: const EdgeInsets.fromLTRB(24, 10, 24, 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            'Total Acumulado',
+            style: TextStyle(
+              color: kNewtextSec,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Text(
+            VariosHelpers.formattedToCurrencyValue(total.toString()),
+            style: const TextStyle(
+              color: kNewtextPri,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _goDelete(int id) async {
+    setState(() {
       showLoader = true;
     });
 
-    
-    Response response = await ApiHelper.delete('/api/CierreDatafonos/',id.toString());
+    final Response response =
+        await ApiHelper.delete('/api/CierreDatafonos/', id.toString());
+
+    if (!mounted) {
+      return false;
+    }
 
     setState(() {
       showLoader = false;
     });
 
     if (!response.isSuccess) {
-        if (mounted) {       
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text('Error'),
-                content:  Text(response.message),
-                actions: <Widget>[
-                  TextButton(
-                    child: const Text('Aceptar'),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                ],
-              );
-            },
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Error'),
+            content: Text(response.message),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Aceptar'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
           );
-        }  
-       return;
-     }
-    
+        },
+      );
+      return false;
+    }
+
+    return true;
   }
 
   void _goAdd() async {
-    String? result = await Navigator.push(
-      context, 
+    final String? result = await Navigator.push(
+      context,
       MaterialPageRoute(
-        builder: (context) => DatafonoScreen(
-          factura: widget.factura,
-        )
-      )
+        builder: (context) => const DatafonoScreen(),
+      ),
     );
     if (result == 'yes') {
-      _getcierres();
+      _getCierres();
     }
   }
-  
-  onPrintPressed(CierreDatafono cierr) {
+
+  void onPrintPressed(CierreDatafono cierre) {
     // final printerProv = context.read<PrinterProvider>();
     // final device = printerProv.device;
     // if (device == null) {
@@ -327,9 +545,11 @@ class _CierreDatafonosScreenState extends State<CierreDatafonosScreen> {
     //   return;
     // }
 
-    // // Llamas a tu clase de impresión
-    // final testPrint = TestPrint(device: device);  
-    // testPrint.printCierreDatafono(cierr, widget.factura.cierreActivo!.cajero.nombreCompleto);
-
+    // // Llamas a tu clase de impresion
+    // final testPrint = TestPrint(device: device);
+    // testPrint.printCierreDatafono(
+    //   cierre,
+    //   widget.factura.cierreActivo!.cajero.nombreCompleto,
+    // );
   }
 }

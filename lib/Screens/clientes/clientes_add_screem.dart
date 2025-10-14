@@ -15,19 +15,19 @@ import 'package:tester/Models/cliente.dart';
 import 'package:tester/Models/response.dart';
 import 'package:tester/helpers/api_helper.dart';
 
-import 'package:tester/Screens/clientes/cliente_card.dart' as ClienteUI; // ← usamos el ClienteCard completo
+import 'package:tester/Screens/clientes/cliente_card.dart' as cliente_ui; // ← usamos el ClienteCard completo
 
 import '../../constans.dart';
 import '../../sizeconfig.dart';
 
 class ClietesAddScreen extends StatefulWidget {
   final Invoice factura;
-  final String ruta;
+  
 
   const ClietesAddScreen({
     super.key,
     required this.factura,
-    required this.ruta,
+    
   });
 
   @override
@@ -128,7 +128,7 @@ class _ClietesAddScreenState extends State<ClietesAddScreen> {
                                   title: "Resultado",
                                   subtitle: "Verifica que el contribuyente sea el correcto.",
                                   // Usamos el ClienteCard completo con actividades visibles (solo lectura)
-                                  child: ClienteUI.ClienteCard(
+                                  child: cliente_ui.ClienteCard(
                                     cliente: _cliente!,
                                     factura: widget.factura,
                                     index: 0,

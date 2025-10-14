@@ -28,9 +28,11 @@ class MapProvider extends ChangeNotifier {
     try {
       final pumps = await ConsoleApiHelper.getPumpsAndFaces();
       final statuses = await ConsoleApiHelper.getDispensersStatus();
+      final nozzles = await ConsoleApiHelper.getNozzles();
       _stationMap = PositionBuilder.build(
         pumps: pumps,
         statuses: statuses,
+        nozzles: nozzles,
         strictPhysicalOnly: strictPhysicalOnly,
       );
     } catch (e) {

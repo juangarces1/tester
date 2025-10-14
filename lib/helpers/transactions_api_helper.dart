@@ -52,19 +52,19 @@ class TransaccionesApiHelper {
     throw Exception('GET falló (${res.statusCode}): ${res.body}');
   }
 
-  /// Intenta extraer el id desde diferentes formas de respuesta
-  static int? _extractId(Map<String, dynamic> json) {
-    // ajusta si tu backend usa otro nombre
-    final candidates = ['id', 'idtransaccion', 'Idtransaccion', 'IdTransaccion'];
-    for (final k in candidates) {
-      final v = json[k];
-      if (v is int) return v;
-      if (v is num) return v.toInt();
-      if (v is String) {
-        final n = int.tryParse(v);
-        if (n != null) return n;
-      }
-    }
-    return null;
-  }
+  // /// Intenta extraer el id desde diferentes formas de respuesta
+  // static int? _extractId(Map<String, dynamic> json) {
+  //   // ajusta si tu backend usa otro nombre
+  //   final candidates = ['id', 'idtransaccion', 'Idtransaccion', 'IdTransaccion'];
+  //   for (final k in candidates) {
+  //     final v = json[k];
+  //     if (v is int) return v;
+  //     if (v is num) return v.toInt();
+  //     if (v is String) {
+  //       final n = int.tryParse(v);
+  //       if (n != null) return n;
+  //     }
+  //   }
+  //   return null;
+  // }
 }

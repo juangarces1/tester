@@ -104,7 +104,7 @@ class _SelectFuelCardScreenState extends State<SelectFuelCardScreen> {
                               borderRadius: BorderRadius.circular(16),
                               child: Card(
                                 color: opt.disponible
-                                    ? getFuelColor(opt.nombre).withOpacity(0.13)
+                                    ? getFuelColor(opt.nombre).withValues(alpha: 0.13)
                                     : Colors.grey[800],
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),

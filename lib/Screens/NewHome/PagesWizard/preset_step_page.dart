@@ -102,8 +102,8 @@ class _ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c1 = color.withOpacity(0.95);
-    final c2 = color.withOpacity(0.65);
+    final c1 = color.withValues(alpha: 0.95);
+    final c2 = color.withValues(alpha: 0.65);
 
     return Material(
       color: Colors.transparent,
@@ -121,7 +121,7 @@ class _ActionCard extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
-              BoxShadow(color: color.withOpacity(0.35), blurRadius: 24, offset: const Offset(0, 12)),
+              BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 24, offset: const Offset(0, 12)),
             ],
           ),
           child: Padding(
@@ -132,7 +132,7 @@ class _ActionCard extends StatelessWidget {
                   height: 56,
                   width: 56,
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.15),
+                    color: Colors.black.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   alignment: Alignment.center,
@@ -155,7 +155,7 @@ class _ActionCard extends StatelessWidget {
                       Text(
                         subtitle,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -268,9 +268,9 @@ class _ChoiceCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF121212),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: accent.withOpacity(0.45), width: 1.2),
+            border: Border.all(color: accent.withValues(alpha: 0.45), width: 1.2),
             boxShadow: [
-              BoxShadow(color: accent.withOpacity(0.18), blurRadius: 18, offset: const Offset(0, 8)),
+              BoxShadow(color: accent.withValues(alpha: 0.18), blurRadius: 18, offset: const Offset(0, 8)),
             ],
           ),
           child: Padding(
@@ -281,7 +281,7 @@ class _ChoiceCard extends StatelessWidget {
                   height: 48,
                   width: 48,
                   decoration: BoxDecoration(
-                    color: accent.withOpacity(0.25),
+                    color: accent.withValues(alpha: 0.25),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   alignment: Alignment.center,
@@ -303,7 +303,7 @@ class _ChoiceCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, color: accent.withOpacity(0.9)),
+                Icon(Icons.chevron_right, color: accent.withValues(alpha: 0.9)),
               ],
             ),
           ),
@@ -580,8 +580,8 @@ class _GradientButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c1 = color.withOpacity(0.95);
-    final c2 = color.withOpacity(0.7);
+    final c1 = color.withValues(alpha: 0.95);
+    final c2 = color.withValues(alpha: 0.7);
 
     return Material(
       color: Colors.transparent,
@@ -595,7 +595,7 @@ class _GradientButton extends StatelessWidget {
             gradient: LinearGradient(colors: [c1, c2]),
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
-              BoxShadow(color: color.withOpacity(0.28), blurRadius: 18, offset: const Offset(0, 8)),
+              BoxShadow(color: color.withValues(alpha: 0.28), blurRadius: 18, offset: const Offset(0, 8)),
             ],
           ),
           child: Row(

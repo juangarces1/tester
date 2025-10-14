@@ -125,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen>
             shadows: [
               Shadow(
                 blurRadius: 10,
-                color: Colors.blueAccent.withOpacity(0.6),
+                color: Colors.blueAccent.withValues(alpha: 0.6),
                 offset: const Offset(0, 2),
               ),
             ],
@@ -348,38 +348,20 @@ class _LoginScreenState extends State<LoginScreen>
        clienteProv.loadClientesBy(ClienteTipo.credito);
 
     setState(() => _showLoader = false);
-    // Inicializar datos locales
-    factura.cart = Cart(products: [], numOfItem: 0);
-    factura.placa = '';
-    factura.kms = 0;
-    factura.lasTr = 0;
-
-    if (factura.transacciones.isNotEmpty) {
-      factura.transacciones.sort((b, a) => a.transaccion.compareTo(b.transaccion));
-      factura.lasTr = factura.transacciones.first.transaccion;
-    }
-
-
-
-    // Clientes (usando provider clásico)
-   
-   
-
     
-
    if (!mounted) return;
     context.read<CierreActivoProvider>().setFrom(factura.cierreActivo!);
-    goHome(factura);
+    goHome();
     
   }
 
  
 
   /* ================= NAVIGATION ================= */
-  void goHome(AllFact factura) {
+  void goHome() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => NewHomeScreen(factura: factura)),
+      MaterialPageRoute(builder: (_) => const NewHomeScreen()),
     );
   }
 

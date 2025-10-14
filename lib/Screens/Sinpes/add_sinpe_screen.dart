@@ -1,271 +1,301 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:provider/provider.dart';
 import 'package:tester/Components/app_bar_custom.dart';
-import 'package:tester/Components/custom_surfix_icon.dart';
-import 'package:tester/Components/default_button.dart';
 import 'package:tester/Components/loader_component.dart';
-import 'package:tester/Models/all_fact.dart';
 import 'package:tester/Models/response.dart';
 import 'package:tester/Models/sinpe.dart';
+import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
-import 'package:tester/sizeconfig.dart';
-
 
 class AddSinpeScreen extends StatefulWidget {
-  final AllFact all;
-  const AddSinpeScreen({super.key, required this.all});
+  const AddSinpeScreen({super.key, });
 
+  
   @override
   State<AddSinpeScreen> createState() => _AddSinpeScreenState();
 }
 
 class _AddSinpeScreenState extends State<AddSinpeScreen> {
   final _formKey = GlobalKey<FormState>();
-  bool showLoader = false;
-  String comprobanteError = '';
-  bool comprobanteShowError = false;
-  String montoError = '';
-  bool montoShowError = false;
+  bool _showLoader = false;
 
-  Sinpe sinpe = Sinpe(
-    id: 0,
-    activo: 0, 
-    fecha: DateTime.now(),
-     idCierre: 0,
-      monto: 0,
-       nombreEmpleado: '',       
-        nota: '',
-         numComprobante: '',
-          numFact: '');
- 
+  final TextEditingController comprobanteController = TextEditingController();
+  final TextEditingController montoController = TextEditingController();
+  final TextEditingController notaController = TextEditingController();
+
+  @override
+  void dispose() {
+    comprobanteController.dispose();
+    montoController.dispose();
+    notaController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Scaffold(     
-    
-        appBar:  MyCustomAppBar(
-           elevation: 6,
-          shadowColor: kColorFondoOscuro,
-          title: 'Nuevo Sinpe',
+      child: Scaffold(
+        backgroundColor: kNewbg,
+        appBar: MyCustomAppBar(
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          title: 'Nuevo sinpe',
           automaticallyImplyLeading: true,
-          foreColor: Colors.white,
-          backgroundColor: kPrimaryColor,
+          foreColor: kNewtextPri,
+          backgroundColor: kNewbg,
           actions: <Widget>[
             Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ClipOval(child:  Image.asset(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ClipOval(
+                child: Image.asset(
                   'assets/splash.png',
                   width: 30,
                   height: 30,
                   fit: BoxFit.cover,
-                ),), // Ícono de perfil de usuario
+                ),
+              ),
             ),
-          ],      
+          ],
         ),
-        body: Container(
-          color: kContrateFondoOscuro,
-          child: Stack(
-            children: [
-
-              signUpForm(),
-              showLoader
-                  ? const LoaderComponent(
-                      loadingText: 'Por favor espere...',
-                    )
-                  : Container(),
-    
-                  
-    
-                  
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget signUpForm() {
-     return Form(
-      key: _formKey,
-      child: SingleChildScrollView(
-        child: Column(
+        body: Stack(
           children: [
-             SizedBox(height: getProportionateScreenHeight(10)),
-            Text("Complete los Datos", style: myHeadingStyleBlack),
-            showNumComprabante(),
-            SizedBox(height: getProportionateScreenHeight(10)),
-            showMonto(),
-            SizedBox(height: getProportionateScreenHeight(10)),
-            showNota(),
-            SizedBox(height: getProportionateScreenHeight(10)),
-            DefaultButton(
-              text: "Crear",
-              press: crearSinpe,
-              color: kPrimaryColor,
-              gradient: kPrimaryGradientColor,
+            SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Registrar sinpe',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: kNewtextPri,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Completa los campos para registrar un nuevo movimiento SINPE.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: kNewtextMut,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: kNewsurface,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: kNewborder),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.28),
+                          blurRadius: 24,
+                          offset: const Offset(0, 18),
+                        ),
+                      ],
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildTextField(
+                            controller: comprobanteController,
+                            label: 'Número de comprobante',
+                            hint: 'Ingresa el número de comprobante',
+                            textInputAction: TextInputAction.next,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Ingresa el núfdmero de comprobante';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 18),
+                          _buildTextField(
+                            controller: montoController,
+                            label: 'Monto',
+                            hint: 'Ingresa el monto del sinpe',
+                            textInputAction: TextInputAction.next,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                            validator: (value) {
+                              final parsed = double.tryParse(value ?? '');
+                              if (parsed == null || parsed <= 0) {
+                                return 'Ingresa un monto v�lido';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 18),
+                          _buildTextField(
+                            controller: notaController,
+                            label: 'Nota (opcional)',
+                            hint: 'Ingresa una nota',
+                            textInputAction: TextInputAction.done,
+                            maxLines: 3,
+                          ),
+                          const SizedBox(height: 32),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: kNewgreen,
+                                foregroundColor: kNewtextPri,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              onPressed: _createSinpe,
+                              child: const Text(
+                                'Registrar',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
+            if (_showLoader)
+              const LoaderComponent(
+                loadingText: 'Por favor espere...',
+                backgroundColor: kNewsurface,
+                borderColor: kNewborder,
+              ),
           ],
         ),
       ),
     );
   }
 
-   Widget showNumComprabante() {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      child: TextField(        
-        keyboardType: TextInputType.number,
-        decoration: InputDecoration(
-          hintText: 'Ingresa un Numero...',
-          labelText: 'Comprobante',
-          errorText: comprobanteShowError ? comprobanteError : null,             
-          suffixIcon: const CustomSurffixIcon(svgIcon: "assets/receipt.svg"),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10)
-          ),
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    TextInputType keyboardType = TextInputType.text,
+    TextInputAction textInputAction = TextInputAction.next,
+    List<TextInputFormatter>? inputFormatters,
+    String? Function(String?)? validator,
+    int maxLines = 1,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      inputFormatters: inputFormatters,
+      validator: validator,
+      maxLines: maxLines,
+       style: const TextStyle(
+        color: kNewtextPri,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+      ),
+      cursorColor: Colors.white,
+      decoration: darkDecoration(
+        label: label,
+        hint: hint,
+        fillColor: kNewsurfaceHi,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        labelStyle: const TextStyle(
+          color: kNewtextSec,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
         ),
-        onChanged: (value) {
-          sinpe.numComprobante = value;
-        },
+        hintStyle: const TextStyle(
+          color: kNewtextMut,
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+        ),
       ),
     );
-   }
-
-    Widget showMonto() {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      child: TextField(        
-        keyboardType: TextInputType.number,
-        decoration: InputDecoration(
-          hintText: 'Ingresa un Monto...',
-          labelText: 'Monto',
-          errorText: montoShowError ? montoError : null,             
-          suffixIcon: const CustomSurffixIcon(svgIcon: "assets/receipt.svg"),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10)
-          ),
-        ),
-        onChanged: (value) {
-          //parsear el valor a double        
-          sinpe.monto = double.tryParse(value) ?? 0.0;
-      
-        },
-      ),
-    );
-   }
-
-    Widget showNota() {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      child: TextField(        
-        keyboardType: TextInputType.text,
-        decoration: InputDecoration(
-          hintText: 'Ingresa un.a nota..',
-          labelText: 'Nota',
-          errorText: montoShowError ? montoError : null,             
-          suffixIcon: const CustomSurffixIcon(svgIcon: "assets/receipt.svg"),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10)
-          ),
-        ),
-        onChanged: (value) {
-          //parsear el valor a double        
-          sinpe.nota = value;
-      
-        },
-      ),
-    );
-   }
-
-   //make a function to validate the fields and show the errors
-  bool validateFields() {
-    bool isValid = true;
-    if (sinpe.numComprobante.isEmpty) {
-      isValid = false;
-      comprobanteShowError = true;
-      comprobanteError = 'El comprobante no puede estar vacio';
-    } else {
-      comprobanteShowError = false;
-    }
-  
-    //check if the monto is a valid number
-   
-
-    if (sinpe.monto == 0) {
-      isValid = false;
-      montoShowError = true;
-      montoError = 'El monto no puede estar vacio';
-    } else {
-      montoShowError = false;
-    }
-    return isValid;
- 
- 
   }
 
-   Future<void> crearSinpe() async {
-    if (!validateFields()) {
+  Future<void> _createSinpe() async {
+    if (!_formKey.currentState!.validate()) {
       return;
-   }
-
-    showLoader=true;
-    //set the idCierre
-    sinpe.idCierre = widget.all.cierreActivo!.cierreFinal.idcierre??0;
-    //set the nombreEmpleado
-    sinpe.nombreEmpleado = ' ${widget.all.cierreActivo!.cajero.nombre} ${widget.all.cierreActivo!.cajero.apellido1}';
-    
-    //set the fecha
-    sinpe.fecha = DateTime.now();
-    //set the activo
-
-    Response response = await ApiHelper.post("api/Sinpes/",sinpe.toJson());
+    }
 
     setState(() {
-      showLoader=false;
+      _showLoader = true;
+    });
+
+    var cierreFinal = Provider.of<CierreActivoProvider>(context, listen: false).cierreFinal!;
+    var empleado = Provider.of<CierreActivoProvider>(context, listen: false).cajero!;
+
+    final sinpe = Sinpe(
+      id: 0,
+      numComprobante: comprobanteController.text.trim(),
+      nota: notaController.text.trim(),
+      idCierre: cierreFinal.idcierre ?? 0,
+      nombreEmpleado:
+          '${empleado.nombre} ${empleado.apellido1}',
+      fecha: DateTime.now(),
+      numFact: '',
+      activo: 0,
+      monto: double.tryParse(montoController.text.trim()) ?? 0,
+    );
+
+    final Response response = await ApiHelper.post(
+      'api/Sinpes/',
+      sinpe.toJson(),
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _showLoader = false;
     });
 
     if (!response.isSuccess) {
-      if (mounted) {       
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('Error'),
-              content:  Text(response.message),
-              actions: <Widget>[
-                TextButton(
-                  child: const Text('Aceptar'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ],
-            );
-          },
-        );
-      }  
+      _showErrorDialog(response.message);
       return;
     }
 
-    //go back to the sunpes page and refresh the list
-   await 
-     Fluttertoast.showToast(
-            msg: "Sinpe Creado Correctamente.",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.CENTER,
-            timeInSecForIosWeb: 1,
-            backgroundColor: const Color.fromARGB(255, 20, 91, 22),
-            textColor: Colors.white,
-            fontSize: 16.0
-          ); 
-    
+    await Fluttertoast.showToast(
+      msg: 'Sinpe creado correctamente.',
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.CENTER,
+      backgroundColor: const Color.fromARGB(255, 20, 91, 22),
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
 
-    // ignore: use_build_context_synchronously
+    if (!mounted) return;
     Navigator.pop(context, 'yes');
+  }
 
-
-
-    
- }
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Error'),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Aceptar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 }

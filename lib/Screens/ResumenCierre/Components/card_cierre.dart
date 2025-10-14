@@ -1,15 +1,36 @@
 import 'package:flutter/material.dart';
-import 'package:tester/Models/cierreactivo.dart';
+import 'package:provider/provider.dart';
+import 'package:tester/Models/cierrefinal.dart';
+import 'package:tester/Models/empleado.dart';
+import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 import 'package:tester/sizeconfig.dart';
 
 
-class CardCierre extends StatelessWidget {
-  final CierreActivo cierre;
+class CardCierre extends StatefulWidget {
+  
   final Function? onTapCallback; 
   final bool showButton;
-  const CardCierre({super.key, required this.cierre, this.onTapCallback, required this.showButton});
+  const CardCierre({super.key,  this.onTapCallback, required this.showButton});
+
+  @override
+  State<CardCierre> createState() => _CardCierreState();
+}
+
+class _CardCierreState extends State<CardCierre> {
+
+
+ late CierreFinal cierre;
+ late Empleado cajero;
+
+ @override
+  void initState() {
+    
+    super.initState();
+    cierre = Provider.of<CierreActivoProvider>(context, listen: false).cierreFinal!;
+    cajero = Provider.of<CierreActivoProvider>(context, listen: false).cajero!;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,35 +70,35 @@ class CardCierre extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Cierre #: ${cierre.cierreFinal.idcierre.toString()}',
+                        'Cierre #: ${cierre.idcierre.toString()}',
                         style: const TextStyle(color: kPrimaryColor, fontSize: 15, fontWeight: FontWeight.bold),
                         maxLines: 2,
                       ),
                       Text(
-                        'Fecha: ${VariosHelpers.formatYYYYmmDD(cierre.cierreFinal.fechafinalcierre!)}',
+                        'Fecha: ${VariosHelpers.formatYYYYmmDD(cierre.fechafinalcierre!)}',
                         style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold),
                         maxLines: 2,
                       ),
                         Text(
-                        'Cajero: ${cierre.cajero.nombre} ${cierre.cajero.apellido1}',
+                        'Cajero: ${cajero.nombre} ${cajero.apellido1}',
                         style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold),
                         maxLines: 2,
                       ),
       
                         Text(
-                        'Zona: ${cierre.cierreFinal.idzona}',
+                        'Zona: ${cierre.idzona}',
                         style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold),
                         maxLines: 2,
                       ),
                     
                       Text(
-                          'Turno  ${cierre.cierreFinal.turno}',
+                          'Turno  ${cierre.turno}',
                           style: const TextStyle(
                           fontWeight: FontWeight.w700, color:  Colors.black,),
                         ),
 
                        Text(
-                          'Estado  ${cierre.cierreFinal.estado}',
+                          'Estado  ${cierre.estado}',
                           style: const TextStyle(
                           fontWeight: FontWeight.w700, color:  Colors.black,),
                         ),  
@@ -86,14 +107,14 @@ class CardCierre extends StatelessWidget {
                 ),
                
                 // make an icon indicates to click and show more info
-                showButton ?     SizedBox(
+                widget.showButton ?     SizedBox(
                         width: 50,
                         height: 50, // Asegúrate de establecer una altura
                         child: ElevatedButton(
                           onPressed: () {
                             // Verificar si el callback está presente antes de llamarlo
-                            if (onTapCallback != null) {
-                              onTapCallback!();
+                            if (widget.onTapCallback != null) {
+                              widget.onTapCallback!();
                             }
                           },
                           style: ElevatedButton.styleFrom(

@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:provider/provider.dart';
 import 'package:tester/Components/app_bar_custom.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Models/ResumenCierre/cierre_caja_general.dart';
 import 'package:tester/Models/all_fact.dart';
+import 'package:tester/Models/cierreactivo.dart';
+import 'package:tester/Models/cierrefinal.dart';
+import 'package:tester/Models/empleado.dart';
 import 'package:tester/Models/response.dart';
+import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Screens/ResumenCierre/Components/card_calibracion_cierre.dart';
 import 'package:tester/Screens/ResumenCierre/Components/card_cashbac_cierre.dart';
 import 'package:tester/Screens/ResumenCierre/Components/card_cierre.dart';
@@ -25,8 +30,8 @@ import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
 
 class ResumenCierre extends StatefulWidget {
-  final AllFact factura;
-  const ResumenCierre({super.key, required this.factura});
+  
+  const ResumenCierre({super.key,});
 
   @override
   State<ResumenCierre> createState() => _ResumenCierreState();
@@ -35,9 +40,15 @@ class ResumenCierre extends StatefulWidget {
 class _ResumenCierreState extends State<ResumenCierre> {
   CierreCajaGeneral cierre = CierreCajaGeneral();
   bool showLoader = false;
- 
+  late CierreFinal cierreFinal;
+  late Empleado cajero;
+  late Empleado usuario;
+
   @override
   void initState() {
+    cierreFinal = Provider.of<CierreActivoProvider>(context, listen: false).cierreFinal!;
+    cajero = Provider.of<CierreActivoProvider>(context, listen: false).cajero!;
+    usuario = Provider.of<CierreActivoProvider>(context, listen: false).usuario!;
     getCierre();
     super.initState();
   }
@@ -77,8 +88,9 @@ class _ResumenCierreState extends State<ResumenCierre> {
      
       showLoader = true;
     });   
-   
-    Response response = await ApiHelper.getCierreActivo(widget.factura.cierreActivo!.cierreFinal.idcierre.toString());
+
+
+    Response response = await ApiHelper.getCierreActivo(cierreFinal.idcierre.toString());
     setState(() {
         showLoader = false;
     });
@@ -253,8 +265,8 @@ class _ResumenCierreState extends State<ResumenCierre> {
                 child: Column(
                   children: <Widget>[
                    const SizedBox(height: 15,),
-         
-                   CardCierre(cierre: widget.factura.cierreActivo!, showButton: false,),
+                    
+                  const CardCierre( showButton: false,),
                    const SizedBox(height: 10,),
                    cardResumen(),
          
@@ -339,7 +351,7 @@ class _ResumenCierreState extends State<ResumenCierre> {
                         foreColor: Colors.white,
                       ) : Container(),   
 
-                      CardFinal(cierre: widget.factura.cierreActivo!, showButton: false, precierrePress: () => preCierre(), cierrePress: () => setCierre(), )                                
+                      CardFinal(showButton: false, precierrePress: () => preCierre(), cierrePress: () => setCierre(), )                                
          
                   ],
                 ),
@@ -353,7 +365,7 @@ class _ResumenCierreState extends State<ResumenCierre> {
 
   Future<void> preCierre () async {
 
-    if(widget.factura.cierreActivo!.cajero.cedulaEmpleado != widget.factura.cierreActivo!.usuario.cedulaEmpleado) {
+    if(cajero.cedulaEmpleado != usuario.cedulaEmpleado) {
        Fluttertoast.showToast(
         msg: "No tiene autorizacion para realizar el Pre Cierre",
         toastLength: Toast.LENGTH_SHORT,
@@ -371,7 +383,7 @@ class _ResumenCierreState extends State<ResumenCierre> {
       showLoader = true;
     });   
    
-    Response response = await ApiHelper.preCierre(widget.factura.cierreActivo!.cierreFinal.idcierre.toString());
+    Response response = await ApiHelper.preCierre(cierreFinal.idcierre.toString());
     setState(() {
         showLoader = false;
     });
@@ -418,7 +430,7 @@ class _ResumenCierreState extends State<ResumenCierre> {
 
    Future<void> setCierre () async {
 
-    if(widget.factura.cierreActivo!.cajero != widget.factura.cierreActivo!.usuario) {
+    if(cajero != usuario) {
        Fluttertoast.showToast(
         msg: "No tiene autorizacion para realizar el Cierre",
         toastLength: Toast.LENGTH_SHORT,
@@ -436,7 +448,7 @@ class _ResumenCierreState extends State<ResumenCierre> {
       showLoader = true;
     });   
    
-    Response response = await ApiHelper.setCierre(widget.factura.cierreActivo!.cierreFinal.idcierre.toString());
+    Response response = await ApiHelper.setCierre(cierreFinal.idcierre.toString());
     setState(() {
         showLoader = false;
     });

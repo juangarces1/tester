@@ -6,6 +6,7 @@ class Deposito {
   String? moneda;
   int? idcierre;
   bool? selected = false;
+  DateTime? createdAt;
 
   Deposito(
       {this.iddeposito,
@@ -15,15 +16,17 @@ class Deposito {
       this.moneda,
       this.idcierre,
       this.selected,
+      this.createdAt,
       });
 
   Deposito.fromJson(Map<String, dynamic> json) {
     iddeposito = json['iddeposito'];
     monto = json['monto'];
-    fechadepostio =json['fechadepostio'];
+    fechadepostio =json['fechadeposito'];
     cedulaempleado = json['cedulaempleado'];
     moneda = json['moneda'];
     idcierre = json['idcierre'];
+    createdAt = DateTime.parse(json['fechadeposito']);
   }
 
   Map<String, dynamic> toJson() {

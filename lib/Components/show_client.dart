@@ -6,15 +6,13 @@ import 'package:tester/Screens/clientes/cliestes_new_screen.dart'; // verifica e
 import 'package:tester/constans.dart';
 
 class ShowClient extends StatefulWidget {
-  final Invoice factura;
-  final String ruta;
+  final Invoice factura;  
   final EdgeInsets? padding;
    final ClienteTipo tipo;
 
   const ShowClient({
     super.key,
-    required this.factura,
-    required this.ruta,
+    required this.factura,    
     this.padding,
     required this.tipo,
   });
@@ -84,7 +82,7 @@ class _ShowClientState extends State<ShowClient> {
         builder: (context) => ClientesNewScreen(
           tipo: widget.tipo,
           factura: widget.factura,
-          ruta: widget.ruta,
+         
         ),
       ),
     );
