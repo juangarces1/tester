@@ -49,6 +49,7 @@ class PositionBuilder {
   static Map<int, PositionPhysical> build({
     required List<PumpData> pumps,
     required List<DispenserStatus> statuses,
+    bool strictPhysicalOnly = false,
   }) {
     final hoseByNozzle = <int, DispenserHose>{};
     final hoseByKey = <String, DispenserHose>{};
@@ -129,38 +130,40 @@ class PositionBuilder {
       }
     }
 
-    for (final status in statuses) {
-      final remainingHoses = status.hoses
-          .where((hose) => !assignedHoseKeys.contains(hose.key))
-          .toList();
+    if (!strictPhysicalOnly) {
+      for (final status in statuses) {
+        final remainingHoses = status.hoses
+            .where((hose) => !assignedHoseKeys.contains(hose.key))
+            .toList();
 
-      if (remainingHoses.isEmpty) continue;
+        if (remainingHoses.isEmpty) continue;
 
-      remainingHoses.sort((a, b) => a.number.compareTo(b.number));
-      final hoses = remainingHoses
-          .map(
-            (hose) => HosePhysical(
-              nozzleNumber: hose.number,
-              hoseKey: hose.key,
-              fuel: _fuelFromHose(hose),
-              status: hose.status,
-            ),
-          )
-          .toList();
+        remainingHoses.sort((a, b) => a.number.compareTo(b.number));
+        final hoses = remainingHoses
+            .map(
+              (hose) => HosePhysical(
+                nozzleNumber: hose.number,
+                hoseKey: hose.key,
+                fuel: _fuelFromHose(hose),
+                status: hose.status,
+              ),
+            )
+            .toList();
 
-      final fallbackLabel = _faceLabel(status.number);
-      result[posCounter] = PositionPhysical(
-        number: posCounter,
-        pumpId: status.number,
-        pumpName: status.description,
-        faceIndex: status.number,
-        faceLabel: fallbackLabel,
-        faceDescription: status.description,
-        hoses: List.unmodifiable(hoses),
-      );
+        final fallbackLabel = _faceLabel(status.number);
+        result[posCounter] = PositionPhysical(
+          number: posCounter,
+          pumpId: status.number,
+          pumpName: status.description,
+          faceIndex: status.number,
+          faceLabel: fallbackLabel,
+          faceDescription: status.description,
+          hoses: List.unmodifiable(hoses),
+        );
 
-      assignedHoseKeys.addAll(remainingHoses.map((hose) => hose.key));
-      posCounter++;
+        assignedHoseKeys.addAll(remainingHoses.map((hose) => hose.key));
+        posCounter++;
+      }
     }
 
     return result;
@@ -174,9 +177,6 @@ class PositionBuilder {
 
 String _faceLabel(int faceIndex) {
   if (faceIndex <= 0) return '?';
-  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  if (faceIndex <= letters.length) {
-    return letters[faceIndex - 1];
-  }
+  // Mostrar siempre como número de cara: 1, 2, 3, ...
   return faceIndex.toString();
 }

@@ -20,7 +20,7 @@ class MapProvider extends ChangeNotifier {
     _toastShown = true;
   }
 
-  Future<void> loadMap() async {
+  Future<void> loadMap({bool strictPhysicalOnly = false}) async {
     _loading = true;
     _error = null;
     notifyListeners();
@@ -28,7 +28,11 @@ class MapProvider extends ChangeNotifier {
     try {
       final pumps = await ConsoleApiHelper.getPumpsAndFaces();
       final statuses = await ConsoleApiHelper.getDispensersStatus();
-      _stationMap = PositionBuilder.build(pumps: pumps, statuses: statuses);
+      _stationMap = PositionBuilder.build(
+        pumps: pumps,
+        statuses: statuses,
+        strictPhysicalOnly: strictPhysicalOnly,
+      );
     } catch (e) {
        _error      = e.toString();
       _stationMap = null;

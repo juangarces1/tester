@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/Screens/NewHome/Components/menu_page.dart';
 import 'package:tester/ViewModels/dispatch_control.dart';
-import 'package:tester/Screens/NewHome/PagesWizard/hose_step_page.dart';
+import 'package:tester/Screens/PositionsFlow/position_hoses_page.dart';
 
 class InvoiceStepPage extends StatelessWidget {
   final String dispatchId;
@@ -76,7 +76,12 @@ class InvoiceStepPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => HoseStepPage(dispatchId: dispatchId),
+                        builder: (_) => PositionHosesPage(
+                          dispatchId: dispatchId,
+                          positionNumber: dispatch.selectedPosition?.number ?? 1,
+                          pumpId: dispatch.selectedPosition?.pumpId ?? 0,
+                          faceIndex: dispatch.selectedPosition?.faceIndex ?? 0,
+                        ),
                       ),
                     );
                   },
