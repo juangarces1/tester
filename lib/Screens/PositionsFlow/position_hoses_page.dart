@@ -78,18 +78,18 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
     final availableCount =
         hoses.where((h) => h.status.toLowerCase() == 'available').length;
 
-    final titleText = '2. POS ${widget.positionNumber.toString().padLeft(2, '0')}';
-    final subtitleParts = <String>[];
-    if (position?.pumpName.isNotEmpty == true) subtitleParts.add(position!.pumpName);
-    final faceLabel = position != null && position.faceLabel.isNotEmpty
-        ? 'Posición ${position.faceLabel}'
-        : '';
-    if (faceLabel.isNotEmpty) subtitleParts.add(faceLabel);
-    if ((position?.faceDescription.trim().isNotEmpty ?? false)) {
-      subtitleParts.add(position!.faceDescription.trim());
-    }
-    final subtitleText = subtitleParts.join(' - ');
-
+    final titleText = 'POS ${widget.positionNumber.toString().padLeft(2, '0')}';
+    // final subtitleParts = <String>[];
+    // if (position?.pumpName.isNotEmpty == true) subtitleParts.add(position!.pumpName);
+    // final faceLabel = position != null && position.faceLabel.isNotEmpty
+    //     ? 'Posición ${position.faceLabel}'
+    //     : '';
+    // if (faceLabel.isNotEmpty) subtitleParts.add(faceLabel);
+    // if ((position?.faceDescription.trim().isNotEmpty ?? false)) {
+    //   subtitleParts.add(position!.faceDescription.trim());
+    // }
+     final subtitleText = position!.pumpName;
+   
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -288,48 +288,46 @@ class _HoseCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'M${hose.nozzleNumber}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 18,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.22),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: statusColor, width: 1.2),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(statusIcon, color: Colors.white, size: 14),
-                        const SizedBox(width: 6),
-                        Text(
-                          statusLabel,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
+               Center(
+                 child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.22),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: statusColor, width: 1.2),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(statusIcon, color: Colors.white, size: 14),
+                          const SizedBox(width: 6),
+                          Text(
+                            statusLabel,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+               ),
+              const SizedBox(height: 20),
+              Text(
+                'D0${hose.nozzleNumber}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 24,
+                ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 15),
               Text(
                 hose.fuel.name,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 14,
+                  fontSize: 28,
                   fontWeight: FontWeight.w700,
                 ),
               ),

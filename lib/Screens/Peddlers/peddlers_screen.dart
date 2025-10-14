@@ -35,7 +35,7 @@ class _PeddlersScreenState extends State<PeddlersScreen> {
       child: Scaffold(
         backgroundColor: kNewbg,
         appBar: MyCustomAppBar(
-          title: 'Peddliers',
+          title: 'Peddlers',
           elevation: 4,
           shadowColor: kPrimaryColor,
           automaticallyImplyLeading: true,

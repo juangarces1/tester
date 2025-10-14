@@ -1,16 +1,18 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
-import 'package:tester/Components/boton_flotante.dart';
+import 'package:tester/Components/cart_inline_section.dart';
 import 'package:tester/Components/default_button.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Components/show_actividad_select.dart';
 import 'package:tester/Components/show_client.dart';
 
 import 'package:tester/Components/show_email.dart';
+import 'package:tester/Components/transacciones_sheet.dart';
 import 'package:tester/Models/Facturaccion/factura_service.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/factura.dart';
@@ -18,7 +20,6 @@ import 'package:tester/Models/product.dart';
 import 'package:tester/Models/response.dart';
 import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
-import 'package:tester/Screens/NewHome/Components/boton_combustibles.dart';
 import 'package:tester/Screens/NewHome/Components/produccts_page.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
@@ -77,8 +78,8 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
           child: appBar1(facturaC),
         ),
         body: _body(facturaC),
-        floatingActionButton:  FloatingButtonWithModal(index: widget.index,),
-          resizeToAvoidBottomInset: false, 
+        // floatingActionButton:  FloatingButtonWithModal(index: widget.index,),
+        //   resizeToAvoidBottomInset: false, 
       ),
     );
   }
@@ -145,7 +146,7 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
 
   Widget _body(Invoice facturaC) {     
     return Container(
-      color: kNewbg,
+      color: kNewborder,
       child: Stack(
         children: [ SizedBox(
             width: double.infinity,
@@ -156,75 +157,102 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
                 child: Column(
                   children: [
                     SizedBox(height: SizeConfig.screenHeight * 0.02),
+                     CartInlineCompact(
+                          index: widget.index,
+                          onAddTransactions: () => TransaccionesSheet.open(
+                            context: context,
+                            zona: factura.cierre!.idzona!,
+                            onItemSelected: (p) {
+                              final prov = context.read<FacturasProvider>();
+                              final inv = prov.getInvoiceByIndex(widget.index);
+                              inv.detail ??= [];
+                              inv.detail!.add(p);
+                              FacturaService.updateFactura(context, inv);
+                            },
+                            // opcionales:
+                            showPrintIcon: false,
+                            onPrintTap: (p) {/* ... */},
+                          ),
+                          onAddProducts: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        ProductsPage(index: widget.index)));
+                          },
+                        ), 
+
+                    SizedBox(height: SizeConfig.screenHeight * 0.02),
                       ShowClient(
                          tipo:   ClienteTipo.credito,
                          factura: factura,                                        
                         padding: const EdgeInsets.only(left: 10.0, right: 10),
                       ),
 
-                         //Email
+                        
                   factura.formPago!.clienteFactura.nombre.isNotEmpty ?  
                     Padding(
                       padding: const EdgeInsets.only(left: 10, right: 10),
-                      child: ShowEmail(email: factura.formPago!.clienteFactura.email, backgroundColor: kColorFondoOscuro,),
+                      child: ShowEmail(
+                        email: factura.formPago!.clienteFactura.email,
+                         backgroundColor: kNewsurfaceHi,),
                     ) : Container(),
-                  //Actividad
+              
                    factura.formPago!.clienteFactura.actividadSeleccionada != null ?  
                     Padding(
                       padding: const EdgeInsets.only(left: 10, right: 10),
                       child: ShowActividadSelect(actividad: factura.formPago!.clienteFactura.actividadSeleccionada!, ),
                     ) : Container(),
                    facturaC.formPago!.clienteCredito.nombre.isNotEmpty ?     ShowEmail(email: facturaC.formPago!.clienteCredito.email) : Container(),
-                    SizedBox(height: SizeConfig.screenHeight * 0.02),
-                  //  SelectClienteCredito(factura: widget.factura, ruta: 'Credito',),
+                    SizedBox(height: SizeConfig.screenHeight * 0.01),
                     signUpForm(),  
                     SizedBox(height: SizeConfig.screenHeight * 0.02),
-                    showTotal(facturaC), 
+                    facturaC.total > 0 ? showTotal(facturaC) : Container(),
                   ],
                 ),
               ),
             ),
           ),
-           Positioned(
-                bottom: 15,
-                left: 80,                      
-                child: SizedBox(
-                  height: 56,
-                  width: 56,
-                  child: GestureDetector(
-                      onTap: () =>  Navigator.push
-                         (context,
-                             MaterialPageRoute(
-                               builder: (context) =>
-                                 ProductsPage(
-                                   index: widget.index,                 
-                                  )
-                             )
-                         ),
-                      child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10), // Borde semicurvo para la imagen
-                  child: Image.asset(
-                    'assets/Aceite1.png',
-                    fit: BoxFit.fill, // Ajusta la imagen para que llene el contenedor
-                  ),
-                        ),
-                  ),
-                ),
-              ),
+          //  Positioned(
+          //       bottom: 15,
+          //       left: 80,                      
+          //       child: SizedBox(
+          //         height: 56,
+          //         width: 56,
+          //         child: GestureDetector(
+          //             onTap: () =>  Navigator.push
+          //                (context,
+          //                    MaterialPageRoute(
+          //                      builder: (context) =>
+          //                        ProductsPage(
+          //                          index: widget.index,                 
+          //                         )
+          //                    )
+          //                ),
+          //             child: ClipRRect(
+          //         borderRadius: BorderRadius.circular(10), // Borde semicurvo para la imagen
+          //         child: Image.asset(
+          //           'assets/Aceite1.png',
+          //           fit: BoxFit.fill, // Ajusta la imagen para que llene el contenedor
+          //         ),
+          //               ),
+          //         ),
+          //       ),
+          //     ),
               
-               Positioned(
-                bottom: 15,
-                left: 10,                      
-                child: BotonTransacciones(
-                  imagePath: 'assets/AddTr.png',
-                    onItemSelected: onItemSelected, 
-                    zona: facturaC.cierre!.idzona!,
-                    showPrintIcon: true, // <- habilita el icono
-                      onPrintTap: (p) {
-                        // acción de imprimir / detalle para el producto p
-                      },
-                     )
-                ),
+          //      Positioned(
+          //       bottom: 15,
+          //       left: 10,                      
+          //       child: BotonTransacciones(
+          //         imagePath: 'assets/AddTr.png',
+          //           onItemSelected: onItemSelected, 
+          //           zona: facturaC.cierre!.idzona!,
+          //           showPrintIcon: true, // <- habilita el icono
+          //             onPrintTap: (p) {
+          //               // acción de imprimir / detalle para el producto p
+          //             },
+          //            )
+          //       ),
              
           _showLoader ? const LoaderComponent(loadingText: 'Creando...') : Container(),
         ],
@@ -243,8 +271,8 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
       key: _formKey,
       child: Column(
         children: [
-            showPlaca(),
-         showkms(),         
+         showPlaca(),
+         showkms(),       
         
          showObser(), 
         ],
@@ -252,27 +280,9 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
     );
   }
 
-  List<DropdownMenuItem<String>> _getComboPlacas() {
-    List<DropdownMenuItem<String>> list = [];
-
-    list.add(const DropdownMenuItem(
-      value: '',
-      child: Text('Seleccione una Placa...'),
-    ));
-
-     for (var placa in factura.formPago!.clienteFactura.placas) {
-       list.add(DropdownMenuItem(
-         value: placa.toString(),
-         child: Text(placa.toString()),
-       ));
-     }
-
-    return list;
-  }
-
   Widget showkms() {
   return Container(
-    padding: const EdgeInsets.all(10),
+    padding: const EdgeInsets.only(top: 10, left: 10, right: 10),
     child: TextField(
       keyboardType: TextInputType.number,
       inputFormatters: <TextInputFormatter>[
@@ -299,7 +309,7 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
 
 Widget showObser() {
   return Container(
-    padding: const EdgeInsets.all(10),
+   padding: const EdgeInsets.only(top: 10, left: 10, right: 10),
     child: TextField(
       controller: obser,
       keyboardType: TextInputType.text,
@@ -319,35 +329,215 @@ Widget showObser() {
   );
 }
 
-
-
   Widget showPlaca() {
-  return Container(
-    padding: const EdgeInsets.all(10),
-    child: DropdownButtonFormField<String>(
-      items: _getComboPlacas(),    // asegúrate de que los Text de los items usen style: TextStyle(color: _textPri)
-      value: placa,
-      style: const TextStyle(color: kNewtextPri, fontSize: 16), // texto seleccionado
-      dropdownColor: kNewsurface,   // fondo del menú
-      iconEnabledColor: kNewtextSec,
-      iconDisabledColor: kNewtextMut,
-      menuMaxHeight: 320,
-      onChanged: (option) {
-        setState(() {
-          placa = option as String;
-        });
-      },
-      decoration: darkDecoration(
+    final placasCliente =
+        List<String>.from(factura.formPago!.clienteFactura.placas);
+
+    if (placasCliente.isEmpty) {
+      return Padding(
+         padding: const EdgeInsets.only(top: 0, left: 10, right: 10),
+         child: Container(
+          width: double.infinity,
+         
+          decoration: BoxDecoration(
+            color: kNewsurfaceHi,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: kNewborder),
+          ),
+          child: const Text(
+            'Este cliente no tiene placas registradas.',
+            style: TextStyle(color: kNewtextMut, fontWeight: FontWeight.w500),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: _buildSelectorTile(
         label: 'Placas',
-        hint: 'Seleccione una Placa...',
+        value: placa,
+        placeholder: 'Seleccione una Placa...',
         errorText: placaTypeIdShowError ? placaTypeIdError : null,
-        fillColor: kNewsurface, // más plano en dropdowns
-        enabledBorder: darkBorder(),                 // <- puedes pasar bordes aquí
-        focusedBorder: darkBorder(color: Colors.blue, width: 1.8),
-        errorBorder: darkBorder(color: Colors.blue, width: 1.8),
+        onTap: () => _onSelectPlaca(placasCliente),
       ),
-    ),
-     
+    );
+  }
+
+  Widget _buildSelectorTile({
+    required String label,
+    required String value,
+    required String placeholder,
+    required VoidCallback onTap,
+    String? errorText,
+  }) {
+    final hasValue = value.trim().isNotEmpty;
+    final displayText = hasValue ? value : placeholder;
+    final borderColor =
+        errorText != null && errorText.isNotEmpty ? kNewred : kNewborder;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: kNewtextPri,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              decoration: BoxDecoration(
+                color: kNewsurfaceHi,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: borderColor, width: 1.5),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      displayText,
+                      style: TextStyle(
+                        color: hasValue ? kNewtextPri : kNewtextMut,
+                        fontWeight:
+                            hasValue ? FontWeight.w600 : FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.expand_more, color: kNewtextSec),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (errorText != null && errorText.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              errorText,
+              style: const TextStyle(
+                color: kNewred,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _onSelectPlaca(List<String> placasCliente) async {
+    if (placasCliente.isEmpty) return;
+
+    final selected = await _showSelectionSheet<String>(
+      title: 'Selecciona una placa',
+      options: placasCliente,
+      labelBuilder: (value) => value,
+      isSelected: (value) => value == placa,
+    );
+
+    if (selected == null) return;
+
+    setState(() {
+      placa = selected;
+      placaTypeIdShowError = false;
+    });
+  }
+
+  Future<T?> _showSelectionSheet<T>({
+    required String title,
+    required List<T> options,
+    required String Function(T) labelBuilder,
+    required bool Function(T) isSelected,
+  }) {
+    if (options.isEmpty) {
+      return Future<T?>.value(null);
+    }
+
+    return showModalBottomSheet<T>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final double maxHeight = min(
+          options.length * 56.0 + 120.0,
+          MediaQuery.of(context).size.height * 0.6,
+        );
+
+        return Container(
+          decoration: const BoxDecoration(
+            color: kNewsurface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: SafeArea(
+            child: SizedBox(
+              height: maxHeight,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: kNewborder,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        color: kNewtextPri,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const Divider(color: kNewborder, height: 1),
+                  Expanded(
+                    child: ListView.separated(
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: options.length,
+                      separatorBuilder: (_, __) =>
+                          const Divider(color: kNewborder, height: 1),
+                      itemBuilder: (context, index) {
+                        final option = options[index];
+                        final label = labelBuilder(option);
+                        final selected = isSelected(option);
+                        return ListTile(
+                          title: Text(
+                            label,
+                            style: TextStyle(
+                              color: kNewtextPri,
+                              fontWeight:
+                                  selected ? FontWeight.w700 : FontWeight.w500,
+                            ),
+                          ),
+                          trailing: selected
+                              ? const Icon(Icons.check_circle, color: kNewgreen)
+                              : null,
+                          onTap: () => Navigator.of(context).pop(option),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -376,7 +566,7 @@ Widget showObser() {
             ),
           ),
         
-            factura.detail!.isNotEmpty && factura.formPago!.clienteCredito.nombre.isNotEmpty ? 
+            factura.detail!.isNotEmpty && factura.formPago!.clienteFactura.nombre.isNotEmpty ? 
                         SizedBox(
                            width: getProportionateScreenWidth(150),
                           child: DefaultButton(

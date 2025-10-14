@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:tester/ConsoleModels/dispensersstatusresponse.dart';
 import 'package:tester/ConsoleModels/fuel_palette.dart' as fuel_palette;
@@ -87,30 +85,6 @@ class PositionBuilder {
   }) {
     final pumpById = {for (final pump in pumps) pump.id: pump};
 
-    final nozzleFaceIndexByPump = <int, Map<int, int>>{};
-    final faceDescriptionsByPump = <int, Map<int, String>>{};
-    final nozzleToPumpId = <int, int>{};
-
-    for (final pump in pumps) {
-      final faceIndexMap =
-          nozzleFaceIndexByPump.putIfAbsent(pump.id, () => <int, int>{});
-      final descMap =
-          faceDescriptionsByPump.putIfAbsent(pump.id, () => <int, String>{});
-
-      for (final face in pump.dispensers) {
-        final nozzleNumber = int.tryParse(face.id.trim());
-        if (nozzleNumber != null) {
-          faceIndexMap[nozzleNumber] = face.numberOfFace;
-          nozzleToPumpId[nozzleNumber] = pump.id;
-        }
-
-        final desc = face.description.trim();
-        if (desc.isNotEmpty && !descMap.containsKey(face.numberOfFace)) {
-          descMap[face.numberOfFace] = desc;
-        }
-      }
-    }
-
     final statusByNozzle = <int, _StatusContext>{};
     final statusByKey = <String, _StatusContext>{};
     final statusByDescription = <String, _StatusContext>{};
@@ -132,209 +106,117 @@ class PositionBuilder {
       for (final nozzle in nozzles) nozzle.nozzleNumber: nozzle
     };
 
-    final nozzlesByPump = <int, List<NozzleInfo>>{};
-    for (final nozzle in nozzles) {
-      final pumpId = nozzleToPumpId[nozzle.nozzleNumber] ??
-          _pumpIdFromAddress(nozzle.dispenseAddress) ??
-          _pumpIdFromAddress(nozzle.fullAddress);
-      if (pumpId == null) continue;
-      nozzlesByPump.putIfAbsent(pumpId, () => <NozzleInfo>[]).add(nozzle);
-    }
-
     final assignedKeys = <String>{};
 
-    final result = <int, PositionPhysical>{};
-    var posCounter = 1;
-    final processedPumpIds = <int>{};
+    final nozzleToPumpId = <int, int>{};
+    final nozzleFaceIndexByPump = <int, Map<int, int>>{};
+    final groupsByAddress = <String, _PositionGroup>{};
 
-    for (final pump in pumps) {
-      processedPumpIds.add(pump.id);
-      final faceData = <int, _FaceData>{};
-      final usedNozzles = <int>{};
+    for (final nozzle in nozzles) {
+      final rawAddress = nozzle.dispenseAddress.trim();
+      final pumpId = _pumpIdFromAddress(rawAddress) ?? nozzle.dispense;
+      final faceIndexCandidate =
+          _indexFromPosition(nozzle.position) ?? nozzle.dispense;
+      final faceIndex = faceIndexCandidate > 0 ? faceIndexCandidate : 1;
 
-      final pumpFaceDescriptions = faceDescriptionsByPump[pump.id] ?? const {};
-      pumpFaceDescriptions.forEach((faceIndex, description) {
-        final data = faceData.putIfAbsent(faceIndex, () => _FaceData(faceIndex));
-        data.description ??= description;
-      });
+      final normalizedLabel = _normalizeLabel(nozzle.position);
+      final fallbackLabel =
+          normalizedLabel.isNotEmpty ? normalizedLabel : _faceLabel(faceIndex);
+      final effectiveAddress =
+          rawAddress.isNotEmpty ? rawAddress : 'P$pumpId-$fallbackLabel';
+      final pumpName = pumpById[pumpId]?.pumpName ??
+          (pumpId > 0 ? 'Surtidor $pumpId' : 'Posición $effectiveAddress');
 
-      for (final face in pump.dispensers) {
-        final data =
-            faceData.putIfAbsent(face.numberOfFace, () => _FaceData(face.numberOfFace));
-        final desc = face.description.trim();
-        if (desc.isNotEmpty && (data.description == null || data.description!.isEmpty)) {
-          data.description = desc;
-        }
-
-        final nozzleNumber = int.tryParse(face.id.trim());
-        final nozzleInfo = nozzleNumber != null ? nozzleByNumber[nozzleNumber] : null;
-        final statusCtx = _pickStatusFor(
-          nozzleNumber: nozzleNumber,
-          hoseKey: face.id,
-          description: face.description,
-          byNozzle: statusByNozzle,
-          byKey: statusByKey,
-          byDescription: statusByDescription,
-          assignedKeys: assignedKeys,
-        );
-
-        data.addLabel(nozzleInfo?.position);
-        if (data.labelCandidates.isEmpty) {
-          data.addLabel(_faceLabel(face.numberOfFace));
-        }
-
-        final hose = _buildHose(
-          pumpId: pump.id,
-          nozzleNumber: nozzleNumber,
-          statusCtx: statusCtx,
-          nozzle: nozzleInfo,
-          fallbackKey: face.id,
-        );
-        if (hose != null) {
-          data.hoses.add(hose);
-          if (statusCtx != null) {
-            assignedKeys.add(statusCtx.hose.key);
-          }
-          if (nozzleInfo != null) {
-            usedNozzles.add(nozzleInfo.nozzleNumber);
-          }
-        }
-      }
-
-      final pumpNozzles = nozzlesByPump[pump.id] ?? const <NozzleInfo>[];
-      for (final nozzle in pumpNozzles) {
-        if (usedNozzles.contains(nozzle.nozzleNumber)) continue;
-
-        final statusCtx = _pickStatusFor(
-          nozzleNumber: nozzle.nozzleNumber,
-          hoseKey: nozzle.fullAddress,
-          description: nozzle.fullAddress,
-          byNozzle: statusByNozzle,
-          byKey: statusByKey,
-          byDescription: statusByDescription,
-          assignedKeys: assignedKeys,
-        );
-
-        final faceIndex =
-            nozzleFaceIndexByPump[pump.id]?[nozzle.nozzleNumber] ??
-                _indexFromPosition(nozzle.position) ??
-                statusCtx?.dispenser.number ??
-                _nextFaceIndex(faceData);
-
-        final data = faceData.putIfAbsent(faceIndex, () => _FaceData(faceIndex));
-        if ((data.description == null || data.description!.isEmpty) &&
-            nozzle.fullAddress.trim().isNotEmpty) {
-          data.description = nozzle.fullAddress;
-        }
-        data.addLabel(nozzle.position);
-
-        final hose = _buildHose(
-          pumpId: pump.id,
-          nozzleNumber: nozzle.nozzleNumber,
-          statusCtx: statusCtx,
-          nozzle: nozzle,
-          fallbackKey: nozzle.fullAddress,
-        );
-        if (hose != null) {
-          data.hoses.add(hose);
-          if (statusCtx != null) {
-            assignedKeys.add(statusCtx.hose.key);
-          }
-        }
-      }
-
-      final sortedFaces = faceData.keys.toList()..sort();
-      for (final faceIndex in sortedFaces) {
-        final data = faceData[faceIndex]!;
-        data.hoses.sort((a, b) => a.nozzleNumber.compareTo(b.nozzleNumber));
-        final faceLabel = _resolveFaceLabel(data, faceIndex);
-        final description = data.description?.trim().isNotEmpty == true
-            ? data.description!.trim()
-            : '${pump.pumpName} - Cara $faceLabel';
-
-        result[posCounter] = PositionPhysical(
-          number: posCounter,
-          pumpId: pump.id,
-          pumpName: pump.pumpName,
-          faceIndex: faceIndex,
-          faceLabel: faceLabel,
-          faceDescription: description,
-          hoses: List.unmodifiable(data.hoses),
-        );
-        posCounter++;
-      }
-    }
-
-    for (final entry in nozzlesByPump.entries) {
-      if (processedPumpIds.contains(entry.key)) continue;
-
-      final pumpId = entry.key;
-      final pumpName = pumpById[pumpId]?.pumpName ?? 'Surtidor $pumpId';
-      final faceData = <int, _FaceData>{};
-
-      for (final nozzle in entry.value) {
-        final statusCtx = _pickStatusFor(
-          nozzleNumber: nozzle.nozzleNumber,
-          hoseKey: nozzle.fullAddress,
-          description: nozzle.fullAddress,
-          byNozzle: statusByNozzle,
-          byKey: statusByKey,
-          byDescription: statusByDescription,
-          assignedKeys: assignedKeys,
-        );
-
-        int faceIndex = _indexFromPosition(nozzle.position) ??
-            statusCtx?.dispenser.number ??
-            nozzle.dispense;
-        if (faceIndex <= 0) {
-          faceIndex = _nextFaceIndex(faceData);
-        }
-
-        final data = faceData.putIfAbsent(faceIndex, () => _FaceData(faceIndex));
-        if ((data.description == null || data.description!.isEmpty) &&
-            nozzle.fullAddress.trim().isNotEmpty) {
-          data.description = nozzle.fullAddress;
-        }
-        data.addLabel(nozzle.position);
-
-        final hose = _buildHose(
-          pumpId: pumpId,
-          nozzleNumber: nozzle.nozzleNumber,
-          statusCtx: statusCtx,
-          nozzle: nozzle,
-          fallbackKey: nozzle.fullAddress,
-        );
-
-        if (hose != null) {
-          data.hoses.add(hose);
-          if (statusCtx != null) {
-            assignedKeys.add(statusCtx.hose.key);
-          }
-        }
-      }
-
-      final sortedFaces = faceData.keys.toList()..sort();
-      for (final faceIndex in sortedFaces) {
-        final data = faceData[faceIndex]!;
-        if (data.hoses.isEmpty) continue;
-
-        data.hoses.sort((a, b) => a.nozzleNumber.compareTo(b.nozzleNumber));
-        final faceLabel = _resolveFaceLabel(data, faceIndex);
-        final description = data.description?.trim().isNotEmpty == true
-            ? data.description!.trim()
-            : '$pumpName - Cara $faceLabel';
-
-        result[posCounter] = PositionPhysical(
-          number: posCounter,
+      final group = groupsByAddress.putIfAbsent(
+        effectiveAddress,
+        () => _PositionGroup(
+          dispenserAddress: effectiveAddress,
           pumpId: pumpId,
           pumpName: pumpName,
           faceIndex: faceIndex,
-          faceLabel: faceLabel,
-          faceDescription: description,
-          hoses: List.unmodifiable(data.hoses),
-        );
-        posCounter++;
+        ),
+      );
+
+      group.faceData.addLabel(nozzle.position);
+      if (group.faceData.labelCandidates.isEmpty) {
+        group.faceData.addLabel(fallbackLabel);
       }
+      if ((group.faceData.description == null ||
+              group.faceData.description!.isEmpty) &&
+          nozzle.fullAddress.trim().isNotEmpty) {
+        group.faceData.description = nozzle.fullAddress;
+      }
+
+      final statusCtx = _pickStatusFor(
+        nozzleNumber: nozzle.nozzleNumber,
+        hoseKey: nozzle.fullAddress,
+        description: nozzle.fullAddress,
+        byNozzle: statusByNozzle,
+        byKey: statusByKey,
+        byDescription: statusByDescription,
+        assignedKeys: assignedKeys,
+      );
+
+      final hose = _buildHose(
+        pumpId: group.pumpId,
+        nozzleNumber: nozzle.nozzleNumber,
+        statusCtx: statusCtx,
+        nozzle: nozzle,
+        fallbackKey: nozzle.fullAddress,
+      );
+
+      if (hose != null) {
+        group.faceData.hoses.add(hose);
+        if (statusCtx != null) {
+          assignedKeys.add(statusCtx.hose.key);
+        }
+      }
+
+      nozzleToPumpId[nozzle.nozzleNumber] = group.pumpId;
+      final faceIndexForMap =
+          group.faceData.faceIndex > 0 ? group.faceData.faceIndex : faceIndex;
+      nozzleFaceIndexByPump
+          .putIfAbsent(group.pumpId, () => <int, int>{})[nozzle.nozzleNumber] =
+          faceIndexForMap;
+    }
+
+    final result = <int, PositionPhysical>{};
+    var posCounter = 1;
+
+    final sortedGroups = groupsByAddress.values.toList()
+      ..sort((a, b) {
+        final pumpComparison = a.pumpId.compareTo(b.pumpId);
+        if (pumpComparison != 0) return pumpComparison;
+
+        final faceComparison =
+            a.faceData.faceIndex.compareTo(b.faceData.faceIndex);
+        if (faceComparison != 0) return faceComparison;
+
+        return a.dispenserAddress.compareTo(b.dispenserAddress);
+      });
+
+    for (final group in sortedGroups) {
+      if (group.faceData.hoses.isEmpty) continue;
+
+      group.faceData.hoses
+          .sort((a, b) => a.nozzleNumber.compareTo(b.nozzleNumber));
+      final faceLabel =
+          _resolveFaceLabel(group.faceData, group.faceData.faceIndex);
+      final description =
+          group.faceData.description?.trim().isNotEmpty == true
+              ? group.faceData.description!.trim()
+              : '${group.pumpName} - Cara $faceLabel';
+
+      result[posCounter] = PositionPhysical(
+        number: posCounter,
+        pumpId: group.pumpId,
+        pumpName: group.pumpName,
+        faceIndex: group.faceData.faceIndex,
+        faceLabel: faceLabel,
+        faceDescription: description,
+        hoses: List.unmodifiable(group.faceData.hoses),
+      );
+      posCounter++;
     }
 
     if (!strictPhysicalOnly) {
@@ -356,7 +238,12 @@ class PositionBuilder {
             faceIndex = 1;
           }
 
-          final pumpName = pumpById[pumpId]?.pumpName ?? status.description;
+          final pumpName = pumpById[pumpId]?.pumpName ??
+              (status.description.trim().isNotEmpty
+                  ? status.description
+                  : (pumpId > 0
+                      ? 'Surtidor $pumpId'
+                      : 'Posición ${nozzle?.dispenseAddress ?? hose.key}'));
           final faceLabel = nozzle?.position ?? _faceLabel(faceIndex);
           final groupKey = '$pumpId|$faceIndex|$faceLabel';
 
@@ -392,7 +279,15 @@ class PositionBuilder {
         }
       }
 
-      for (final group in fallbackGroups.values) {
+      final orderedFallbackGroups = fallbackGroups.values.toList()
+        ..sort((a, b) {
+          final pumpComparison = a.pumpId.compareTo(b.pumpId);
+          if (pumpComparison != 0) return pumpComparison;
+
+          return a.faceData.faceIndex.compareTo(b.faceData.faceIndex);
+        });
+
+      for (final group in orderedFallbackGroups) {
         if (group.faceData.hoses.isEmpty) continue;
 
         group.faceData.hoses
@@ -507,14 +402,7 @@ class PositionBuilder {
     DispenserHose? hose,
   }) {
     if (nozzle != null) {
-      final catalogHit = fuel_palette.kFuelCatalog.containsKey(nozzle.fuelCode);
       final fuelInfo = fuel_palette.fuelFor(nozzle.fuelCode);
-      if (catalogHit) {
-        return Fuel(name: fuelInfo.name, color: fuelInfo.color);
-      }
-      if (hose != null) {
-        return Fuel(name: hose.fuelType, color: hose.fuelColor);
-      }
       return Fuel(name: fuelInfo.name, color: fuelInfo.color);
     }
 
@@ -548,6 +436,20 @@ class _FaceData {
       labelCandidates.add(normalized);
     }
   }
+}
+
+class _PositionGroup {
+  final String dispenserAddress;
+  final int pumpId;
+  final String pumpName;
+  final _FaceData faceData;
+
+  _PositionGroup({
+    required this.dispenserAddress,
+    required this.pumpId,
+    required this.pumpName,
+    required int faceIndex,
+  }) : faceData = _FaceData(faceIndex);
 }
 
 class _FallbackGroup {
@@ -589,16 +491,6 @@ int? _indexFromPosition(String? value) {
   }
 
   return int.tryParse(normalized);
-}
-
-int _nextFaceIndex(Map<int, _FaceData> faces) {
-  final currentMax =
-      faces.isEmpty ? 0 : faces.keys.reduce(math.max);
-  var candidate = currentMax + 1;
-  while (faces.containsKey(candidate)) {
-    candidate++;
-  }
-  return candidate;
 }
 
 int? _pumpIdFromAddress(String? address) {

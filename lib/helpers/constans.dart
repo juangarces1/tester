@@ -21,10 +21,9 @@ class Constans {
     // static String baseUrlCoreWeb = 'http://192.168.1.39:9012/api/'; 
     // static String baseUrlHorustec = 'http://192.168.1.39:9010/api/';
 
-       static String baseUrlCoreWeb = 'https://costarica-demo-9012.asptienda.com/api/'; 
-       static String baseUrlHorustec = 'https://costarica-demo-9010.asptienda.com/api/';
+      //  static String baseUrlCoreWeb = 'https://costarica-demo-9012.asptienda.com/api/'; 
+      //  static String baseUrlHorustec = 'https://costarica-demo-9010.asptienda.com/api/';
 
-      //  static String baseUrlCoreWeb = 'https://gasolineria-aspdemo012.asptienda.com/api/'; 
-      //  static String baseUrlHorustec = 'https://gasolineria-aspdemo010.asptienda.com/api/';
-   
+        static String baseUrlCoreWeb = 'https://gasolineria-aspdemo012.asptienda.com/api/'; 
+        static String baseUrlHorustec = 'https://gasolineria-aspdemo010.asptienda.com/api/';
 }

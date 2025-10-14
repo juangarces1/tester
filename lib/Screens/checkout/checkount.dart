@@ -27,6 +27,7 @@ import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/Screens/NewHome/Components/produccts_page.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
+import 'package:tester/helpers/varios_helpers.dart';
 import 'package:tester/sizeconfig.dart';
 
 // ignore: must_be_immutable
@@ -192,25 +193,27 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                        
                         const SizedBox(height: 10),
                         signUpForm(factura),
-                        const SizedBox(height: 5),
+                       const SizedBox(height: 15),
+                     factura.total > 0 ? showTotal(factura) : Container(),
+                        //  SizedBox(height: 20),
 
                         // Elegibilidad del CTA SIEMPRE con la del provider
-                        (factura.detail?.isNotEmpty == true) &&
-                                factura.saldo == 0 &&
-                                factura
-                                    .formPago!.clienteFactura.nombre.isNotEmpty
-                            ? Padding(
-                                padding: const EdgeInsets.only(
-                                    left: 50.0, right: 50, bottom: 15),
-                                child: DefaultButton(
-                                  text: "Facturar",
-                                  press: () => goFact(factura),
-                                  gradient: kPrimaryGradientColor,
-                                  color: kPrimaryColor,
-                                ),
-                              )
-                            : Container(),
-                        const SizedBox(height: 80),
+                        // (factura.detail?.isNotEmpty == true) &&
+                        //         factura.saldo == 0 &&
+                        //         factura
+                        //             .formPago!.clienteFactura.nombre.isNotEmpty
+                        //     ? Padding(
+                        //         padding: const EdgeInsets.only(
+                        //             left: 50.0, right: 50, bottom: 15),
+                        //         child: DefaultButton(
+                        //           text: "Facturar",
+                        //           press: () => goFact(factura),
+                        //           gradient: kPrimaryGradientColor,
+                        //           color: kPrimaryColor,
+                        //         ),
+                        //       )
+                        //     : Container(),
+                        // const SizedBox(height: 80),
                       ],
                     ),
                   ),
@@ -358,17 +361,15 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
               padding: const EdgeInsets.symmetric(vertical: 18),
               child: Column(
                 children: [
-                    Padding(
-                      padding:const EdgeInsets.symmetric(horizontal: 20),
-                      child: ClientPoints(factura: factura, ruta: 'Contado'),
-                    ),
-                  const SizedBox(height: 15),
+                 
+                
                   ShowClient(
                     tipo: ClienteTipo.contado,
                     factura: factura, // â† provider
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                   ),
-                  const SizedBox(height: 8),
+                
+                    
                   if (factura.formPago!.clienteFactura.nombre.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -386,13 +387,18 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                             .formPago!.clienteFactura.actividadSeleccionada!,
                       ),
                     ),
+                      const SizedBox(height: 10),
+                     Padding(
+                      padding:const EdgeInsets.symmetric(horizontal: 20),
+                      child: ClientPoints(factura: factura, ruta: 'Contado'),
+                    ),
                   const SizedBox(height: 20),
                   showkms(factura),
-                  const SizedBox(height: 18),
-                  showPlaca(factura),
-                  const SizedBox(height: 18),
-                  showObser(factura),
                   const SizedBox(height: 10),
+                  showPlaca(factura),
+                  const SizedBox(height: 10),
+                  showObser(factura),
+                  
                 ],
               ),
             ),
@@ -401,6 +407,49 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
       ),
     );
   }
+
+   Widget showTotal(Invoice factura) {
+ return SafeArea(
+  child: Padding(
+    padding:
+        EdgeInsets.symmetric(horizontal: getProportionateScreenWidth(20)),
+    child:
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text.rich(           
+            
+            TextSpan(
+              
+              text: "Total:\n",
+                style: const TextStyle(fontSize: 22, color: kNewtextPri, fontWeight: FontWeight.bold ),
+              children: [
+                TextSpan(
+                  text: " ${VariosHelpers.formattedToCurrencyValue(factura.total.toString())}",
+                  style: const TextStyle(fontSize: 22, color: kNewtextPri, fontWeight: FontWeight.bold ),
+                ),
+              ],
+            ),
+          ),
+        
+            factura.detail!.isNotEmpty && 
+             factura.formPago!.clienteFactura.nombre.isNotEmpty  && 
+             factura.saldo == 0 ? 
+                        SizedBox(
+                           width: getProportionateScreenWidth(150),
+                          child: DefaultButton(
+                          text: "Facturar",
+                          press: () => goFact(factura), 
+                          gradient: kPrimaryGradientColor,  
+                          color: kPrimaryColor,           
+                          ),
+                        )                
+                        : Container(),
+        ],
+      ),
+    ),
+  );
+}
 
   // Campos: mutan SIEMPRE la del provider (vÃ­a servicio)
   Widget showkms(Invoice factura) {
@@ -545,7 +594,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   Text(
-                    "Total:${NumberFormat("###,###", "en_US").format(facturaApp.total.toInt())}",
+                    "Total:  ${VariosHelpers.formattedToCurrencyValue(facturaApp.total.toString())}",
                     style: const TextStyle(
                       color: kNewtextPri,
                       fontSize: 20,
@@ -554,7 +603,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                   ),
                   const SizedBox(width: 3),
                   Text(
-                    "Saldo:${NumberFormat("###,###", "en_US").format(facturaApp.saldo)}",
+                    "Saldo: ${VariosHelpers.formattedToCurrencyValue(facturaApp.saldo.toString())}",
                     style: const TextStyle(
                       color: kNewtextPri,
                       fontSize: 20,

@@ -165,7 +165,7 @@ class _PositionCard extends StatelessWidget {
         ? position.pumpName
         : 'Surtidor ${position.pumpId > 0 ? position.pumpId : position.number}';
     final faceLabel = position.faceLabel.isNotEmpty
-        ? 'Posición ${position.faceLabel}'
+        ? 'Posición ${position.hoses.first.dispenserKey}'
         : 'Posición';
     final faceDescription = position.faceDescription.trim();
 
@@ -243,17 +243,17 @@ class _PositionCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  faceDescription.isNotEmpty
-                      ? '$faceLabel - $faceDescription'
-                      : faceLabel,
-                  style: const TextStyle(
-                    color: Colors.white60,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 16),
+                // Text(
+                //   faceDescription.isNotEmpty
+                //       ? '$faceLabel - $faceDescription'
+                //       : faceLabel,
+                //   style: const TextStyle(
+                //     color: Colors.white60,
+                //     fontSize: 13,
+                //     fontWeight: FontWeight.w600,
+                //   ),
+                // ),
+                // const SizedBox(height: 16),
                 Text(
                   'Total de mangueras: ${position.hoses.length}',
                   style: const TextStyle(

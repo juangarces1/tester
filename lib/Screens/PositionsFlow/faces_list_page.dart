@@ -177,10 +177,19 @@ class _PositionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = position.hoses.isNotEmpty
-        ? position.hoses.first.fuel.color
-        : Colors.blueGrey;
+   
     final status = _statusLabel(position);
+     final accent = status == 'Disponible'
+        ? Colors.green
+        : status == 'Autorizada'
+            ? Colors.lightBlueAccent
+            : status == 'Despachando'
+                ? Colors.indigo
+                : status == 'Detenida'
+                ? Colors.orangeAccent
+                : status == 'Ocupada'
+                    ? Colors.redAccent
+                    : Colors.white70;
     final statusColor = _statusColor(status);
     final availableCount = position.hoses
         .where((h) => h.status.toLowerCase() == 'available')
@@ -203,8 +212,8 @@ class _PositionCard extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                accent.withValues(alpha: 0.9),
                 accent.withValues(alpha: 0.55),
+                accent.withValues(alpha: 0.85),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -230,7 +239,7 @@ class _PositionCard extends StatelessWidget {
                       'POS ${position.number.toString().padLeft(2, '0')}',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 24,
+                        fontSize: 30,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -249,7 +258,7 @@ class _PositionCard extends StatelessWidget {
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                          fontSize: 20,
                         ),
                       ),
                     ),
@@ -260,27 +269,27 @@ class _PositionCard extends StatelessWidget {
                   pumpLabel,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: 20,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  faceDescription.isNotEmpty
-                      ? '$faceLabel - $faceDescription'
-                      : faceLabel,
-                  style: const TextStyle(
-                    color: Colors.white60,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+            
+                // Text(
+                //   faceDescription.isNotEmpty
+                //       ? '$faceLabel - $faceDescription'
+                //       : faceLabel,
+                //   style: const TextStyle(
+                //     color: Colors.white60,
+                //     fontSize: 13,
+                //     fontWeight: FontWeight.w600,
+                //   ),
+                // ),
                 const SizedBox(height: 16),
                 Text(
                   'Total de mangueras: ${position.hoses.length}',
                   style: const TextStyle(
                     color: Colors.white70,
-                    fontSize: 14,
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -289,7 +298,7 @@ class _PositionCard extends StatelessWidget {
                   'Disponibles ahora: $availableCount',
                   style: TextStyle(
                     color: statusColor,
-                    fontSize: 16,
+                    fontSize: 20,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -347,6 +356,9 @@ String _statusLabel(PositionPhysical position) {
   }
   if (normalized.any((s) => s.contains('busy'))) {
     return 'Ocupada';
+  }
+  if (normalized.any((s) => s.contains('stopped'))) {
+    return 'Detenida';
   }
   if (normalized.isEmpty) {
     return 'Sin datos';

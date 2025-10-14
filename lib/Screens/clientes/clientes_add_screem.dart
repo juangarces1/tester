@@ -78,12 +78,14 @@ class _ClietesAddScreenState extends State<ClietesAddScreen> {
 
     return SafeArea(
       child: Scaffold(
+        backgroundColor: kNewbg,
         appBar: AppBar(
-          foregroundColor: Colors.white,
-          backgroundColor: kPrimaryColor,
+          backgroundColor: kNewsurface,
+          elevation: 4,
+          foregroundColor: kNewtextPri,
           title: const Text(
             "Nuevo Cliente",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
+            style: TextStyle(color: kNewtextPri, fontWeight: FontWeight.bold, fontSize: 22),
           ),
           actions: [
             Padding(
@@ -137,7 +139,7 @@ class _ClietesAddScreenState extends State<ClietesAddScreen> {
                                     showSelectButton: false,
                                     readOnly: true,
                                     // Fondo del card acorde al tema; el propio card ajusta contraste
-                                    backgroundColor: Theme.of(context).colorScheme.surface,
+                                    backgroundColor: kNewsurfaceHi,
                                   ),
                                 ),
                                 const SizedBox(height: 16),
@@ -172,6 +174,7 @@ class _ClietesAddScreenState extends State<ClietesAddScreen> {
   // =========================
   // Paso 1: Documento
   // =========================
+
   Widget _buildDocForm() {
     return Form(
       key: _docFormKey,
@@ -182,35 +185,48 @@ class _ClietesAddScreenState extends State<ClietesAddScreen> {
             focusNode: _docFocus,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            style: const TextStyle(color: kNewtextPri),
+            cursorColor: kPrimaryColor,
             decoration: InputDecoration(
+              filled: true,
+              fillColor: kNewsurfaceHi,
               hintText: 'Ingresa un documento…',
+              hintStyle: const TextStyle(color: kNewtextMut),
               labelText: 'Documento',
+              labelStyle: const TextStyle(color: kNewtextSec),
               helperText: 'Al menos 9 dígitos.',
-              prefixIcon: const Icon(Icons.badge_outlined),
-              suffixIcon: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    tooltip: 'Pegar',
-                    icon: const Icon(Icons.paste),
-                    onPressed: () async {
-                      final data = await Clipboard.getData(Clipboard.kTextPlain);
-                      final text = (data?.text ?? '').replaceAll(RegExp(r'[^0-9]'), '');
-                      if (text.isNotEmpty) {
-                        setState(() => _docCtrl.text = text);
-                      }
-                    },
-                  ),
-                  if (_docCtrl.text.isNotEmpty)
+              helperStyle: const TextStyle(color: kNewtextMut),
+              prefixIcon: const Icon(Icons.badge_outlined, color: kNewtextSec),
+              suffixIcon: SizedBox(
+                width: 100,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
                     IconButton(
-                      tooltip: 'Limpiar',
-                      icon: const Icon(Icons.clear),
-                      onPressed: () => setState(() => _docCtrl.clear()),
+                      tooltip: 'Pegar',
+                      icon: const Icon(Icons.paste, color: kNewtextSec),
+                      onPressed: () async {
+                        final data = await Clipboard.getData(Clipboard.kTextPlain);
+                        final text = (data?.text ?? '').replaceAll(RegExp(r'[^0-9]'), '');
+                        if (text.isNotEmpty) {
+                          setState(() => _docCtrl.text = text);
+                        }
+                      },
                     ),
-                ],
+                    if (_docCtrl.text.isNotEmpty)
+                      IconButton(
+                        tooltip: 'Limpiar',
+                        icon: const Icon(Icons.clear, color: kNewtextSec),
+                        onPressed: () => setState(() => _docCtrl.clear()),
+                      ),
+                  ],
+                ),
               ),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              enabledBorder: darkBorder(radius: 12),
+              focusedBorder: darkBorder(color: kPrimaryColor, width: 1.8, radius: 12),
+              errorBorder: darkBorder(color: kNewred, width: 1.8, radius: 12),
+              focusedErrorBorder: darkBorder(color: kNewred, width: 1.8, radius: 12),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             ),
             onChanged: (_) => setState(() {}), // para refrescar suffix
             validator: (v) {
@@ -247,18 +263,26 @@ class _ClietesAddScreenState extends State<ClietesAddScreen> {
       key: _detailsFormKey,
       child: Column(
         children: [
-          // Email
           TextFormField(
             controller: _emailCtrl,
             focusNode: _emailFocus,
             keyboardType: TextInputType.emailAddress,
+            style: const TextStyle(color: kNewtextPri),
+            cursorColor: kPrimaryColor,
             decoration: InputDecoration(
               hintText: 'Ingresa el email…',
+              hintStyle: const TextStyle(color: kNewtextMut),
               labelText: 'Email',
-              prefixIcon: const Icon(Icons.alternate_email),
+              labelStyle: const TextStyle(color: kNewtextSec),
+              filled: true,
+              fillColor: kNewsurfaceHi,
+              prefixIcon: const Icon(Icons.alternate_email, color: kNewtextSec),
               suffixIcon: const CustomSurffixIcon(svgIcon: 'assets/Mail.svg'),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              enabledBorder: darkBorder(radius: 12),
+              focusedBorder: darkBorder(color: kPrimaryColor, width: 1.8, radius: 12),
+              errorBorder: darkBorder(color: kNewred, width: 1.8, radius: 12),
+              focusedErrorBorder: darkBorder(color: kNewred, width: 1.8, radius: 12),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             ),
             validator: (v) {
               final value = (v ?? '').trim();
@@ -270,20 +294,27 @@ class _ClietesAddScreenState extends State<ClietesAddScreen> {
             onFieldSubmitted: (_) => _phoneFocus.requestFocus(),
           ),
           const SizedBox(height: 12),
-
-          // Teléfono
           TextFormField(
             controller: _phoneCtrl,
             focusNode: _phoneFocus,
             keyboardType: TextInputType.phone,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            style: const TextStyle(color: kNewtextPri),
+            cursorColor: kPrimaryColor,
             decoration: InputDecoration(
               labelText: 'Teléfono',
               hintText: 'Ej. 88888888',
-              prefixIcon: const Icon(Icons.phone_iphone),
+              labelStyle: const TextStyle(color: kNewtextSec),
+              hintStyle: const TextStyle(color: kNewtextMut),
+              filled: true,
+              fillColor: kNewsurfaceHi,
+              prefixIcon: const Icon(Icons.phone_iphone, color: kNewtextSec),
               suffixIcon: const CustomSurffixIcon(svgIcon: 'assets/User.svg'),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              enabledBorder: darkBorder(radius: 12),
+              focusedBorder: darkBorder(color: kPrimaryColor, width: 1.8, radius: 12),
+              errorBorder: darkBorder(color: kNewred, width: 1.8, radius: 12),
+              focusedErrorBorder: darkBorder(color: kNewred, width: 1.8, radius: 12),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             ),
             validator: (v) {
               final value = (v ?? '').trim();
@@ -348,8 +379,8 @@ class _ClietesAddScreenState extends State<ClietesAddScreen> {
         msg: "Primero consulta el documento.",
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.CENTER,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
+        backgroundColor: kNewred,
+        textColor: kNewtextPri,
       );
       return;
     }
@@ -403,8 +434,8 @@ class _ClietesAddScreenState extends State<ClietesAddScreen> {
       toastLength: Toast.LENGTH_SHORT,
       gravity: ToastGravity.CENTER,
       timeInSecForIosWeb: 2,
-      backgroundColor: Colors.green,
-      textColor: Colors.white,
+      backgroundColor: kNewgreen,
+      textColor: kNewtextPri,
       fontSize: 16.0,
     );
 
@@ -423,13 +454,14 @@ class _StepHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     active(int n) => current >= n;
-    Color dot(bool a) => a ? kPrimaryColor : Colors.grey.shade400;
+    Color dot(bool a) => a ? kPrimaryColor : kNewborder;
+    Color labelColor(bool a) => a ? kNewtextPri : kNewtextMut;
 
     return Row(
       children: [
-        _Dot(label: 'Documento', color: dot(active(1))),
+        _Dot(label: 'Documento', color: dot(active(1)), textColor: labelColor(active(1))),
         _Line(),
-        _Dot(label: 'Completar', color: dot(active(2))),
+        _Dot(label: 'Completar', color: dot(active(2)), textColor: labelColor(active(2))),
       ],
     );
   }
@@ -438,7 +470,8 @@ class _StepHeader extends StatelessWidget {
 class _Dot extends StatelessWidget {
   final String label;
   final Color color;
-  const _Dot({required this.label, required this.color});
+  final Color textColor;
+  const _Dot({required this.label, required this.color, required this.textColor});
 
   @override
   Widget build(BuildContext context) {
@@ -446,7 +479,7 @@ class _Dot extends StatelessWidget {
       children: [
         CircleAvatar(radius: 8, backgroundColor: color),
         const SizedBox(width: 8),
-        Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+        Text(label, style: TextStyle(color: textColor, fontWeight: FontWeight.w600)),
       ],
     );
   }
@@ -456,7 +489,7 @@ class _Line extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Container(height: 2, margin: const EdgeInsets.symmetric(horizontal: 8), color: Colors.white24),
+      child: Container(height: 2, margin: const EdgeInsets.symmetric(horizontal: 8), color: kNewborder),
     );
   }
 }
@@ -466,21 +499,24 @@ class _SectionCard extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Widget child;
-  final Color? backgroundColor; // opcional
 
-  const _SectionCard({required this.title, this.subtitle, required this.child, this.backgroundColor});
+  const _SectionCard({required this.title, this.subtitle, required this.child});
 
   @override
   Widget build(BuildContext context) {
-    final bg = backgroundColor ?? kContrateFondoOscuro;
+    const bg = kNewsurface;
     final isDark = ThemeData.estimateBrightnessForColor(bg) == Brightness.dark;
-    final on = isDark ? Colors.white : Colors.black87;
-    final onMuted = isDark ? Colors.white70 : Colors.black54;
+    final on = isDark ? kNewtextPri : Colors.black87;
+    final onMuted = isDark ? kNewtextMut : Colors.black54;
+    final borderColor = isDark ? kNewborder : Colors.black12;
 
     return Card(
       color: bg,
       elevation: 6,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: borderColor),
+      ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
         child: DefaultTextStyle.merge(

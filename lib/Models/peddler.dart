@@ -76,4 +76,20 @@ class Peddler {
     data['orden'] = orden;
     return data;
   }
+
+  factory Peddler.empty() => Peddler(
+        id: 0,
+        cliente: null,          // así evitas asumir constructores de Cliente/Empleado
+        fecha: null,
+        estado: false,
+        idcierre: null,
+        pistero: null,
+        placa: '',
+        km: '',
+        observaciones: '',
+        chofer: '',
+        numFact: '',
+        products: <Product>[],
+        orden: '',
+      );
 }

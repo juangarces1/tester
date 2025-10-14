@@ -365,7 +365,7 @@ extension ConsoleTxToLegacyTransaccion on ConsoleTransaction {
       case 2:
         return 'Regular';
       case 3:
-        return 'Diésel';
+        return 'Diesel';
       case 4:
         return 'Exonerado';
       default:
@@ -427,6 +427,8 @@ extension ConsoleTxToLegacyTransaccion on ConsoleTransaction {
       facturada: facturada,
       creacion: fmt(createdAt),
       subir: subir,
+      initialTotalizer: initialTotalizer,
+      finalTotalizer: finalTotalizer,
     );
   }
 }

@@ -1,14 +1,18 @@
 // lib/Providers/facturas_provider.dart
 import 'dart:collection';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as context;
+import 'package:provider/provider.dart';
 
 import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/cierrefinal.dart';
 import 'package:tester/Models/cliente.dart';
+import 'package:tester/Models/empleado.dart';
 import 'package:tester/Models/paid.dart';
 import 'package:tester/Models/peddler.dart';
 import 'package:tester/Models/sinpe.dart';
 import 'package:tester/Models/transferencia.dart';
+import 'package:tester/Providers/cierre_activo_provider.dart';
 
 // Si quieres usar el enum para setear flags:
 import 'package:tester/ViewModels/dispatch_control.dart' show InvoiceType;
@@ -54,8 +58,8 @@ class FacturasProvider with ChangeNotifier {
   /// Crea una nueva factura **sin** agregarla a la lista.
   /// Puedes pasar el [type] (InvoiceType de DispatchControl) para setear los flags,
   /// y/o un [cliente] inicial si ya lo tienes.
-  Invoice newInvoice({InvoiceType? type, Cliente? cliente}) {
-    final inv = _buildEmptyInvoice(cliente: cliente);
+  Invoice newInvoice({InvoiceType? type, Cliente? cliente, CierreFinal? cierre, Empleado? empleado}) {
+    final inv = _buildEmptyInvoice(cliente: cliente, cierre: cierre, empleado: empleado);
     _applyInvoiceTypeFlags(inv, type);
     return inv;
   }
@@ -70,16 +74,18 @@ class FacturasProvider with ChangeNotifier {
   // Helpers internos
   // ---------------------------------------------------------------------------
 
-  Invoice _buildEmptyInvoice({Cliente? cliente}) {
+  Invoice _buildEmptyInvoice({Cliente? cliente, CierreFinal? cierre, Empleado? empleado}) {
     final clienteVacio = cliente ?? _emptyCliente();
+
+    
 
     return Invoice(
       kms: 0,
       observaciones: '',
       placa: '',
       detail: const [],      // ajusta si necesitas lista mutable
-      empleado: null,
-      cierre: CierreFinal(idzona: 0),
+      empleado: empleado,
+      cierre: cierre,
       formPago: Paid(
         totalEfectivo: 0,
         totalBac: 0,

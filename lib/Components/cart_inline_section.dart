@@ -18,12 +18,14 @@ class CartInlineCompact extends StatelessWidget {
   final int index;
   final VoidCallback onAddTransactions; // abre el modal de transacciones
   final VoidCallback onAddProducts;     // abre el selector de productos/aceites
-
+  final bool? showProductsPage; // si true, abre Products
+  
   const CartInlineCompact({
     super.key,
     required this.index,
     required this.onAddTransactions,
     required this.onAddProducts,
+    this.showProductsPage,
   });
 
   @override
@@ -71,12 +73,15 @@ class CartInlineCompact extends StatelessWidget {
                 onTap: onAddTransactions,
               ),
               const SizedBox(width: 8),
-              _squareImageButton(
-                asset: 'assets/AceiteNoFondo.png',
-                size: 34,
-                onTap: onAddProducts,
-                fit: BoxFit.contain,
-              ),
+              (showProductsPage ?? true)
+                ? _squareImageButton(
+                    asset: 'assets/AceiteNoFondo.png',
+                    size: 34,
+                    onTap: onAddProducts,
+                    fit: BoxFit.contain,
+                  )
+                : const SizedBox.shrink(),
+             
             ],
           ),
           const SizedBox(height: 8),

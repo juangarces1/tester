@@ -484,18 +484,29 @@ Widget _pill(String text) => Container(
     try {
       // Actualiza el estado a Exonerado en el backend (si aplica)
        final cp = Provider.of<CierreActivoProvider>(context, listen: false);
+       
+       //Si la transaccion es de exonerado no se factura se procesa y se marcha completado el despacho
+        if (tx!.estado == "Exonerado") {
+                         
 
+              tx.estado ="Exonerado";
+              tx.idcierre = cp.cierreFinal!.idcierre!;
+              Response response  = await ApiHelper.put("TransaccionesApi", tx.idtransaccion.toString(), tx.toJson());
 
-      tx!.estado ="Exonerado";
-      tx.idcierre = cp.cierreFinal!.idcierre!;
-     Response response  = await ApiHelper.put("TransaccionesApi", tx.idtransaccion.toString(), tx.toJson());
+              if (!response.isSuccess) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error al exonerar transacción: ${response.message}')),
+                );
+                return;
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Transacción exonerada exitosamente')),
+                );
+                control.markCompleted();
+                return;
+              }
+        }
 
-      if (!response.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al exonerar transacción: ${response.message}')),
-        );
-        return;
-      }
 
       
       // Finaliza el proceso visualmente
@@ -524,8 +535,11 @@ Widget _pill(String text) => Container(
 
   // 1) Crear factura base (sin agregar aún)
   final factProv = context.read<FacturasProvider>();
-  final invoice  = factProv.newInvoice(type: type);
-  
+  final cierreFinal = context.read<CierreActivoProvider>().cierreFinal;
+  final empleado = context.read<CierreActivoProvider>().usuario;
+
+  final invoice  = factProv.newInvoice(type: type, cliente: null, cierre: cierreFinal, empleado: empleado);
+
     // Asegura lista mutable
     invoice.detail = (invoice.detail ?? const <Product>[]).toList();
 

@@ -55,15 +55,25 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
 
   String _norm(String s) => s.toLowerCase().trim();
 
+  String _titleFor(ClienteTipo tipo) {
+    final raw = tipo.toString().split('.').last.replaceAll('_', ' ');
+    final label = raw
+        .split(' ')
+        .map((word) =>
+            word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}')
+        .join(' ');
+    return 'Clientes $label';
+  }
+
   // Para forzar reconstrucción limpia de la lista entre búsquedas
   Key _resultsListKey = UniqueKey();
 
-  TextStyle baseStyle = const TextStyle(
-    fontStyle: FontStyle.normal,
-    fontSize: 20,
-    fontWeight: FontWeight.bold,
-    color: Colors.white,
-  );
+TextStyle baseStyle = const TextStyle(
+  fontStyle: FontStyle.normal,
+  fontSize: 20,
+  fontWeight: FontWeight.bold,
+  color: kNewtextPri,
+);
 
   @override
   void initState() {
@@ -77,25 +87,35 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
 
     
 
-    // Precarga de clientes
-  Future.microtask(() {
-        if(mounted) {
-          context.read<ClienteProvider>().loadClientesBy(widget.tipo);
-        }
-     
-      // 👇 Si la factura ya trae cliente, mostrarlo en resultados
+    // Precarga de clientes desde el provider (sin nuevo llamado al API)
+    Future.microtask(() {
+      if (!mounted) return;
+
+      final clienteProvider = context.read<ClienteProvider>();
+      final cachedClientes =
+          List<Cliente>.from(clienteProvider.clientesBy(widget.tipo));
+
       final clienteSel = widget.factura.formPago?.clienteFactura;
-      if (clienteSel != null && clienteSel.nombre.isNotEmpty) {
-        final id = _idOf(clienteSel);
-        setState(() {
-          _filterUsers
-            ..clear()
-            ..add(clienteSel);
+
+      setState(() {
+        _filterUsers
+          .clear();
+        _statusById.clear();
+        _resultsListKey = UniqueKey();
+
+        if (clienteSel != null && clienteSel.nombre.isNotEmpty) {
+          final id = _idOf(clienteSel);
+          _filterUsers.add(clienteSel);
           _statusById[id] = 'Cliente actual ✓';
           _isFiltered = true;
-          _resultsListKey = UniqueKey();
-        });
-        _tabController.animateTo(1); // opcional: saltar a Resultados
+        } else {
+          _filterUsers.addAll(cachedClientes);
+          _isFiltered = false;
+        }
+      });
+
+      if (clienteSel != null && clienteSel.nombre.isNotEmpty) {
+        _tabController.animateTo(1);
       }
     });
   }
@@ -125,25 +145,27 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
+        backgroundColor: kNewbg,
         appBar: AppBar(
-          backgroundColor: kPrimaryColor,
-          elevation: 6.0,
-          shadowColor: Colors.white,
-          title: Text(widget.tipo == ClienteTipo.contado  ? 'Clientes Contado': 'Cliente Credito', style: baseStyle),
+          backgroundColor: kNewsurface,
+          elevation: 2.0,
+          shadowColor: kNewtextPri,
+          foregroundColor: Colors.white,
+          title: Text(_titleFor(widget.tipo), style: baseStyle),
           leading: Padding(
             padding: const EdgeInsets.all(8.0),
             child: TextButton(
               style: TextButton.styleFrom(
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(60)),
-                backgroundColor: Colors.white,
+                backgroundColor: kNewsurfaceHi,
                 padding: EdgeInsets.zero,
               ),
               onPressed: () => Navigator.of(context).pop(),
               child: SvgPicture.asset(
                 "assets/Back ICon.svg",
                 height: 15,
-                color: kPrimaryColor,
+                colorFilter: const ColorFilter.mode(kNewtextPri, BlendMode.srcIn),
               ),
             ),
           ),
@@ -163,13 +185,12 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(48.0),
             child: Container(
-              color: kBlueColorLogo,
+              color: Colors.black,
               child: TabBar(
-                
-                indicatorColor: Colors.white,
+                indicatorColor: kNewtextPri,
                 controller: _tabController,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.grey,
+                labelColor: kNewtextPri,
+                unselectedLabelColor: kNewtextMut,
                 onTap: (i) {
                   if (i == 0) {
                     // Si el usuario regresa a "Buscar Por", resetea la key para evitar reuso extraño
@@ -195,9 +216,10 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
         ),
         floatingActionButton: FloatingActionButton(
           heroTag: UniqueKey(),
-          backgroundColor: Colors.green,
+          backgroundColor: kNewgreen,
+          foregroundColor: kNewtextPri,
           onPressed: _goAdd,
-          child: const Icon(Icons.add, color: Colors.white, size: 30),
+          child: const Icon(Icons.add, size: 30),
         ),
       ),
     );
@@ -243,12 +265,12 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
                 style: ButtonStyle(
                   backgroundColor:
                       WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected)
-                          ? kPrimaryColor.withValues(alpha: 0.15)
-                          : null),
+                          ? kPrimaryColor
+                          : kNewsurfaceHi),
                   foregroundColor:
                       WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected)
-                          ? kPrimaryColor
-                          : Colors.black),
+                          ? kNewtextPri
+                          : kNewtextMut),
                 ),
               ),
             ),
@@ -267,15 +289,18 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
                 _hideKeyboard();
                 _performSearch(force: true);
               },
+              style: const TextStyle(color: kNewtextPri),
+              cursorColor: kPrimaryColor,
               decoration: InputDecoration(
                 hintText: isDoc ? 'Digite # de documento' : 'Nombre del cliente',
-                prefixIcon: const Icon(Icons.search),
+                hintStyle: const TextStyle(color: kNewtextMut),
+                prefixIcon: const Icon(Icons.search, color: kNewtextSec),
                 suffixIcon: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (_queryCtrl.text.isNotEmpty)
                       IconButton(
-                        icon: const Icon(Icons.clear),
+                        icon: const Icon(Icons.clear, color: kNewtextSec),
                         onPressed: () {
                           setState(() {
                             _queryCtrl.clear();
@@ -286,7 +311,7 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
                         },
                       ),
                     IconButton(
-                      icon: const Icon(Icons.arrow_forward),
+                      icon: const Icon(Icons.arrow_forward, color: kNewtextSec),
                       onPressed: () {
                         _hideKeyboard();
                         _performSearch(force: true);
@@ -294,7 +319,14 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
                     ),
                   ],
                 ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                filled: true,
+                fillColor: kNewsurfaceHi,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: kNewborder),
+                ),
+                enabledBorder: darkBorder(radius: 12),
+                focusedBorder: darkBorder(color: kPrimaryColor, width: 1.8, radius: 12),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
             ),
@@ -325,7 +357,7 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
               _mode == SearchMode.nombre
                   ? 'Tip: escribe al menos $_minLenName letras para filtrar por nombre.'
                   : 'Tip: escribe al menos $_minLenDoc dígitos para filtrar por documento.',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+              style: const TextStyle(color: kNewtextMut),
             ),
           ],
         ),
@@ -413,7 +445,7 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
           _isFiltered
               ? 'No hay Usuarios con ese criterio de búsqueda.'
               : 'No hay Usuarios registradas.',
-          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          style: const TextStyle(color: kNewtextPri, fontSize: 16, fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -521,11 +553,16 @@ void _goAdd() async {
     final clienteProvider = context.read<ClienteProvider>();
     _setBusyById(id, true, status: 'Sincronizando actividades…');
 
-     if (widget.tipo == ClienteTipo.credito) {
-        await context.read<ClienteProvider>().syncActividadesCreditoBy(documento);
-      } else {
-        await context.read<ClienteProvider>().syncActividadesContadoBy(documento);
-      }
+    switch (widget.tipo) {
+      case ClienteTipo.credito:
+      case ClienteTipo.peddler:
+        await clienteProvider.syncActividadesCreditoBy(documento);
+        break;
+      case ClienteTipo.contado:
+      case ClienteTipo.promo:
+        await clienteProvider.syncActividadesContadoBy(documento);
+        break;
+    }
     if (!mounted) return;
 
     final err = clienteProvider.errorMessage;
@@ -698,8 +735,8 @@ void _goAdd() async {
           msg: "Correo no valido",
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.CENTER,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
+          backgroundColor: kNewred,
+          textColor: kNewtextPri,
         );
         return;
       }
@@ -752,8 +789,8 @@ void _goAdd() async {
           msg: "Correo no valido",
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.CENTER,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
+          backgroundColor: kNewred,
+          textColor: kNewtextPri,
         );
         return;
       }

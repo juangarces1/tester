@@ -51,7 +51,7 @@ class VariosHelpers {
    
     double? valorActualizado = double.tryParse(value);
     if (valorActualizado != null) {
-        return NumberFormat.currency(locale: 'es_CR', symbol: '¢').format(valorActualizado);            
+        return NumberFormat.currency(locale: 'es_CR', symbol: '¢', decimalDigits: 0).format(valorActualizado);            
       } else{
         return value;
       }
