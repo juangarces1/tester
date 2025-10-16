@@ -1,6 +1,6 @@
 
 
-import 'package:tester/Models/detail_transfer.dart';
+import 'package:tester/Models/FuelRed/detail_transfer.dart';
 
 class TransferFull {
   int? id;

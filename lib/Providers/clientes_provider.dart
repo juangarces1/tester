@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tester/Models/Promo/cliente_promo.dart';
-import 'package:tester/Models/cliente.dart';
-import 'package:tester/Models/response.dart';
+import 'package:tester/Models/FuelRed/cliente.dart';
+import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/helpers/api_helper.dart';
 
 enum ClienteTipo { contado, credito, promo, peddler }

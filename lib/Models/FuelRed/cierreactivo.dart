@@ -1,5 +1,5 @@
-import 'package:tester/Models/cierrefinal.dart';
-import 'package:tester/Models/empleado.dart';
+import 'package:tester/Models/FuelRed/cierrefinal.dart';
+import 'package:tester/Models/FuelRed/empleado.dart';
 
 class CierreActivo {
    CierreFinal cierreFinal = CierreFinal(

@@ -15,9 +15,9 @@ import 'package:tester/Components/show_email.dart';
 import 'package:tester/Components/transacciones_sheet.dart';
 import 'package:tester/Models/Facturaccion/factura_service.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
-import 'package:tester/Models/factura.dart';
-import 'package:tester/Models/product.dart';
-import 'package:tester/Models/response.dart';
+import 'package:tester/Models/FuelRed/factura.dart';
+import 'package:tester/Models/FuelRed/product.dart';
+import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/Screens/NewHome/Components/produccts_page.dart';
@@ -74,7 +74,7 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
       child: Scaffold(
         backgroundColor: kContrateFondoOscuro,
         appBar:  PreferredSize(
-          preferredSize: const Size.fromHeight(70),
+          preferredSize: const Size.fromHeight(50),
           child: appBar1(facturaC),
         ),
         body: _body(facturaC),

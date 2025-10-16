@@ -7,17 +7,17 @@ class LoaderComponent extends StatelessWidget {
   final double width;
   final double height;
   final Color backgroundColor;
-  final String loadingText;
+  final String? loadingText;
   final Color borderColor;
   final double borderWidth;
 
   const LoaderComponent({super.key, 
     this.gifPath = 'assets/FrGif.gif',
-    this.width = 100.0,
-    this.height = 100.0,
-    this.backgroundColor = kColorFondoOscuro,
+    this.width = 70.0,
+    this.height = 70.0,
+    this.backgroundColor = kNewsurface,
     this.loadingText = '',
-    this.borderColor = kPrimaryColor,
+    this.borderColor = kNewsurface,
     this.borderWidth = 2.0,
   });
 
@@ -25,12 +25,12 @@ class LoaderComponent extends StatelessWidget {
   Widget build(BuildContext context) {
   return Center(
     child: Container(
-      width: 160, // Ancho fijo
-      height: 160, // Alto fijo
+      width: 150, // Ancho fijo
+      height: 150, // Alto fijo
       decoration: BoxDecoration(
-        color: backgroundColor, // Fondo sólido
+        color: Colors.transparent, // Fondo sólido
         border: Border.all(
-          color: borderColor,
+          color: Colors.transparent,
           width: borderWidth,
         ),
         borderRadius: BorderRadius.circular(12), // Borde redondeado
@@ -47,13 +47,12 @@ class LoaderComponent extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 10), // Espacio entre el GIF y el texto
           Text(
-            loadingText,
+            loadingText ?? '',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 16.0,
-            ),
+            ),            
           ),
           const SizedBox(height: 10), 
         ],

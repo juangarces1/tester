@@ -5,8 +5,8 @@ import 'package:tester/Components/default_button.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/ConsoleModels/console_user.dart';
 import 'package:tester/Models/LogIn/estado_login.dart';
-import 'package:tester/Models/all_fact.dart';
-import 'package:tester/Models/cart.dart';
+import 'package:tester/Models/FuelRed/all_fact.dart';
+
 import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/map_provider.dart';         // <-- mapa clásico
@@ -16,6 +16,8 @@ import 'package:tester/Screens/logIn/invent_screen.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
 import 'package:tester/sizeconfig.dart';
+
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -40,7 +42,8 @@ class _LoginScreenState extends State<LoginScreen>
   bool _showLoader = false;
   LogInEstado login = LogInEstado();
   int _selectedZone = 0;
-
+  
+ 
   @override
   void initState() {
     super.initState();
@@ -72,47 +75,49 @@ class _LoginScreenState extends State<LoginScreen>
               ),
             ),
           ),
-          Center(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    buildWelcomeText(),
-                    const SizedBox(height: 20),
+          SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  SizedBox(height: SizeConfig.screenHeight * 0.07),
+                  buildWelcomeText(),
+                  const SizedBox(height: 20),
 
-                    _showZoneButtons(),
-                    const SizedBox(height: 20),
+                  _showZoneButtons(),
+                  const SizedBox(height: 20),
 
-                    // ---------- NUEVO: Campo Email ----------
-                    // _showEmail(),
+                  // ---------- NUEVO: Campo Email (comentado por ahora) ----------
+                  // _showEmail(),
+                  // const SizedBox(height: 16),
 
-                    // const SizedBox(height: 16),
+                  // ---------- Actual: Campo Cédula ----------
+                  _showPassword(),
 
-                    // ---------- Actual: Campo Cédula (lo conservamos) ----------
-                   _showPassword(), // sigue visible para pruebas / transición
+                  const SizedBox(height: 20),
+                  DefaultButton(
+                    text: "ENTRAR",
+                    press: _login,
+                    color: kPrimaryColor,
+                    gradient: kPrimaryGradientColor,
+                  ),
 
-                    const SizedBox(height: 30),
-                    DefaultButton(
-                      text: "ENTRAR",
-                      press: _login,
-                      color: kPrimaryColor,
-                      gradient: kPrimaryGradientColor,
-                    ),
-                  ],
-                ),
+                 
+                ],
               ),
             ),
           ),
-          _showLoader ? const LoaderComponent(loadingText: 'Cargando...') : Container(),
+          _showLoader
+              ? const LoaderComponent(loadingText: 'Cargando...')
+              : Container(),
         ],
       ),
     );
   }
 
   Widget buildWelcomeText() {
-    return  Column(
+    return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // Título FuelRed
@@ -125,7 +130,7 @@ class _LoginScreenState extends State<LoginScreen>
             shadows: [
               Shadow(
                 blurRadius: 10,
-                color: Colors.blueAccent.withValues(alpha: 0.6),
+                color: Colors.blueAccent.withOpacity(0.6),
                 offset: const Offset(0, 2),
               ),
             ],
@@ -142,20 +147,6 @@ class _LoginScreenState extends State<LoginScreen>
             fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(height: 24),
-
-        // Texto de bienvenida
-        // Text(
-        //   "Bienvenido 👋\nInicia sesión para gestionar\n"
-        //   "tus despachos y facturación",
-        //   textAlign: TextAlign.center,
-        //   style: TextStyle(
-        //     fontSize: 15,
-        //     color: Colors.blueGrey.shade200,
-        //     height: 1.4,
-        //   ),
-        // ),
-        const SizedBox(height: 32),
       ],
     );
   }
@@ -175,7 +166,8 @@ class _LoginScreenState extends State<LoginScreen>
             backgroundColor: _selectedZone == 1 ? kPrimaryColor : kNewtextPri,
           ),
           onPressed: () => _selectZone(1),
-          child: const Text('Zona 1', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          child: const Text('Zona 1',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ),
         const SizedBox(width: 20),
         ElevatedButton(
@@ -184,7 +176,8 @@ class _LoginScreenState extends State<LoginScreen>
             backgroundColor: _selectedZone == 2 ? kPrimaryColor : kNewtextPri,
           ),
           onPressed: () => _selectZone(2),
-          child: const Text('Zona 2', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          child: const Text('Zona 2',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ),
       ],
     );
@@ -250,56 +243,15 @@ class _LoginScreenState extends State<LoginScreen>
 
     setState(() => _showLoader = true);
 
-    // ========== NUEVA LÓGICA: "login" sin password ==========
-    // try {
-    //   final auth = AuthService(ConsoleApiHelper());
-    //   final user = await auth.loginWithEmailOnly(email);
-
-    //   final usuarioProv = Provider.of<UsuarioProvider>(context, listen: false);
-    //   await usuarioProv.signIn(user);
-
-    //   // 2) Precargar mapa (como ya lo haces)
-    //   final mapProv = Provider.of<MapProvider>(context, listen: false);
-    //   await mapProv.loadMap();
-
-    //   if (!mounted) return;
-    //   setState(() => _showLoader = false);
-
-    //   // 3) Por ahora, mostramos confirmación y dejamos TODO de navegación.
-    
-    //   // ================== TODO de Integración ==================
-    //   // Aquí, cuando tengas el backend de login real que devuelve AllFact,
-    //   // puedes reutilizar la navegación que ya tienes abajo (comentada).
-    //   // Por ejemplo:
-    //   // goHome(factura);  // o goInvent(...)
-    //   // =========================================================
-
-    // } catch (e) {
-    //   if (!mounted) return;
-    //   setState(() => _showLoader = false);
-    //   showDialog(
-    //     context: context,
-    //     builder: (_) => AlertDialog(
-    //       title: const Text('Error'),
-    //       content: Text('No fue posible autenticar con el email.\n$e'),
-    //       actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Aceptar'))],
-    //     ),
-    //   );
-    // }
-
-
-
-    // ========== LÓGICA ANTERIOR (CONSERVADA / COMENTADA) ==========
-    
+    // ========== LÓGICA ANTERIOR (CONSERVADA) ==========
     if (_password.isEmpty) {
       Fluttertoast.showToast(msg: 'Digita la Cédula');
+      setState(() => _showLoader = false);
       return;
     }
 
-    setState(() => _showLoader = true);
-
-    final response = await ApiHelper.getLogInNuevo(
-        _selectedZone, int.parse(_password));
+    final response =
+        await ApiHelper.getLogInNuevo(_selectedZone, int.parse(_password));
 
     if (!response.isSuccess) {
       setState(() => _showLoader = false);
@@ -309,7 +261,11 @@ class _LoginScreenState extends State<LoginScreen>
         builder: (_) => AlertDialog(
           title: const Text('Error'),
           content: Text(response.message),
-          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Aceptar'))],
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Aceptar'))
+          ],
         ),
       );
       return;
@@ -317,8 +273,10 @@ class _LoginScreenState extends State<LoginScreen>
 
     final usuarioProv = Provider.of<UsuarioProvider>(context, listen: false);
     ConsoleUser user = const ConsoleUser(
-      identifier: 'B32809EE018B2811', email: 'sebastian.garces23@gmail.com', rol: UserRole.operador, verificado: true
-    );
+        identifier: 'B32809EE018B2811',
+        email: 'sebastian.garces23@gmail.com',
+        rol: UserRole.operador,
+        verificado: true);
     await usuarioProv.signIn(user);
 
     // Precarga mapa (clásico)
@@ -327,35 +285,28 @@ class _LoginScreenState extends State<LoginScreen>
       await mapProv.loadMap(); // clásico: carga manual
     } catch (e) {
       setState(() => _showLoader = false);
-      Fluttertoast.showToast(msg: 'No se pudo cargar la configuración de la estación: $e');
+      Fluttertoast.showToast(
+          msg: 'No se pudo cargar la configuración de la estación: $e');
       return;
     }
-   
 
     // Manejo de factura
     final AllFact factura = response.result;
 
     if (factura.cierreActivo!.cierreFinal.estado!.isEmpty) {
+      setState(() => _showLoader = false);
       return goInvent(factura.cierreActivo!.cajero.cedulaEmpleado);
     }
 
-     final clienteProv = Provider.of<ClienteProvider>(context, listen: false);
-
-
-     clienteProv.loadClientesBy(ClienteTipo.contado);
-       
-
-       clienteProv.loadClientesBy(ClienteTipo.credito);
+    final clienteProv = Provider.of<ClienteProvider>(context, listen: false);
+    await clienteProv.loadClientesBy(ClienteTipo.contado);
+    await clienteProv.loadClientesBy(ClienteTipo.credito);
 
     setState(() => _showLoader = false);
-    
-   if (!mounted) return;
+    if (!mounted) return;
     context.read<CierreActivoProvider>().setFrom(factura.cierreActivo!);
     goHome();
-    
   }
-
- 
 
   /* ================= NAVIGATION ================= */
   void goHome() {
@@ -368,7 +319,9 @@ class _LoginScreenState extends State<LoginScreen>
   void goInvent(int cedulaUser) {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => InventScreen(cedulaEmpleado: cedulaUser, zona: _selectedZone)),
+      MaterialPageRoute(
+          builder: (_) =>
+              InventScreen(cedulaEmpleado: cedulaUser, zona: _selectedZone)),
     );
   }
 }

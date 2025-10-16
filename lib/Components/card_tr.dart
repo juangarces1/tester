@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tester/Models/product.dart';
+import 'package:tester/Models/FuelRed/product.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 import 'package:tester/sizeconfig.dart';
 

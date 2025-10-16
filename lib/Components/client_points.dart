@@ -41,11 +41,11 @@ class _ClientPointsState extends State<ClientPoints> {
           contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           leading: _leadingAvatar(hasCliente),
           title: Text(
-            hasCliente ? "$nombre ($puntos)" : "Seleccione Cliente Frecuente",
+            hasCliente ? "$nombre ($puntos)" : "Select Cliente Frecuente",
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),

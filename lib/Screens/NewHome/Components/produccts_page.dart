@@ -5,8 +5,8 @@ import 'package:provider/provider.dart';
 
 import 'package:tester/Components/product_card.dart';
 
-import 'package:tester/Models/product.dart';
-import 'package:tester/Models/response.dart';
+import 'package:tester/Models/FuelRed/product.dart';
+import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';

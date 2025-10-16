@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tester/Models/peddler.dart';
+import 'package:tester/Models/FuelRed/peddler.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
 

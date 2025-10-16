@@ -40,11 +40,11 @@ Widget build(BuildContext context) {
   return SafeArea(
     child: Scaffold(
       backgroundColor: const Color.fromARGB(255, 32, 32, 32),
-      appBar: AppBar(
-        title: const Text('Despachos Activos',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-        backgroundColor: Colors.black,
-      ),
+      // appBar: AppBar(
+      //   title: const Text('Despachos Activos',
+      //       style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+      //   backgroundColor: Colors.black,
+      // ),
       body: despachos.isEmpty
           ? const Center(
               child: Text('No hay despachos activos',

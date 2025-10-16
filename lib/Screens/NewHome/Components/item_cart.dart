@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
-import 'package:tester/Models/product.dart';
+import 'package:tester/Models/FuelRed/product.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/constans.dart';
 import 'package:tester/sizeconfig.dart';

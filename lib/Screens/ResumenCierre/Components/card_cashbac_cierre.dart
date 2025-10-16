@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tester/Models/cashback.dart';
+import 'package:tester/Models/FuelRed/cashback.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
 

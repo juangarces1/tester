@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/ConsoleModels/console_transaction.dart';
-import 'package:tester/Models/product.dart';
-import 'package:tester/Models/response.dart';
+import 'package:tester/Models/FuelRed/product.dart';
+import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';

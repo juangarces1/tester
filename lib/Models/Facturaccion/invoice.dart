@@ -1,12 +1,12 @@
 
-import 'package:tester/Models/cierrefinal.dart';
-import 'package:tester/Models/cliente.dart';
-import 'package:tester/Models/empleado.dart';
-import 'package:tester/Models/paid.dart';
-import 'package:tester/Models/peddler.dart';
-import 'package:tester/Models/product.dart';
-import 'package:tester/Models/sinpe.dart';
-import 'package:tester/Models/transferencia.dart';
+import 'package:tester/Models/FuelRed/cierrefinal.dart';
+import 'package:tester/Models/FuelRed/cliente.dart';
+import 'package:tester/Models/FuelRed/empleado.dart';
+import 'package:tester/Models/FuelRed/paid.dart';
+import 'package:tester/Models/FuelRed/peddler.dart';
+import 'package:tester/Models/FuelRed/product.dart';
+import 'package:tester/Models/FuelRed/sinpe.dart';
+import 'package:tester/Models/FuelRed/transferencia.dart';
 
 
 class Invoice {

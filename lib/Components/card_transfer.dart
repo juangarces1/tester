@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 import 'package:intl/intl.dart';
-import 'package:tester/Models/transferfull.dart';
+import 'package:tester/Models/FuelRed/transferfull.dart';
 import 'package:tester/constans.dart';
 
 class CardTransfer extends StatefulWidget {

@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';                    
 import 'package:tester/Models/Facturaccion/factura_service.dart';
 import 'package:tester/Providers/facturas_provider.dart';        
-import 'package:tester/Models/product.dart';
+import 'package:tester/Models/FuelRed/product.dart';
 import 'package:tester/helpers/constans.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 import '../constans.dart';

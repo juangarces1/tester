@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:tester/ConsoleModels/console_transaction.dart';
-import 'package:tester/Models/transaccion.dart';
+import 'package:tester/Models/FuelRed/transaccion.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/helpers/console_api_helper.dart';
 import 'package:tester/helpers/transactions_api_helper.dart';

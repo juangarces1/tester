@@ -2,7 +2,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:tester/Models/transaccion.dart';
+import 'package:tester/Models/FuelRed/transaccion.dart';
 import 'package:tester/helpers/constans.dart'; // <- donde tengas baseUrl
 
 class TransaccionesApiHelper {

@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Components/app_bar_custom.dart';
 import 'package:tester/Components/loader_component.dart';
 
-import 'package:tester/Models/deposito.dart';
-import 'package:tester/Models/response.dart';
+import 'package:tester/Models/FuelRed/deposito.dart';
+
 import 'package:tester/Providers/cierre_activo_provider.dart';
+import 'package:tester/Providers/printer_provider.dart';
 import 'package:tester/Screens/Depositos/entrega_efectivo_screen.dart';
+import 'package:tester/Screens/test_print/testprint.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
 class DepositosScreen extends StatefulWidget {
-  
-  const DepositosScreen({super.key,});
+  const DepositosScreen({super.key});
   @override
   State<DepositosScreen> createState() => _DepositosScreenState();
 }
@@ -26,11 +28,19 @@ class _DepositosScreenState extends State<DepositosScreen> {
   @override
   void initState() {
     super.initState();
-    _getdepositos();
+    // Inicializa el servicio de impresión una vez montado el contexto
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PrinterProvider>().init();
+      _getdepositos();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final printer = context.watch<PrinterProvider>();
+    final isBound = printer.isBound;
+    final isBusy = printer.busy;
+
     return SafeArea(
       child: Scaffold(
         backgroundColor: kNewbg,
@@ -41,16 +51,35 @@ class _DepositosScreenState extends State<DepositosScreen> {
           automaticallyImplyLeading: true,
           foreColor: kNewtextPri,
           backgroundColor: kNewbg,
-          actions:  <Widget>[
+          actions: <Widget>[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/splash.png',
-                  width: 30,
-                  height: 30,
-                  fit: BoxFit.cover,
-                ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  ClipOval(
+                    child: Image.asset(
+                      'assets/splash.png',
+                      width: 30,
+                      height: 30,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  // Pequeño indicador de estado de la impresora (verde listo / rojo no conectado)
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: isBound ? Colors.greenAccent : Colors.redAccent,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.black, width: 1),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -83,13 +112,12 @@ class _DepositosScreenState extends State<DepositosScreen> {
                             itemBuilder: (context, index) {
                               final deposito = depositos[index];
                               return Dismissible(
-                                key:
-                                    ValueKey<int>(deposito.iddeposito ?? index),
+                                key: ValueKey<int>(deposito.iddeposito ?? index),
                                 direction: DismissDirection.endToStart,
                                 background: _dismissBackground(),
                                 confirmDismiss: (_) =>
                                     _confirmDelete(index, deposito),
-                                child: _depositoTile(deposito),
+                                child: _depositoTile(deposito, isBusy, isBound),
                               );
                             },
                           ),
@@ -102,7 +130,7 @@ class _DepositosScreenState extends State<DepositosScreen> {
           foregroundColor: Colors.white,
           elevation: 0,
           onPressed: _goAdd,
-          icon: const Icon(Icons.add, color: Colors.white ,size: 29),
+          icon: const Icon(Icons.add, color: Colors.white, size: 29),
           label: const Text('Nuevo',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
         ),
@@ -117,8 +145,7 @@ class _DepositosScreenState extends State<DepositosScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirmar eliminacion'),
-        content:
-            const Text('Esta seguro de que desea eliminar este deposito?'),
+        content: const Text('Esta seguro de que desea eliminar este deposito?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -143,18 +170,18 @@ class _DepositosScreenState extends State<DepositosScreen> {
     return true;
   }
 
-  Widget _depositoTile(Deposito d) {
+  Widget _depositoTile(Deposito d, bool isBusy, bool isBound) {
     final montoFormatted =
         VariosHelpers.formattedToCurrencyValue((d.monto ?? 0).toString());
     final fecha = d.fechadepostio?.split('T').first ?? 'Sin fecha registrada';
     final moneda = d.moneda ?? 'Sin moneda';
+    final printer = context.read<PrinterProvider>();
 
     return Container(
       decoration: BoxDecoration(
         color: kNewsurface,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: kNewborder),
-       
       ),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       child: Row(
@@ -171,8 +198,7 @@ class _DepositosScreenState extends State<DepositosScreen> {
               ),
               borderRadius: BorderRadius.circular(16),
             ),
-            child:
-                Image.asset('assets/deposito.png', fit: BoxFit.contain),
+            child: Image.asset('assets/deposito.png', fit: BoxFit.contain),
           ),
           const SizedBox(width: 18),
           Expanded(
@@ -199,6 +225,7 @@ class _DepositosScreenState extends State<DepositosScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
+                  // si tu Flutter no soporta withValues, usa withOpacity(0.16)
                   color: kNewgreen.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(13),
                   border: Border.all(color: kNewgreen),
@@ -211,10 +238,36 @@ class _DepositosScreenState extends State<DepositosScreen> {
                       fontSize: 16),
                 ),
               ),
+              const SizedBox(height: 6),
               IconButton(
-                onPressed: () => onPrintPressed(d),
-                icon: const Icon(Icons.print_outlined, color: kNewtextSec),
-                tooltip: 'Imprimir',
+                tooltip: isBusy
+                    ? 'Imprimiendo...'
+                    : (isBound ? 'Imprimir' : 'Conectar impresora'),
+                onPressed: isBusy
+                    ? null
+                    : () async {
+                        await printer.runLocked(() async {
+                          // Asegura conexión antes de imprimir
+                          final ok = await printer.ensureBound();
+                          if (!ok) {
+                            Fluttertoast.showToast(
+                                msg: 'No se pudo conectar a la impresora');
+                            return;
+                          }
+                          final pistero = context
+                                  .read<CierreActivoProvider>()
+                                  .usuario
+                                  ?.nombreCompleto ??
+                              '';
+                          await onPrintPressed(d, pistero: pistero);
+                        });
+                      },
+                icon: isBusy
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.print_outlined, color: kNewtextSec),
               ),
             ],
           ),
@@ -303,104 +356,92 @@ class _DepositosScreenState extends State<DepositosScreen> {
       );
 
   Future<void> _getdepositos() async {
-    setState(() {
-      showLoader = true;
-    });
+    setState(() => showLoader = true);
 
-    final cierreActPro = Provider.of<CierreActivoProvider>(context, listen: false);
-   
+    final cierreActPro =
+        Provider.of<CierreActivoProvider>(context, listen: false);
 
-    Response response = await ApiHelper.getDepositos(
-        cierreActPro.cierreFinal!.idcierre ?? 0);
+    final response =
+        await ApiHelper.getDepositos(cierreActPro.cierreFinal!.idcierre ?? 0);
 
-    setState(() {
-      showLoader = false;
-    });
+    setState(() => showLoader = false);
 
     if (!response.isSuccess) {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('Error'),
-              content: Text(response.message),
-              actions: <Widget>[
-                TextButton(
-                  child: const Text('Aceptar'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ],
-            );
-          },
-        );
-      }
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Error'),
+            content: Text(response.message),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Aceptar'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          );
+        },
+      );
       return;
     }
 
     total = 0;
-    depositos = response.result;
-    for (var element in depositos) {
+    depositos = (response.result as List).cast<Deposito>();
+    for (final element in depositos) {
       total += element.monto ?? 0;
     }
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   Future<bool> _goDelete(int id) async {
-    setState(() {
-      showLoader = true;
-    });
+    setState(() => showLoader = true);
 
-    Response response =
-        await ApiHelper.delete('/api/Depositos/', id.toString());
+    final response = await ApiHelper.delete('/api/Depositos/', id.toString());
 
-    setState(() {
-      showLoader = false;
-    });
+    setState(() => showLoader = false);
 
     if (!response.isSuccess) {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('Error'),
-              content: Text(response.message),
-              actions: <Widget>[
-                TextButton(
-                  child: const Text('Aceptar'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ],
-            );
-          },
-        );
-      }
+      if (!mounted) return false;
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Error'),
+            content: Text(response.message),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Aceptar'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          );
+        },
+      );
       return false;
     }
     return true;
   }
 
   void _goAdd() async {
-    String? result = await Navigator.push(
+    final result = await Navigator.push<String>(
       context,
-      MaterialPageRoute(
-        builder: (context) => const EntregaEfectivoScreen(
-          
-        ),
-      ),
+      MaterialPageRoute(builder: (context) => const EntregaEfectivoScreen()),
     );
     if (result == 'yes') {
       _getdepositos();
     }
   }
 
-  void onPrintPressed(Deposito deposito) {
-    // Placeholder de impresion
+  Future<void> onPrintPressed(Deposito deposito, {required String pistero}) async {
+    try {
+      final tp = TestPrint(totalChars: 32); // 32 suele ir bien en Q3
+      // await tp.printDeposito(deposito, pistero);
+      await tp.printDeposito(deposito, pistero);
+      Fluttertoast.showToast(msg: 'Depósito enviado a impresión');
+    } catch (e, st) {
+      debugPrint('printDeposito error: $e\n$st');
+      Fluttertoast.showToast(msg: 'Error al imprimir: $e');
+    }
   }
 }
-

@@ -11,8 +11,8 @@ import 'package:tester/Components/default_button.dart';
 import 'package:tester/Components/loader_component.dart';
 
 import 'package:tester/Models/Facturaccion/invoice.dart';
-import 'package:tester/Models/cliente.dart';
-import 'package:tester/Models/response.dart';
+import 'package:tester/Models/FuelRed/cliente.dart';
+import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/helpers/api_helper.dart';
 
 import 'package:tester/Screens/clientes/cliente_card.dart' as cliente_ui; // ← usamos el ClienteCard completo

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import 'package:tester/Components/cart_inline_section.dart';
@@ -13,9 +12,9 @@ import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Components/transacciones_sheet.dart';
 import 'package:tester/Models/Facturaccion/factura_service.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
-import 'package:tester/Models/factura.dart';
+import 'package:tester/Models/FuelRed/factura.dart';
 
-import 'package:tester/Models/response.dart';
+import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/Screens/NewHome/Components/produccts_page.dart';
 import 'package:tester/constans.dart';
@@ -111,7 +110,7 @@ class _TicketScreenState extends State<TicketScreen> {
       child: Scaffold(
         backgroundColor: kNewbg,
         appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(75),
+          preferredSize: const Size.fromHeight(50),
           child: _appBar(factura),
         ),
         body: Stack(
@@ -147,7 +146,7 @@ class _TicketScreenState extends State<TicketScreen> {
                               MaterialPageRoute(builder: (_) => ProductsPage(index: widget.index)));
                           },
                         ),
-                      const SizedBox(height: 15),
+                      const SizedBox(height: 10),
                         FormPago(
                         key: formPagoKey,
                         index: widget.index,
@@ -156,16 +155,15 @@ class _TicketScreenState extends State<TicketScreen> {
                         expansibleController: _pagoCtrl,
                       ),
         
-                      const SizedBox(height: 15),
+                      const SizedBox(height: 10),
                       ClientPoints(factura: factura, ruta: 'Contado'),
-                      const SizedBox(height: 15),
+                      const SizedBox(height: 10),
         
                       // FormPago con controller externo
                     
                       _infoTicketSection(factura),
-                      const SizedBox(height: 15),
+                      const SizedBox(height: 10),
 
-                       SizedBox(height: SizeConfig.screenHeight * 0.02),
                     factura.total > 0 ? showTotal(factura) : Container(),
                   
         
@@ -320,15 +318,7 @@ class _TicketScreenState extends State<TicketScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      "Total: ${VariosHelpers.formattedToCurrencyValue(factura.total.toString())}",
-                      style: const TextStyle(
-                        color: kNewtextPri,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
+                   
                     Text(
                       "Saldo: ${VariosHelpers.formattedToCurrencyValue(factura.saldo.toString())}",
                       style: const TextStyle(

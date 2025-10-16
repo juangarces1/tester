@@ -13,8 +13,8 @@ class MyNoContent extends StatelessWidget {
 
   const MyNoContent({super.key, 
     this.imgPath = 'assets/SanGerardo.png',
-    this.width = 200.0,
-    this.height = 180.0,
+    this.width = 150.0,
+    this.height = 120.0,
     this.backgroundColor = kSecondaryColor,
     this.text = '',
     this.borderColor = kPrimaryColor,

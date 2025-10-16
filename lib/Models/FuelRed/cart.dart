@@ -1,6 +1,6 @@
 
 
-import 'package:tester/Models/product.dart';
+import 'package:tester/Models/FuelRed/product.dart';
 
 class Cart {
    List<Product> products=[];

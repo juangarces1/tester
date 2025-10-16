@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tester/Models/product.dart';
+import 'package:tester/Models/FuelRed/product.dart';
 
 class Transaccion {
   int idtransaccion = 0;

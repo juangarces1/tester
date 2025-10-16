@@ -32,7 +32,10 @@ class _ShowClientState extends State<ShowClient> {
       padding: widget.padding ?? EdgeInsets.zero,
       child: Material(
         color: kColorFondoOscuro,
+        shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
+        side: const BorderSide(color: kTextColorWhite, width: 1),
+      ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: _goClientes,
@@ -46,8 +49,9 @@ class _ShowClientState extends State<ShowClient> {
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: kContrateFondoOscuro,
-                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
 
               ),
             ),

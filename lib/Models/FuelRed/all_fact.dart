@@ -1,12 +1,12 @@
 import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/Promo/cliente_promo.dart';
-import 'package:tester/Models/cart.dart';
-import 'package:tester/Models/cierreactivo.dart';
-import 'package:tester/Models/cliente.dart';
-import 'package:tester/Models/clientecredito.dart';
+import 'package:tester/Models/FuelRed/cart.dart';
+import 'package:tester/Models/FuelRed/cierreactivo.dart';
+import 'package:tester/Models/FuelRed/cliente.dart';
+import 'package:tester/Models/FuelRed/clientecredito.dart';
 
 
-import 'package:tester/Models/product.dart';
+import 'package:tester/Models/FuelRed/product.dart';
 
 
 

@@ -1,4 +1,4 @@
-import 'package:tester/Models/product.dart';
+import 'package:tester/Models/FuelRed/product.dart';
 
 class Facturar {
     final List<Product> products;

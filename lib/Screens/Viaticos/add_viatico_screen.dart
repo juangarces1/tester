@@ -9,8 +9,8 @@ import 'package:tester/Components/show_client.dart';
 import 'package:tester/Models/Facturaccion/factura_service.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
 
-import 'package:tester/Models/response.dart';
-import 'package:tester/Models/viatico.dart';
+import 'package:tester/Models/FuelRed/response.dart';
+import 'package:tester/Models/FuelRed/viatico.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/clientes_provider.dart';
 

@@ -8,7 +8,7 @@ import 'package:tester/ConsoleModels/dispensersstatusresponse.dart';
 import 'package:tester/ConsoleModels/nozzle_info.dart';
 import 'package:tester/ConsoleModels/pump_faces_model.dart';
 import 'package:tester/ConsoleModels/success_response.dart';
-import 'package:tester/Models/response.dart';
+import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/helpers/constans.dart';
 
 

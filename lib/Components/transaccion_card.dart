@@ -1,8 +1,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:tester/Models/all_fact.dart';
-import 'package:tester/Models/product.dart';
+import 'package:tester/Models/FuelRed/all_fact.dart';
+import 'package:tester/Models/FuelRed/product.dart';
 import '../sizeconfig.dart';
 
 class TransactionCard extends StatefulWidget {

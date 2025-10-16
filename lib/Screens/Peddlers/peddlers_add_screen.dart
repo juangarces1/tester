@@ -11,7 +11,7 @@ import 'package:tester/Components/show_email.dart';
 import 'package:tester/Components/transacciones_sheet.dart';
 import 'package:tester/Models/Facturaccion/factura_service.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
-import 'package:tester/Models/peddler.dart';
+import 'package:tester/Models/FuelRed/peddler.dart';
 import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/Screens/NewHome/Components/produccts_page.dart';
@@ -116,7 +116,7 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
         resizeToAvoidBottomInset: true,
         backgroundColor: kContrateFondoOscuro,
         appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(70),
+          preferredSize: const Size.fromHeight(50),
           child: appBar1(facturaC),
         ),
         body: _body(facturaC),
@@ -213,9 +213,9 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
                         : const SizedBox.shrink(),
                     SizedBox(height: SizeConfig.screenHeight * 0.02),
                     signUpForm(facturaC),
-                    SizedBox(height: SizeConfig.screenHeight * 0.04),
+                    SizedBox(height: SizeConfig.screenHeight * 0.02),
                     showTotal(facturaC),
-                    const SizedBox(height: 150),
+                    const SizedBox(height: 45),
                   ],
                 ),
               ),
@@ -553,18 +553,19 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text.rich(
-              TextSpan(
-                text: "Total:\n",
-                style: const TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
-                children: [
-                  TextSpan(
+            facturaC.total > 0
+                ? Text.rich(
+                    TextSpan(
+                      text: "Total:\n",
+                      style: const TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
+                      children: [
+                        TextSpan(
                     text: " ${VariosHelpers.formattedToCurrencyValue(facturaC.total.toString())}",
                     style: const TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
-            ),
+            ) : const SizedBox.shrink(),
             facturaC.formPago!.clienteCredito.nombre.isNotEmpty && (facturaC.detail?.isNotEmpty ?? false)
                 ? SizedBox(
                     width: getProportionateScreenWidth(160),

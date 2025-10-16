@@ -1,8 +1,8 @@
 
-import 'package:tester/Models/cliente.dart';
+import 'package:tester/Models/FuelRed/cliente.dart';
 
-import 'package:tester/Models/sinpe.dart';
-import 'package:tester/Models/transferencia.dart';
+import 'package:tester/Models/FuelRed/sinpe.dart';
+import 'package:tester/Models/FuelRed/transferencia.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
 

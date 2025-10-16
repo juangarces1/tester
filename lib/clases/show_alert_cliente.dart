@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:tester/Models/cliente.dart';
+import 'package:tester/Models/FuelRed/cliente.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/sizeconfig.dart';
 

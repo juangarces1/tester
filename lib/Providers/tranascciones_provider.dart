@@ -1,6 +1,6 @@
 import 'dart:collection';
 import 'package:flutter/foundation.dart';
-import 'package:tester/Models/transaccion.dart'; // ajusta el path
+import 'package:tester/Models/FuelRed/transaccion.dart'; // ajusta el path
 
 class TransaccionesProvider extends ChangeNotifier {
   final List<Transaccion> _items = [];

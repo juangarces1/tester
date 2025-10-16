@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:tester/Components/cart_card.dart';
 import 'package:tester/Components/loader_component.dart';
-import 'package:tester/Models/factura.dart';
+import 'package:tester/Models/FuelRed/factura.dart';
 import 'package:tester/constans.dart';
 
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tester/Models/linea_inventario.dart';
+import 'package:tester/Models/FuelRed/linea_inventario.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
 

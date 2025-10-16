@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 
 import 'package:tester/Models/Facturaccion/factura_service.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
-import 'package:tester/Models/cliente.dart';
+import 'package:tester/Models/FuelRed/cliente.dart';
 import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Screens/clientes/cliente_card.dart';
 import 'package:tester/Screens/clientes/clientes_add_screem.dart';

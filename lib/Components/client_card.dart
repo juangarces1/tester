@@ -1,6 +1,6 @@
 
 import 'package:flutter/material.dart';
-import 'package:tester/Models/cliente.dart';
+import 'package:tester/Models/FuelRed/cliente.dart';
 import 'package:tester/constans.dart';
 
 

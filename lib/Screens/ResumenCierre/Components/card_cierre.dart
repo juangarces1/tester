@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:tester/Models/cierrefinal.dart';
-import 'package:tester/Models/empleado.dart';
+import 'package:tester/Models/FuelRed/cierrefinal.dart';
+import 'package:tester/Models/FuelRed/empleado.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/varios_helpers.dart';

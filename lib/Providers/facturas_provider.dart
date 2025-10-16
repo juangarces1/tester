@@ -5,13 +5,13 @@ import 'package:http/http.dart' as context;
 import 'package:provider/provider.dart';
 
 import 'package:tester/Models/Facturaccion/invoice.dart';
-import 'package:tester/Models/cierrefinal.dart';
-import 'package:tester/Models/cliente.dart';
-import 'package:tester/Models/empleado.dart';
-import 'package:tester/Models/paid.dart';
-import 'package:tester/Models/peddler.dart';
-import 'package:tester/Models/sinpe.dart';
-import 'package:tester/Models/transferencia.dart';
+import 'package:tester/Models/FuelRed/cierrefinal.dart';
+import 'package:tester/Models/FuelRed/cliente.dart';
+import 'package:tester/Models/FuelRed/empleado.dart';
+import 'package:tester/Models/FuelRed/paid.dart';
+import 'package:tester/Models/FuelRed/peddler.dart';
+import 'package:tester/Models/FuelRed/sinpe.dart';
+import 'package:tester/Models/FuelRed/transferencia.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
 
 // Si quieres usar el enum para setear flags:

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tester/Models/tarjeta.dart';
+import 'package:tester/Models/FuelRed/tarjeta.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
 

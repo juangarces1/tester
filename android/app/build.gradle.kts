@@ -37,6 +37,19 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    sourceSets {
+        getByName("main") {
+            aidl.srcDirs("src/main/aidl")
+        }
+    }
+
+    sourceSets {
+        getByName("main") {
+            // Asegura que el módulo vea src/main/aidl
+            aidl.srcDirs("src/main/aidl")
+        }
+    }
 }
 
 flutter {

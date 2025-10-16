@@ -5,7 +5,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:tester/Components/default_button.dart';
 import 'package:tester/Models/Facturaccion/factura_service.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
-import 'package:tester/Models/product.dart';
+import 'package:tester/Models/FuelRed/product.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/Screens/Details/components/product_description.dart';
 import 'package:tester/Screens/Details/components/product_images.dart';

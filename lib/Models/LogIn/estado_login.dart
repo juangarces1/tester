@@ -1,5 +1,5 @@
 import 'package:tester/Models/LogIn/estado_cierre_zona.dart';
-import 'package:tester/Models/empleado.dart';
+import 'package:tester/Models/FuelRed/empleado.dart';
 
 class LogInEstado {
   EstadoCierreZona? estado;

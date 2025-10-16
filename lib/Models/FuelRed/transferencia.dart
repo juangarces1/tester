@@ -1,5 +1,5 @@
-import 'package:tester/Models/cliente.dart';
-import 'package:tester/Models/transparcial.dart';
+import 'package:tester/Models/FuelRed/cliente.dart';
+import 'package:tester/Models/FuelRed/transparcial.dart';
 
 class Transferencia {  
     Cliente cliente = Cliente(

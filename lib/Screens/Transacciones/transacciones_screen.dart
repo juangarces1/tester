@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:tester/Models/product.dart';
+import 'package:tester/Models/FuelRed/product.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/tranascciones_provider.dart';
 import 'package:tester/Screens/Transacciones/Components/tx_app_bar.dart';
@@ -8,9 +8,9 @@ import 'package:tester/Screens/Transacciones/Components/tx_app_bar.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
-import 'package:tester/Models/transaccion.dart';
+import 'package:tester/Models/FuelRed/transaccion.dart';
 import 'package:tester/helpers/api_helper.dart';
-import 'package:tester/Models/response.dart'; // si ya lo usas en el proyecto
+import 'package:tester/Models/FuelRed/response.dart'; // si ya lo usas en el proyecto
 
 enum TxFilter {
   todos,

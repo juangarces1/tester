@@ -1,7 +1,7 @@
 
 
-import 'package:tester/Models/cliente.dart';
-import 'package:tester/Models/product.dart';
+import 'package:tester/Models/FuelRed/cliente.dart';
+import 'package:tester/Models/FuelRed/product.dart';
 
 class PeddlerViewModel {
   int? id; 

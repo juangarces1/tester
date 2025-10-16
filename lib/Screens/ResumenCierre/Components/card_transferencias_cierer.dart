@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tester/Models/transparcial.dart';
+import 'package:tester/Models/FuelRed/transparcial.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
 

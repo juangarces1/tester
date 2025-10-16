@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import 'package:tester/Components/cart_inline_section.dart';
@@ -18,9 +17,9 @@ import 'package:tester/Components/show_email.dart';
 import 'package:tester/Components/transacciones_sheet.dart';
 import 'package:tester/Models/Facturaccion/factura_service.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
-import 'package:tester/Models/factura.dart';
-import 'package:tester/Models/product.dart';
-import 'package:tester/Models/response.dart';
+import 'package:tester/Models/FuelRed/factura.dart';
+import 'package:tester/Models/FuelRed/product.dart';
+import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 
@@ -136,7 +135,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
     return SafeArea(
       child: Scaffold(
         appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(70),
+          preferredSize: const Size.fromHeight(50),
           child: appBar1(factura),
         ),
         body: Container(
@@ -154,7 +153,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 5),
                         CartInlineCompact(
                           index: widget.index,
                           onAddTransactions: () => TransaccionesSheet.open(
@@ -180,7 +179,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                           },
                         ),
 
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 5),
                         // Pasa SIEMPRE la del provider
                          FormPago(
                           key: formPagoKey,
@@ -191,9 +190,9 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                         ),
                         
                        
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 5),
                         signUpForm(factura),
-                       const SizedBox(height: 15),
+                       const SizedBox(height: 5),
                      factura.total > 0 ? showTotal(factura) : Container(),
                         //  SizedBox(height: 20),
 
@@ -593,15 +592,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  Text(
-                    "Total:  ${VariosHelpers.formattedToCurrencyValue(facturaApp.total.toString())}",
-                    style: const TextStyle(
-                      color: kNewtextPri,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(width: 3),
+                
                   Text(
                     "Saldo: ${VariosHelpers.formattedToCurrencyValue(facturaApp.saldo.toString())}",
                     style: const TextStyle(

@@ -1,17 +1,17 @@
-import 'package:tester/Models/articulo_venta.dart';
-import 'package:tester/Models/calibracion.dart';
-import 'package:tester/Models/cashback.dart';
-import 'package:tester/Models/cierreactivo.dart';
-import 'package:tester/Models/cierredatafono.dart';
-import 'package:tester/Models/deposito.dart';
-import 'package:tester/Models/factura.dart';
-import 'package:tester/Models/linea_inventario.dart';
-import 'package:tester/Models/peddler.dart';
-import 'package:tester/Models/sinpe.dart';
-import 'package:tester/Models/tarjeta.dart';
-import 'package:tester/Models/transaccion.dart';
-import 'package:tester/Models/transparcial.dart';
-import 'package:tester/Models/viatico.dart';
+import 'package:tester/Models/FuelRed/articulo_venta.dart';
+import 'package:tester/Models/FuelRed/calibracion.dart';
+import 'package:tester/Models/FuelRed/cashback.dart';
+import 'package:tester/Models/FuelRed/cierreactivo.dart';
+import 'package:tester/Models/FuelRed/cierredatafono.dart';
+import 'package:tester/Models/FuelRed/deposito.dart';
+import 'package:tester/Models/FuelRed/factura.dart';
+import 'package:tester/Models/FuelRed/linea_inventario.dart';
+import 'package:tester/Models/FuelRed/peddler.dart';
+import 'package:tester/Models/FuelRed/sinpe.dart';
+import 'package:tester/Models/FuelRed/tarjeta.dart';
+import 'package:tester/Models/FuelRed/transaccion.dart';
+import 'package:tester/Models/FuelRed/transparcial.dart';
+import 'package:tester/Models/FuelRed/viatico.dart';
 
 class CierreCajaGeneral {
 

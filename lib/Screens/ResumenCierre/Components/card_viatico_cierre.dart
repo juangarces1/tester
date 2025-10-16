@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tester/Models/viatico.dart';
+import 'package:tester/Models/FuelRed/viatico.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
 

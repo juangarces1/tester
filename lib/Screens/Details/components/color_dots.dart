@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:tester/Components/rounded_icon_btn.dart';
-import 'package:tester/Models/product.dart';
+import 'package:tester/Models/FuelRed/product.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/sizeconfig.dart';
 

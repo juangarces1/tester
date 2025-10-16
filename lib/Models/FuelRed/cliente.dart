@@ -1,4 +1,4 @@
-import 'package:tester/Models/actividad_info.dart';
+import 'package:tester/Models/FuelRed/actividad_info.dart';
 import 'dart:core';
 
 class Cliente {

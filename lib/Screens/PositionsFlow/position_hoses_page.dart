@@ -183,9 +183,9 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
                               gridDelegate:
                                   const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
-                                mainAxisSpacing: 16,
-                                crossAxisSpacing: 16,
-                                childAspectRatio: 3 / 3.6,
+                                mainAxisSpacing: 10,
+                                crossAxisSpacing: 10,
+                                childAspectRatio: 3 / 4,
                               ),
                             ),
                           ),

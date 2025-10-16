@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tester/Models/actividad_info.dart';
+import 'package:tester/Models/FuelRed/actividad_info.dart';
 import 'package:tester/constans.dart';
 
 class ShowActividadSelect extends StatelessWidget {

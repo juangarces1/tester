@@ -6,13 +6,13 @@ import 'package:provider/provider.dart';
 import 'package:tester/Components/app_bar_custom.dart';
 import 'package:tester/Components/loader_component.dart';
 
-import 'package:tester/Models/bank.dart';
-import 'package:tester/Models/cheque.dart';
+import 'package:tester/Models/FuelRed/bank.dart';
+import 'package:tester/Models/FuelRed/cheque.dart';
 
-import 'package:tester/Models/deposito.dart';
-import 'package:tester/Models/dollar.dart';
-import 'package:tester/Models/money.dart';
-import 'package:tester/Models/response.dart';
+import 'package:tester/Models/FuelRed/deposito.dart';
+import 'package:tester/Models/FuelRed/dollar.dart';
+import 'package:tester/Models/FuelRed/money.dart';
+import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
 
 import 'package:tester/constans.dart';

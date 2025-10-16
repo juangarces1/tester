@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:tester/Models/cierreactivo.dart';
-import 'package:tester/Models/cierrefinal.dart';
-import 'package:tester/Models/empleado.dart';
+import 'package:tester/Models/FuelRed/cierreactivo.dart';
+import 'package:tester/Models/FuelRed/cierrefinal.dart';
+import 'package:tester/Models/FuelRed/empleado.dart';
 
 class CierreActivoProvider extends ChangeNotifier {
   CierreActivo? _cierre; // null cuando no hay turno/cierre activo

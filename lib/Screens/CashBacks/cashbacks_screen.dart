@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:tester/Components/app_bar_custom.dart';
 import 'package:tester/Components/loader_component.dart';
 
-import 'package:tester/Models/cashback.dart';
-import 'package:tester/Models/response.dart';
+import 'package:tester/Models/FuelRed/cashback.dart';
+import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Screens/CashBacks/add_cashback_screen.dart';
 

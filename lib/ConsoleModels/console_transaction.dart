@@ -2,8 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:tester/Models/product.dart';
-import 'package:tester/Models/transaccion.dart';
+import 'package:tester/Models/FuelRed/product.dart';
+import 'package:tester/Models/FuelRed/transaccion.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
 
 class ConsoleTransaction {

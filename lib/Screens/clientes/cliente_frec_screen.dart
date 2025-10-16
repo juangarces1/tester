@@ -9,7 +9,7 @@ import 'package:tester/Components/default_button.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Models/Facturaccion/factura_service.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
-import 'package:tester/Models/response.dart';
+import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
 import 'package:tester/sizeconfig.dart';
