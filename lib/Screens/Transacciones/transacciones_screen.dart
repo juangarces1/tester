@@ -3,7 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:tester/Models/FuelRed/product.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/tranascciones_provider.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:tester/Screens/Transacciones/Components/tx_app_bar.dart';
+import 'package:tester/Providers/printer_provider.dart';
+import 'package:tester/Screens/test_print/testprint.dart';
 
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/varios_helpers.dart';
@@ -40,7 +43,29 @@ class _TransaccionesScreenState extends State<TransaccionesScreen> {
   void initState() {
     super.initState();
     // Bootstrap después del primer frame para no disparar en build()
-    WidgetsBinding.instance.addPostFrameCallback((_) => _bootstrapIfNeeded());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PrinterProvider>().init();
+      _bootstrapIfNeeded();
+    });
+  }
+
+  Future<void> _handlePrintTx(Transaccion tx) async {
+    final printer = context.read<PrinterProvider>();
+    await printer.runLocked(() async {
+      final ok = await printer.ensureBound();
+      if (!ok) {
+        Fluttertoast.showToast(msg: 'No se pudo conectar a la impresora');
+        return;
+      }
+      try {
+        final tp = TestPrint(totalChars: 32);
+        await tp.printTransaccionTx(tx);
+        Fluttertoast.showToast(msg: 'Transaccion enviada a impresion');
+      } catch (e, st) {
+        debugPrint('printTransaccion error: $e\n$st');
+        Fluttertoast.showToast(msg: 'Error al imprimir: $e');
+      }
+    });
   }
 
   Future<void> _bootstrapIfNeeded() async {
@@ -191,6 +216,9 @@ class _TransaccionesScreenState extends State<TransaccionesScreen> {
   @override
   Widget build(BuildContext context) {
     final prov = context.watch<TransaccionesProvider>();
+    final printer = context.watch<PrinterProvider>();
+    final isBound = printer.isBound;
+    final isBusy = printer.busy;
 
     final List<Transaccion> items = switch (_filter) {
       TxFilter.todos => prov.items.toList(),
@@ -229,11 +257,43 @@ class _TransaccionesScreenState extends State<TransaccionesScreen> {
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 16),
-              child: Center(
-                child: Text(
-                  '$countUnpaid/$countAll',
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '$countUnpaid/$countAll',
+                    style:
+                        const TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                  const SizedBox(width: 12),
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      ClipOval(
+                        child: Image.asset(
+                          'assets/splash.png',
+                          width: 30,
+                          height: 30,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color:
+                                isBound ? Colors.greenAccent : Colors.redAccent,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.black, width: 1),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
@@ -298,6 +358,9 @@ class _TransaccionesScreenState extends State<TransaccionesScreen> {
                                     tx: tx,
                                     reversePending:
                                         _reversalPending.contains(_txKey(tx)),
+                                    onPrint: _handlePrintTx,
+                                    isPrinterBusy: isBusy,
+                                    isPrinterBound: isBound,
                                   );
 
                                   if (!_canReverse(tx)) {
@@ -388,7 +451,16 @@ class _FiltersRow extends StatelessWidget {
 class _TxCard extends StatelessWidget {
   final Transaccion tx;
   final bool reversePending;
-  const _TxCard({required this.tx, this.reversePending = false});
+  final Future<void> Function(Transaccion tx)? onPrint;
+  final bool isPrinterBusy;
+  final bool isPrinterBound;
+  const _TxCard({
+    required this.tx,
+    this.reversePending = false,
+    this.onPrint,
+    this.isPrinterBusy = false,
+    this.isPrinterBound = false,
+  });
 
   static bool _isInvoiced(Transaccion t) {
     final v = (t.facturada ?? '').trim().toLowerCase();
@@ -441,6 +513,19 @@ class _TxCard extends StatelessWidget {
                               fontSize: 16,
                               fontWeight: FontWeight.w600)),
                       const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.print_rounded, size: 20),
+                        color: Colors.white70,
+                        tooltip: isPrinterBusy
+                            ? 'Imprimiendo...'
+                            : (isPrinterBound
+                                ? 'Imprimir'
+                                : 'Conectar impresora'),
+                        onPressed: (onPrint == null || isPrinterBusy)
+                            ? null
+                            : () => onPrint!(tx),
+                      ),
+                      const SizedBox(width: 4),
                       if (reversePending) const _ReverseChip(),
                       if (reversePending) const SizedBox(width: 6),
                       _InvoiceChip(

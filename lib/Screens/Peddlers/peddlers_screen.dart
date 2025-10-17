@@ -6,6 +6,8 @@ import 'package:tester/Components/loader_component.dart';
 
 import 'package:tester/Models/FuelRed/peddler.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
+import 'package:tester/Providers/printer_provider.dart';
+import 'package:tester/Screens/test_print/testprint.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
 import 'package:tester/helpers/varios_helpers.dart';
@@ -26,11 +28,18 @@ class _PeddlersScreenState extends State<PeddlersScreen> {
   @override
   void initState() {
     super.initState();
-    _getPeddlers();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PrinterProvider>().init();
+      _getPeddlers();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final printer = context.watch<PrinterProvider>();
+    final isBound = printer.isBound;
+    final isBusy = printer.busy;
+
     return SafeArea(
       child: Scaffold(
         backgroundColor: kNewbg,
@@ -44,13 +53,31 @@ class _PeddlersScreenState extends State<PeddlersScreen> {
           actions: <Widget>[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/splash.png',
-                  width: 30,
-                  height: 30,
-                  fit: BoxFit.cover,
-                ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  ClipOval(
+                    child: Image.asset(
+                      'assets/splash.png',
+                      width: 30,
+                      height: 30,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: isBound ? Colors.greenAccent : Colors.redAccent,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.black, width: 1),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -88,7 +115,7 @@ class _PeddlersScreenState extends State<PeddlersScreen> {
                                 background: _dismissBackground(),
                                 confirmDismiss: (_) =>
                                     _confirmDelete(index, peddler),
-                                child: _peddlerTile(peddler),
+                                child: _peddlerTile(peddler, isBusy, isBound),
                               );
                             },
                           ),
@@ -119,7 +146,8 @@ class _PeddlersScreenState extends State<PeddlersScreen> {
     return true;
   }
 
-  Widget _peddlerTile(Peddler p) {
+  Widget _peddlerTile(
+      Peddler p, bool isBusy, bool isBound) {
     final cliente = p.cliente?.nombre ?? 'Sin cliente';
     final fecha = p.fecha?.split('T').first ?? 'Sin fecha registrada';
     final placa = p.placa?.isNotEmpty == true ? p.placa! : 'Sin placa';
@@ -127,6 +155,7 @@ class _PeddlersScreenState extends State<PeddlersScreen> {
     final orden = p.orden?.isNotEmpty == true ? p.orden! : 'Sin orden';
     final montoFormatted =
         VariosHelpers.formattedToCurrencyValue(p.total.toStringAsFixed(2));
+    final printer = context.read<PrinterProvider>();
 
     return Container(
       decoration: BoxDecoration(
@@ -209,10 +238,25 @@ class _PeddlersScreenState extends State<PeddlersScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 6),
               IconButton(
-                onPressed: () => _printPeddler(p),
+                tooltip: isBusy
+                    ? 'Imprimiendo...'
+                    : (isBound ? 'Imprimir' : 'Conectar impresora'),
+                onPressed: isBusy
+                    ? null
+                    : () async {
+                        await printer.runLocked(() async {
+                          final ok = await printer.ensureBound();
+                          if (!ok) {
+                            Fluttertoast.showToast(
+                                msg: 'No se pudo conectar a la impresora');
+                            return;
+                          }
+                          await _printPeddler(p);
+                        });
+                      },
                 icon: const Icon(Icons.print_outlined, color: kNewtextSec),
-                tooltip: 'Imprimir',
               ),
             ],
           ),
@@ -281,7 +325,7 @@ class _PeddlersScreenState extends State<PeddlersScreen> {
             ),
             Text(
               VariosHelpers
-                  .formattedToCurrencyValue(total.toStringAsFixed(2)),
+                  .formattedToVolumenValue(total.toString()),
               style: const TextStyle(
                 color: kNewtextPri,
                 fontSize: 20,
@@ -372,7 +416,14 @@ class _PeddlersScreenState extends State<PeddlersScreen> {
     setState(() {});
   }
 
-  void _printPeddler(Peddler peddler) {
-    // TODO: Implementar impresi�n cuando la funcionalidad est� disponible
+  Future<void> _printPeddler(Peddler peddler) async {
+    try {
+      final tp = TestPrint(totalChars: 32);
+      await tp.printPeddler(peddler);
+      Fluttertoast.showToast(msg: 'Peddler enviado a impresion');
+    } catch (e, st) {
+      debugPrint('printPeddler error: $e\n$st');
+      Fluttertoast.showToast(msg: 'Error al imprimir: $e');
+    }
   }
 }

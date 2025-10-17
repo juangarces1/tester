@@ -8,6 +8,7 @@ import 'package:tester/Models/FuelRed/deposito.dart';
 import 'package:tester/Models/FuelRed/factura.dart';
 import 'package:tester/Models/FuelRed/peddler.dart';
 import 'package:tester/Models/FuelRed/product.dart';
+import 'package:tester/Models/FuelRed/transaccion.dart';
 import 'package:tester/Models/FuelRed/sinpe.dart';
 import 'package:tester/Models/FuelRed/transferencia.dart';
 
@@ -73,7 +74,7 @@ Future<void> body() async {
 }
 
 
-  int get _W => totalChars;
+  int get wide => totalChars;
 
 // Recorta o rellena a la derecha
 String _clipRight(String s, int w) {
@@ -95,27 +96,76 @@ Future<void> lr(String left, String right, {int minRight = 8}) async {
   left  = left.replaceAll('\n', ' ').trim();
   right = right.replaceAll('\n', ' ').trim();
 
-  final rw = right.isEmpty ? minRight : (right.length + 1).clamp(minRight, _W - 1);
-  final lw = (_W - rw);
+  final rw = right.isEmpty ? minRight : (right.length + 1).clamp(minRight, wide - 1);
+  final lw = (wide - rw);
 
   final l = _clipRight(left, lw);
   final r = _clipLeft(right, rw);
 
-  await Q3Printer.printText('$l$r\n');
+  await Q3Printer.printText('$l$r');
 }
 
-Future<void> lrMoney(String left, num value, {int minRight = 10, bool emphasize = true}) async {
-  await Q3Printer.setAlignment(0);
-  await Q3Printer.setFontType('DEFAULT');
+// Future<void> lrMoney(String left, num value, {int minRight = 10, bool emphasize = true}) async {
+//   await Q3Printer.setAlignment(0);
+//   await Q3Printer.setFontType('DEFAULT');
 
+//   if (emphasize) {
+//     await Q3Printer.setFontSize(32); // 🔥 más grande para montos
+//   }
+
+//   await lr(left, money(value), minRight: minRight);
+
+//   if (emphasize) {
+//     await Q3Printer.setFontSize(24); // 👈 vuelve al tamaño “base” de cuerpo
+//   }
+// }
+
+/// Imprime una línea con texto a la izquierda y un monto a la derecha
+/// utilizando el método nativo 'printColumnsText'.
+///
+/// CORRECCIÓN: Se asegura de que la suma de los anchos de columna sea
+/// menor que el ancho total del papel para evitar el error "table with error!".
+Future<void> lrMoney(
+  String left,
+  num value, {
+  bool emphasize = true,
+}) async {
   if (emphasize) {
-    await Q3Printer.setFontSize(32); // 🔥 más grande para montos
+    await Q3Printer.setFontSize(28);
   }
 
-  await lr(left, money(value), minRight: minRight);
+  final List<String> colsText = [left, money(value)];
+  final List<int> colsAlign = [0, 2]; // [Izquierda, Derecha]
+
+  // --- CÁLCULO DE ANCHO CORREGIDO ---
+  // El ancho total de las columnas debe ser <= totalChars - (margen).
+  // Basado en el ejemplo funcional (16+10=26 para un papel de 32),
+  // dejaremos un margen de seguridad.
+
+  const int rightColumnWidth = 12; // Ancho generoso para el monto.
+  
+  // Dejamos un margen de seguridad (ej. 1 o 2 caracteres).
+  const int safetyMargin = 1;
+  
+  // El ancho izquierdo es el resto, menos el margen.
+  final int leftColumnWidth = totalChars - rightColumnWidth - safetyMargin;
+
+  // Verificación para evitar anchos negativos si la configuración es incorrecta.
+  if (leftColumnWidth <= 0) {
+    // Esto solo ocurriría si totalChars es muy pequeño.
+    // En este caso, es mejor no imprimir que causar un error nativo.
+    debugPrint('Error: El cálculo del ancho de columna resultó en un valor no positivo.');
+    return;
+  }
+
+  final List<int> colsWidth = [10, 16]; // Ej: [19, 12] -> suma 31
+
+  // ------------------------------------
+
+  await Q3Printer.printColumnsText(colsText, colsWidth, colsAlign);
 
   if (emphasize) {
-    await Q3Printer.setFontSize(24); // 👈 vuelve al tamaño “base” de cuerpo
+    await Q3Printer.setFontSize(24);
   }
 }
 
@@ -127,8 +177,8 @@ Future<void> lrMoney(String left, num value, {int minRight = 10, bool emphasize 
   left  = left.replaceAll('\n', ' ').trim();
   right = right.replaceAll('\n', ' ').trim();
 
-  final rw = right.isEmpty ? minRight : (right.length + 1).clamp(minRight, _W - 1);
-  final lw = (_W - rw);
+  final rw = right.isEmpty ? minRight : (right.length + 1).clamp(minRight, wide - 1);
+  final lw = (wide - rw);
 
   // Primera línea: left + right
   final firstLeft = _clipRight(left, lw);
@@ -138,9 +188,9 @@ Future<void> lrMoney(String left, num value, {int minRight = 10, bool emphasize 
   // Líneas siguientes: sólo left envuelto
   var rest = left.length > lw ? left.substring(lw) : '';
   while (rest.isNotEmpty) {
-    final chunk = _clipRight(rest, _W);
+    final chunk = _clipRight(rest, wide);
     await Q3Printer.printText('$chunk\n');
-    rest = rest.length > _W ? rest.substring(_W) : '';
+    rest = rest.length > wide ? rest.substring(wide) : '';
   }
 }
 
@@ -401,11 +451,12 @@ Future<void> lrMoney(String left, num value, {int minRight = 10, bool emphasize 
  //   await _ensureBound();
     await _beginDoc();
 
-    await subtitle('CashBack');
+    await subtitle('CASHBACK');
+    await separator();
     await body();
     await lr('Fecha', cb.fechacashback.toString());
     await lrMoney('Monto', cb.monto!);
-
+     await separator();
     await signatureBox(label: 'Firma Recibido:');
 
     await _endDoc();
@@ -420,6 +471,7 @@ Future<void> lrMoney(String left, num value, {int minRight = 10, bool emphasize 
     await _beginDoc();
 
     await subtitle('ORDEN DESPACHO');
+    await separator();
     await body();
     await lr('Fecha', fmt);
     await lr('Pistero', pd.pistero.toString());
@@ -451,12 +503,13 @@ Future<void> lrMoney(String left, num value, {int minRight = 10, bool emphasize 
     await _beginDoc();
 
     await subtitle('CIERRE DATAFONO');
+    await separator();
     await body();
     await lr('Fecha', fmt);
-    await lr('Cierre #', cd.idcierredatafono.toString());
+    await lr('Lote #', cd.idcierredatafono.toString());
     await lrMoney('Monto', cd.monto!);
 
-    await signatureBox();
+    // await signatureBox();
 
     await _endDoc();
   }
@@ -469,6 +522,7 @@ Future<void> lrMoney(String left, num value, {int minRight = 10, bool emphasize 
     await _beginDoc();
 
     await subtitle('VIATICO');
+    await separator();
     await body();
     await lr('Fecha', fmt);
     await lr('Placa', v.placa ?? '');
@@ -543,24 +597,46 @@ Future<void> testLikeDevice() async {
    // await _ensureBound();
     await _beginDoc();
 
-    await title('Cierre #: ${dp.idcierre}');          // si ves raro el acento, prueba "DEPOSITO"
-    await separator();
-    await body();
-
-    await subtitle('Cajero: #: $pistero');
-    await body();
-
-    await lr('Fecha', fmt);
-    await lr('Moneda', dp.moneda ?? '');
-    await lrMoney('Monto', dp.monto!, emphasize: true);
-
-    // Si quieres firmar, descomenta:
-    // await signatureBox();
-
-    await _endDoc();
+     await subtitle('Cierre #: ${dp.idcierre}');          // si ves raro el acento, prueba "DEPOSITO"
+     await separator();
+     await body();
+     await subtitle('Cajero: $pistero');
+     await body();
+     await lr('Fecha', fmt);
+     await lr('Moneda', dp.moneda ?? '');   
+     await lrMoney('Monto: ', dp.monto!);
+     await _endDoc();
   }
 
 
+  Future<void> printTransaccionTx(Transaccion tx) async {
+    final DateTime? parsed = tx.fechatransaccion.isNotEmpty
+        ? DateTime.tryParse(tx.fechatransaccion)
+        : null;
+    final String fechaFmt = parsed != null
+        ? DateFormat('yyyy-MM-dd HH:mm').format(parsed.toLocal())
+        : tx.fechatransaccion;
+    final String venta = tx.numero > 0
+        ? '#${tx.numero}'
+        : (tx.idtransaccion > 0 ? 'ID ${tx.idtransaccion}' : '-');
+    final String producto =
+        tx.nombreproducto.isNotEmpty ? tx.nombreproducto : 'Combustible';
+
+    await _beginDoc();
+    await subtitle('TRANSACCION');
+    await body();
+    await lr('Venta', venta);
+    await lr('Fecha', fechaFmt);
+    await lr('Producto', producto);
+    await lr('Estado', tx.estado);
+    await lr('Volumen', '${tx.volumen.toStringAsFixed(2)} L');
+    await lr('Precio/L', money(tx.preciounitario));
+    await lrMoney('Total', tx.total);
+    if (tx.nombrecliente.isNotEmpty) {
+      await lr('Cliente', tx.nombrecliente);
+    }
+    await _endDoc();
+  }
   // ==================== Transacción (producto simple) ====================
   Future<void> printTransaccion(Product pr) async {
     final fmt = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());

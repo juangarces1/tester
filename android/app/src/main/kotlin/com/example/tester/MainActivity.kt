@@ -63,32 +63,27 @@ class MainActivity : FlutterActivity() {
 
                         // ==== Config & util ====
                         "init" -> { ensureBound(); binder.init(); result.success(true) }
-                        "setAlignment" -> {
-                            ensureBound()
+                        "setAlignment" -> {                            
                             val al = call.argument<Int>("alignment") ?: 0
                             binder.setAlignment(al)
                             result.success(true)
                         }
-                        "setFontSize" -> {
-                            ensureBound()
+                        "setFontSize" -> {                            
                             val size = call.argument<Int>("size") ?: 24
                             binder.setFontSize(size)
                             result.success(true)
                         }
-                        "setFontType" -> {
-                            ensureBound()
+                        "setFontType" -> {                            
                             val tf = call.argument<String>("typeface") ?: "DEFAULT"
                             binder.setFontType(tf)
                             result.success(true)
                         }
-                        "feedLines" -> {
-                            ensureBound()
+                        "feedLines" -> {                            
                             val lines = call.argument<Int>("lines") ?: 1
                             binder.feedLines(lines)
                             result.success(true)
                         }
-                        "printBlankLines" -> {
-                            ensureBound()
+                        "printBlankLines" -> {                            
                             val lines = call.argument<Int>("lines") ?: 1
                             val height = call.argument<Int>("height") ?: 25
                             binder.printBlankLines(lines, height)
@@ -96,15 +91,13 @@ class MainActivity : FlutterActivity() {
                         }
 
                         // ==== Impresión ====
-                        "printText" -> {
-                            ensureBound()
+                        "printText" -> {                            
                             val text = call.argument<String>("text") ?: ""
                             binder.printText(text)
                             result.success(true)
                         }
 
-                        "printColumnsText" -> {
-                            ensureBound()
+                        "printColumnsText" -> {                            
                             val texts = call.argument<List<String>>("texts") ?: emptyList()
                             val widths = call.argument<List<Int>>("widths") ?: emptyList()
                             val aligns = call.argument<List<Int>>("aligns") ?: emptyList()
@@ -122,8 +115,7 @@ class MainActivity : FlutterActivity() {
                             result.success(true)
                         }
 
-                        "printQR" -> {
-                            ensureBound()
+                        "printQR" -> {                            
                             val data = call.argument<String>("data") ?: ""
                             val size = call.argument<Int>("moduleSize") ?: 6
                             val ecc  = call.argument<Int>("eccLevel") ?: 2
@@ -131,8 +123,7 @@ class MainActivity : FlutterActivity() {
                             result.success(true)
                         }
 
-                        "printBarCode" -> {
-                            ensureBound()
+                        "printBarCode" -> {                            
                             val data = call.argument<String>("data") ?: ""
                             val sym  = call.argument<Int>("symbology") ?: 8
                             val h    = call.argument<Int>("height") ?: 80
@@ -142,8 +133,7 @@ class MainActivity : FlutterActivity() {
                             result.success(true)
                         }
 
-                        "printRaw" -> {
-                            ensureBound()
+                        "printRaw" -> {                            
                             val bytes = call.argument<ByteArray>("data")
                             if (bytes == null) {
                                 result.error("ARG_ERROR", "data (ByteArray) requerido", null)
@@ -153,16 +143,14 @@ class MainActivity : FlutterActivity() {
                             result.success(true)
                         }
 
-                        "performPrint" -> {
-                            ensureBound()
+                        "performPrint" -> {                            
                             val feed = call.argument<Int>("feedlines") ?: 120
                             binder.performPrint(feed)
                             result.success(true)
                         }
 
                         // Demo lista para usar desde Flutter
-                        "printSample" -> {
-                            ensureBound()
+                        "printSample" -> {                           
                             binder.printSampleTicket()
                             result.success(true)
                         }

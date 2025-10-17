@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Components/app_bar_custom.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/Models/FuelRed/viatico.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
+import 'package:tester/Providers/printer_provider.dart';
 import 'package:tester/Screens/Viaticos/add_viatico_screen.dart';
+import 'package:tester/Screens/test_print/testprint.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
 import 'package:tester/helpers/varios_helpers.dart';
@@ -25,11 +28,18 @@ class _ViaticosScreenState extends State<ViaticosScreen> {
   @override
   void initState() {
     super.initState();
-    _getViaticos();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PrinterProvider>().init();
+      _getViaticos();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final printer = context.watch<PrinterProvider>();
+    final isBound = printer.isBound;
+    final isBusy = printer.busy;
+
     return SafeArea(
       child: Scaffold(
         backgroundColor: kNewbg,
@@ -43,13 +53,31 @@ class _ViaticosScreenState extends State<ViaticosScreen> {
           actions: <Widget>[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/splash.png',
-                  width: 30,
-                  height: 30,
-                  fit: BoxFit.cover,
-                ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  ClipOval(
+                    child: Image.asset(
+                      'assets/splash.png',
+                      width: 30,
+                      height: 30,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: isBound ? Colors.greenAccent : Colors.redAccent,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.black, width: 1),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -88,7 +116,7 @@ class _ViaticosScreenState extends State<ViaticosScreen> {
                                 background: _dismissBackground(),
                                 confirmDismiss: (_) =>
                                     _confirmDelete(index, viatico),
-                                child: _viaticoTile(viatico),
+                                child: _viaticoTile(viatico, isBusy, isBound),
                               );
                             },
                           ),
@@ -226,12 +254,13 @@ class _ViaticosScreenState extends State<ViaticosScreen> {
     );
   }
 
-  Widget _viaticoTile(Viatico v) {
+  Widget _viaticoTile(Viatico v, bool isBusy, bool isBound) {
     final montoFormatted =
         VariosHelpers.formattedToCurrencyValue((v.monto ?? 0).toString());
     final fecha = v.fecha?.split('T').first ?? 'Sin fecha registrada';
     final cliente = v.clienteNombre ?? 'Sin cliente';
     final placa = v.placa ?? 'Sin placa';
+    final printer = context.read<PrinterProvider>();
    
     return Container(
       decoration: BoxDecoration(
@@ -303,10 +332,30 @@ class _ViaticosScreenState extends State<ViaticosScreen> {
                       fontSize: 16),
                 ),
               ),
+              const SizedBox(height: 6),
               IconButton(
-                onPressed: () => onPrintPressed(v),
+                tooltip: isBusy
+                    ? 'Imprimiendo...'
+                    : (isBound ? 'Imprimir' : 'Conectar impresora'),
+                onPressed: isBusy
+                    ? null
+                    : () async {
+                        await printer.runLocked(() async {
+                          final ok = await printer.ensureBound();
+                          if (!ok) {
+                            Fluttertoast.showToast(
+                                msg: 'No se pudo conectar a la impresora');
+                            return;
+                          }
+                          final pistero = context
+                                  .read<CierreActivoProvider>()
+                                  .usuario
+                                  ?.nombreCompleto ??
+                              '';
+                          await onPrintPressed(v, pistero: pistero);
+                        });
+                      },
                 icon: const Icon(Icons.print_outlined, color: kNewtextSec),
-                tooltip: 'Imprimir',
               ),
             ],
           ),
@@ -476,18 +525,15 @@ class _ViaticosScreenState extends State<ViaticosScreen> {
     }
   }
 
-  void onPrintPressed(Viatico viatico) {
-    //  final printerProv = context.read<PrinterProvider>();
-    // final device = printerProv.device;
-    // if (device == null) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(content: Text('Selecciona antes un dispositivo')),
-    //   );
-    //   return;
-    // }
-
-    // // Llamas a tu clase de impresión
-    // final testPrint = TestPrint(device: device);  
-    // testPrint.printViatico(viatico, widget.factura.cierreActivo!.cajero.nombreCompleto);
+  Future<void> onPrintPressed(Viatico viatico,
+      {required String pistero}) async {
+    try {
+      final tp = TestPrint(totalChars: 32);
+      await tp.printViatico(viatico, pistero);
+      Fluttertoast.showToast(msg: 'Viatico enviado a impresion');
+    } catch (e, st) {
+      debugPrint('printViatico error: $e\n$st');
+      Fluttertoast.showToast(msg: 'Error al imprimir: $e');
+    }
   }
 }

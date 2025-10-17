@@ -77,6 +77,18 @@ class Invoice {
     return totalSuma;
   }
 
+   double get totalLitros {
+    if (detail == null || detail!.isEmpty) return 0;
+
+    double litros = 0;
+    for (var producto in detail!) {
+      if (producto.transaccion != 0) {
+        litros += producto.cantidad;
+      }
+    }
+    return litros;
+  }
+
    int get numeroProductos {
    return detail == null || detail!.isEmpty ? 0 :   detail!.length;
   }

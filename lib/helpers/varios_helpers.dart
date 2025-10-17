@@ -57,14 +57,13 @@ class VariosHelpers {
       }
   }
 
-  static  String formattedToVolumenValue(String value) {
-   
-    double? valorActualizado = double.tryParse(value);
+  static String formattedToVolumenValue(String value) {
+    final double? valorActualizado = double.tryParse(value);
     if (valorActualizado != null) {
-        return NumberFormat("###,000", "en_US").format(valorActualizado);          
-      } else{
-        return value;
-      }
+      return NumberFormat("#,##0.###", "es_CR").format(valorActualizado);
+    } else {
+      return value;
+    }
   }
 
   static String formatYYYYmmDDhhMMss(DateTime date) {

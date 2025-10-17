@@ -553,20 +553,20 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            facturaC.total > 0
+            facturaC.totalLitros > 0
                 ? Text.rich(
                     TextSpan(
-                      text: "Total:\n",
+                      text: "Total Lts:\n",
                       style: const TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
                       children: [
                         TextSpan(
-                    text: " ${VariosHelpers.formattedToCurrencyValue(facturaC.total.toString())}",
+                    text: " ${VariosHelpers.formattedToVolumenValue(facturaC.totalLitros.toString())}",
                     style: const TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
             ) : const SizedBox.shrink(),
-            facturaC.formPago!.clienteCredito.nombre.isNotEmpty && (facturaC.detail?.isNotEmpty ?? false)
+            facturaC.formPago!.clienteFactura.nombre.isNotEmpty && (facturaC.detail?.isNotEmpty ?? false)
                 ? SizedBox(
                     width: getProportionateScreenWidth(160),
                     child: DefaultButton(
@@ -637,7 +637,7 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
       products: facturaC.detail ?? [],
       idcierre: facturaC.cierre!.idcierre,
       pistero: facturaC.empleado!,
-      cliente: facturaC.formPago!.clienteCredito,
+      cliente: facturaC.formPago!.clienteFactura,
       placa: facturaC.peddler!.placa,
       km: facturaC.peddler!.km,
       observaciones: facturaC.peddler!.observaciones,

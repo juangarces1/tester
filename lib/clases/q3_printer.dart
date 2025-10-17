@@ -79,4 +79,17 @@ class Q3Printer {
 
   static Future<void> printSample() =>
       _ch.invokeMethod<void>('printSample');
+
+  static Future<void> printSpecFormatText({
+    required String text,
+    String typeface = 'DEFAULT',
+    int fontsize = 24,
+    int alignment = 0,
+  }) =>
+      _ch.invokeMethod<void>('printSpecFormatText', {
+        'text': text,
+        'typeface': typeface,
+        'fontsize': fontsize,
+        'alignment': alignment,
+      });    
 }

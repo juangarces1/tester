@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Components/app_bar_custom.dart';
 import 'package:tester/Components/loader_component.dart';
@@ -6,7 +7,9 @@ import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Models/FuelRed/cashback.dart';
 import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
+import 'package:tester/Providers/printer_provider.dart';
 import 'package:tester/Screens/CashBacks/add_cashback_screen.dart';
+import 'package:tester/Screens/test_print/testprint.dart';
 
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
@@ -30,11 +33,18 @@ class _CashbarksScreenState extends State<CashbarksScreen> {
   @override
   void initState() {
     super.initState();
-    _getcashsbacks();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PrinterProvider>().init();
+      _getcashsbacks();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final printer = context.watch<PrinterProvider>();
+    final isBound = printer.isBound;
+    final isBusy = printer.busy;
+
     return SafeArea(
       child: Scaffold(
         backgroundColor: kNewbg,
@@ -45,16 +55,34 @@ class _CashbarksScreenState extends State<CashbarksScreen> {
           automaticallyImplyLeading: true,
           foreColor: kNewtextPri,
           backgroundColor: kNewbg,
-          actions:  <Widget>[
+          actions: <Widget>[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/splash.png',
-                  width: 30,
-                  height: 30,
-                  fit: BoxFit.cover,
-                ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  ClipOval(
+                    child: Image.asset(
+                      'assets/splash.png',
+                      width: 30,
+                      height: 30,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: isBound ? Colors.greenAccent : Colors.redAccent,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.black, width: 1),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -92,7 +120,7 @@ class _CashbarksScreenState extends State<CashbarksScreen> {
                                 direction: DismissDirection.endToStart,
                                 background: _dismissBackground(),
                                 confirmDismiss: (_) => _confirmDelete(index),
-                                child: _cashbackTile(cashback),
+                                child: _cashbackTile(cashback, isBusy, isBound),
                               );
                             },
                           ),
@@ -268,12 +296,12 @@ class _CashbarksScreenState extends State<CashbarksScreen> {
     );
   }
 
-  Widget _cashbackTile(Cashback cashback) {
+  Widget _cashbackTile(Cashback cashback, bool isBusy, bool isBound) {
     final String montoFormatted = VariosHelpers.formattedToCurrencyValue(
         (cashback.monto ?? 0).toString());
     final String fecha =
         cashback.fechacashback?.split('T').first ?? 'Sin fecha registrada';
-  
+    final printer = context.read<PrinterProvider>();
 
     return Container(
       decoration: BoxDecoration(
@@ -345,10 +373,30 @@ class _CashbarksScreenState extends State<CashbarksScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 6),
               IconButton(
-                onPressed: () => onPrintPressed(cashback),
+                tooltip: isBusy
+                    ? 'Imprimiendo...'
+                    : (isBound ? 'Imprimir' : 'Conectar impresora'),
+                onPressed: isBusy
+                    ? null
+                    : () async {
+                        await printer.runLocked(() async {
+                          final ok = await printer.ensureBound();
+                          if (!ok) {
+                            Fluttertoast.showToast(
+                                msg: 'No se pudo conectar a la impresora');
+                            return;
+                          }
+                          final pistero = context
+                                  .read<CierreActivoProvider>()
+                                  .usuario
+                                  ?.nombreCompleto ??
+                              '';
+                          await onPrintPressed(cashback, pistero: pistero);
+                        });
+                      },
                 icon: const Icon(Icons.print_outlined, color: kNewtextSec),
-                tooltip: 'Imprimir comprobante',
               ),
             ],
           ),
@@ -515,21 +563,15 @@ class _CashbarksScreenState extends State<CashbarksScreen> {
     }
   }
 
-  void onPrintPressed(Cashback cashback) {
-    // final printerProv = context.read<PrinterProvider>();
-    // final device = printerProv.device;
-    // if (device == null) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(content: Text('Selecciona antes un dispositivo')),
-    //   );
-    //   return;
-    // }
-
-    // // Llamas a tu clase de impresión
-    // final testPrint = TestPrint(device: device);
-    // testPrint.printCashBack(
-    //   cashback,
-    //   widget.factura.cierreActivo!.cajero.nombreCompleto,
-    // );
+  Future<void> onPrintPressed(Cashback cashback,
+      {required String pistero}) async {
+    try {
+      final tp = TestPrint(totalChars: 32);
+      await tp.printCashBack(cashback, pistero);
+      Fluttertoast.showToast(msg: 'Cashback enviado a impresion');
+    } catch (e, st) {
+      debugPrint('printCashback error: $e\n$st');
+      Fluttertoast.showToast(msg: 'Error al imprimir: $e');
+    }
   }
 }
