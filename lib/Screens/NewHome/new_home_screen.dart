@@ -6,19 +6,16 @@ import 'package:provider/provider.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Screens/NewHome/Components/admin_drawer.dart';
 import 'package:tester/Screens/NewHome/Components/facturacion_page.dart';
-import 'package:tester/Screens/NewHome/Components/first_page.dart';
+import 'package:tester/Screens/NewHome/PagesWizard/first_page.dart';
 
 
 import '../../constans.dart';
 
 class NewHomeScreen extends StatefulWidget {
   const NewHomeScreen({
-    super.key,
-    
+    super.key,    
   });
-
   
-
   @override
   State<NewHomeScreen> createState() => _NewHomeScreenState();
 }
@@ -108,11 +105,11 @@ class _NewHomeScreenState extends State<NewHomeScreen> {
   final cierreFinal = cierreActivo.cierreFinal;
   return AppBar(
     // Deja que el AppBar gestione el leading (hamburguesa del Drawer)
-    automaticallyImplyLeading: false,
+    automaticallyImplyLeading: true,
     centerTitle: false,
 
     // Un pelín más alto para que se vea “centrado” y con aire
-    toolbarHeight: 64,
+    toolbarHeight: 56,
 
     // Asegura espacio después del ícono del drawer para que no se “pegue”
     leadingWidth: 56,
@@ -206,7 +203,7 @@ class _NewHomeScreenState extends State<NewHomeScreen> {
         child: ClipOval(
           child: Image(
             image: AssetImage('assets/splash.png'),
-            width: 30, height: 30, fit: BoxFit.cover,
+            width: 40, height: 40, fit: BoxFit.cover,
           ),
         ),
       ),

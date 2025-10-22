@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:tester/Components/client_points.dart';
 import 'package:tester/Models/Facturaccion/factura_service.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/FuelRed/cliente.dart';
@@ -239,10 +240,14 @@ class FormPagoState extends State<FormPago> {
                 bottomRight: Radius.circular(18),
               ),
             ),
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.only(left: 10, right: 10, bottom: 0, top: 0),
             child: Column(
               children: [
-                const SizedBox(height: 4),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: ClientPoints(factura: factura,),
+                ),
+                const SizedBox(height: 15),
                 _showBacAndBn(),
                 const SizedBox(height: 12),
                 _showScotiaDav(),
@@ -1059,9 +1064,9 @@ Widget _showSinpeRefresh() {
       factura.formPago!.totalTransfer=0;
       factura.formPago!.transfer.totalTransfer=0;
       factura.formPago!.totalSinpe=0;
-      factura.formPago!.transfer = Transferencia(cliente: Cliente(nombre: '', documento: '', codigoTipoID: '', email: '', puntos: 0, codigo: '', telefono: ''), transfers: [], monto: 0, totalTransfer: 0);
-      factura.formPago!.clientePuntos = Cliente(nombre: '', documento: '', codigoTipoID: '', email: '', puntos: 0, codigo: '', telefono: '');     
-      factura.formPago!.clienteFactura = Cliente(nombre: '', documento: '', codigoTipoID: '', email: '', puntos: 0, codigo: '', telefono: '');     
+      factura.formPago!.transfer = Transferencia(cliente: Cliente(nombre: '', documento: '', codigoTipoID: '', email: '', puntos: 0, codigo: '', telefono: '', plazo: 0), transfers: [], monto: 0, totalTransfer: 0, );
+      factura.formPago!.clientePuntos = Cliente(nombre: '', documento: '', codigoTipoID: '', email: '', puntos: 0, codigo: '', telefono: '', plazo: 0);     
+      factura.formPago!.clienteFactura = Cliente(nombre: '', documento: '', codigoTipoID: '', email: '', puntos: 0, codigo: '', telefono: '', plazo: 0  );     
       factura.formPago!.sinpe = Sinpe(numFact: '', fecha: DateTime.now(), id: 0, idCierre: 0, activo: 0, monto: 0, nombreEmpleado: '', nota: '', numComprobante: '');
     
      

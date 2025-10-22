@@ -5,7 +5,7 @@ import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/ViewModels/dispatch_control.dart';
 import 'package:tester/ViewModels/new_map.dart';
-import 'package:tester/Screens/PositionsFlow/position_hoses_page.dart';
+import 'package:tester/Screens/NewHome/PagesWizard/position_hoses_page.dart';
 
 class FacesListPage extends StatefulWidget {
   final String dispatchId;
@@ -265,14 +265,14 @@ class _PositionCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  pumpLabel,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                // Text(
+                //   pumpLabel,
+                //   style: const TextStyle(
+                //     color: Colors.white,
+                //     fontSize: 20,
+                //     fontWeight: FontWeight.w700,
+                //   ),
+                // ),
             
                 // Text(
                 //   faceDescription.isNotEmpty
@@ -284,15 +284,15 @@ class _PositionCard extends StatelessWidget {
                 //     fontWeight: FontWeight.w600,
                 //   ),
                 // ),
-                const SizedBox(height: 16),
-                Text(
-                  'Total de mangueras: ${position.hoses.length}',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                // const SizedBox(height: 16),
+                // Text(
+                //   'Total de mangueras: ${position.hoses.length}',
+                //   style: const TextStyle(
+                //     color: Colors.white70,
+                //     fontSize: 16,
+                //     fontWeight: FontWeight.w600,
+                //   ),
+                // ),
                 const SizedBox(height: 6),
                 Text(
                   'Disponibles ahora: $availableCount',

@@ -138,6 +138,7 @@ class FacturasProvider with ChangeNotifier {
         puntos: 0,
         codigo: '',
         telefono: '',
+        plazo: 0,
       );
 
   void _applyInvoiceTypeFlags(Invoice invoice, InvoiceType? type) {

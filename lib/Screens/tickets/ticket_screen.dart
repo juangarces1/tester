@@ -155,8 +155,8 @@ class _TicketScreenState extends State<TicketScreen> {
                         expansibleController: _pagoCtrl,
                       ),
         
-                      const SizedBox(height: 10),
-                      ClientPoints(factura: factura, ruta: 'Contado'),
+                   //   const SizedBox(height: 10),
+                     // ClientPoints(factura: factura, ruta: 'Contado'),
                       const SizedBox(height: 10),
         
                       // FormPago con controller externo
@@ -420,6 +420,7 @@ class _TicketScreenState extends State<TicketScreen> {
       'idCierre': factura.cierre!.idcierre,
       'cedualaUsuario': factura.empleado!.cedulaEmpleado.toString(),
       'cedulaClienteFactura': factura.formPago!.clienteFactura.documento,
+      'clienteFactura': factura.formPago!.clienteFactura.toJson(),
       'totalEfectivo': factura.formPago!.totalEfectivo,
       'totalBac': factura.formPago!.totalBac,
       'totalDav': factura.formPago!.totalDav,
@@ -431,15 +432,17 @@ class _TicketScreenState extends State<TicketScreen> {
       'totalPuntos': factura.formPago!.totalPuntos,
       'totalTransfer': factura.formPago!.totalTransfer,
       'saldo': factura.saldo,
-      'clientePaid': factura.formPago!.clientePuntos.toJson(),
+      'clientePuntos': factura.formPago!.clientePuntos.toJson(),
       'Transferencia': factura.formPago!.transfer.toJson(),
-      'observaciones': factura.observaciones ?? '',
-      'ticketMedioPago': 'Efectivo',
+      'observaciones': factura.observaciones ?? '',      
       'placa': '',
+      'isTicket': true,
+      'isContado': false,
+      'isCredit': false,
     };
 
     final Response response =
-        await ApiHelper.post("Api/Facturacion/Ticket", request);
+        await ApiHelper.post("Api/Facturacion/FacturaSp", request);
 
     setState(() => _showLoader = false);
 

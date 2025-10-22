@@ -103,7 +103,9 @@ class Invoice {
         email: '',
         puntos: 0,
         codigo: '',
-        telefono: '');
+        telefono: '',
+        plazo: 0
+    );
 
     // Transferencia por defecto
     final defaultTransferencia = Transferencia(
@@ -191,14 +193,15 @@ class Invoice {
           email: '', 
           puntos: 0, 
           codigo: '', 
-          telefono: ''
+          telefono: '',
+          plazo: 0
         ), 
         transfers: [], 
         monto: 0, 
         totalTransfer: 0
       );
-        formPago!.clienteFactura=Cliente(nombre: '', documento: '', codigoTipoID: '', email: '', puntos: 0, codigo: '', telefono: '');
-         formPago!.clientePuntos=Cliente(nombre: '', documento: '', codigoTipoID: '', email: '', puntos: 0, codigo: '', telefono: '');
+        formPago!.clienteFactura=Cliente(nombre: '', documento: '', codigoTipoID: '', email: '', puntos: 0, codigo: '', telefono: '', plazo: 0);
+         formPago!.clientePuntos=Cliente(nombre: '', documento: '', codigoTipoID: '', email: '', puntos: 0, codigo: '', telefono: '', plazo: 0);
       formPago!.sinpe = Sinpe(numFact: '', fecha: DateTime.now(), id: 0, idCierre: 0, activo: 0, monto: 0, nombreEmpleado: '', nota: '', numComprobante: '');
           
       // ... Continuar con el reseteo de los campos necesarios

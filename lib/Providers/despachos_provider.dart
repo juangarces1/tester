@@ -128,6 +128,14 @@ class DespachosProvider extends ChangeNotifier {
     }
   }
 
+  bool removeById(String id) {
+    final d = getById(id);
+    if (d == null) return false;
+    d.clear();
+    removeDispatch(d);
+    return true;
+  }
+
   void removeWatchedHose(String hoseKey) {
     _watchedHoses.remove(hoseKey);
     _hoseStatuses.remove(hoseKey);

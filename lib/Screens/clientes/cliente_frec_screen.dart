@@ -16,12 +16,12 @@ import 'package:tester/sizeconfig.dart';
 
 class ClientesFrecScreen extends StatefulWidget {
   final Invoice factura;
-  final String ruta;
+ 
 
   const ClientesFrecScreen({
     super.key,
     required this.factura,
-    required this.ruta,
+   
   });
 
   @override
@@ -52,7 +52,7 @@ class _ClientesFrecScreenState extends State<ClientesFrecScreen> {
       child: Scaffold(
         backgroundColor: kColorFondoOscuro,
         appBar: const MyCustomAppBar(
-          title: 'Buscar Cliente Frecuente',
+          title: 'Cliente Frecuente',
           elevation: 6,
           shadowColor: kColorFondoOscuro,
           automaticallyImplyLeading: true,

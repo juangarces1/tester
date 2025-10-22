@@ -1,10 +1,23 @@
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class Q3Printer {
   static const _ch = MethodChannel('q3pro/printer');
 
-  static Future<bool> bind() async =>
-      (await _ch.invokeMethod<bool>('bind')) ?? false;
+  static Future<bool> bind() async {
+  try {
+    final ok = await _ch.invokeMethod<bool>('bind');
+    return ok ?? false;
+  } on PlatformException catch (e) {
+    debugPrint('bind PlatformException: $e');
+    return false;
+  } on MissingPluginException {
+    return false;
+  } catch (e) {
+    debugPrint('bind unknown error: $e');
+    return false;
+  }
+}
 
   static Future<void> unbind() =>
       _ch.invokeMethod<void>('unbind');

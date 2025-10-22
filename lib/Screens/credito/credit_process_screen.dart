@@ -596,9 +596,9 @@ Widget showObser() {
       {
         'products': factura.detail!.map((e) => e.toApiProducJson()).toList(),
         'idCierre' : factura.cierre!.idcierre,
-        'cedualaUsuario' : factura.empleado!.cedulaEmpleado.toString(),
-        'cedulaClienteFactura' : factura.formPago!.clienteCredito.documento,
-        'totalEfectivo' : factura.formPago!.totalEfectivo,        
+        'cedualaUsuario' : factura.empleado!.cedulaEmpleado.toString(),       
+        'clienteFactura': factura.formPago!.clienteFactura.toJson(),
+        'totalEfectivo' : factura.total,        
         'totalBac' : factura.formPago!.totalBac,
         'totalDav' : factura.formPago!.totalDav,
         'totalBn' : factura.formPago!.totalBn,
@@ -608,15 +608,19 @@ Widget showObser() {
         'totalCupones' : factura.formPago!.totalCupones,
         'totalPuntos' : factura.formPago!.totalPuntos,
         'totalTransfer' : factura.formPago!.totalTransfer,
-        'saldo' : factura.saldo,
-        'clientePaid' : factura.formPago!.clienteCredito.toJson(),
+        'saldo' : 0,
+        'clientePuntos' : factura.formPago!.clienteCredito.toJson(),
         'Transferencia' : factura.formPago!.transfer.toJson(),
         'kms':kms.text,
         'observaciones' :obser.text,
-        'placa':placa     
+        'placa':placa,
+        'isticket': false,
+        'isCredit': true,
+        'plazo': factura.formPago!.clienteFactura.plazo,
+        'isContado': false,     
 
       };
-      Response response = await ApiHelper.post("Api/Facturacion/CreditFactura", request);  
+      Response response = await ApiHelper.post("Api/Facturacion/FacturaSp", request);  
 
       setState(() {
        _showLoader = false;

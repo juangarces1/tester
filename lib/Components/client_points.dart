@@ -6,12 +6,12 @@ import 'package:tester/constans.dart';
 
 class ClientPoints extends StatefulWidget {
   final Invoice factura;
-  final String ruta;
+  
 
   const ClientPoints({
     super.key,
     required this.factura,
-    required this.ruta,
+    
   });
 
   @override
@@ -79,7 +79,7 @@ class _ClientPointsState extends State<ClientPoints> {
       MaterialPageRoute(
         builder: (context) => ClientesFrecScreen(
           factura: widget.factura,
-          ruta: widget.ruta,
+          
         ),
       ),
     );

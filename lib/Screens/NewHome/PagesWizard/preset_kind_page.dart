@@ -183,22 +183,11 @@ class PresetKindPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Selecciona tipo de Preset', style: TextStyle(color: Colors.white)),
+        title: const Text('Preset ', style: TextStyle(color: Colors.white)),
         elevation: 0,
         backgroundColor: Colors.transparent,
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.home),
-            tooltip: 'Ir al menú',
-            onPressed: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const MenuPage()),
-                (route) => false,
-              );
-            },
-          ),
-        ],
+       
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),
@@ -334,18 +323,7 @@ class _PreDispenseAmountFormPageState extends State<PreDispenseAmountFormPage> {
         elevation: 0,
         backgroundColor: Colors.transparent,
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.home),
-            tooltip: 'Ir al menú',
-            onPressed: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const MenuPage()),
-                (route) => false,
-              );
-            },
-          ),
-        ],
+      
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),
@@ -438,18 +416,7 @@ class _PreDispenseVolumeFormPageState extends State<PreDispenseVolumeFormPage> {
         elevation: 0,
         backgroundColor: Colors.transparent,
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.home),
-            tooltip: 'Ir al menú',
-            onPressed: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const MenuPage()),
-                (route) => false,
-              );
-            },
-          ),
-        ],
+      
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),

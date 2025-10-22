@@ -10,6 +10,7 @@ class Transferencia {
       puntos: 0,
       codigo: '',
       telefono: '',
+      plazo: 0,
     ); 
     List<TransParcial> transfers = [];
     double monto = 0; 

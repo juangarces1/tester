@@ -4,7 +4,7 @@ import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/ViewModels/new_map.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/ViewModels/dispatch_control.dart';
-import 'package:tester/Screens/NewHome/PagesWizard/preset_step_page.dart';
+import 'package:tester/Screens/NewHome/PagesWizard/preset_kind_page.dart';
 
 class PositionHosesPage extends StatefulWidget {
   final int positionNumber; // solo para el título

@@ -31,9 +31,8 @@ class Paid {
       tipo: "",
       codigo: '',
       puntos: 0,
-      telefono: ""
-
-    
+      telefono: "",
+      plazo: 0
   );
 
   
@@ -45,6 +44,7 @@ class Paid {
       puntos: 0,
        codigo: '',
         telefono: '',
+        plazo: 0
     );
     Cliente clientePuntos = Cliente(
       nombre: "",
@@ -54,6 +54,7 @@ class Paid {
       puntos: 0,
        codigo: '',
         telefono: '',
+        plazo: 0
     ); 
   Sinpe sinpe = Sinpe(
       id: 0,
@@ -75,10 +76,12 @@ class Paid {
       puntos: 0,
       codigo: '',
       telefono: '',
+       plazo: 0
     ),
      transfers: [],
       monto: 0, 
-      totalTransfer: 0
+      totalTransfer: 0,
+     
   ); 
   
   Paid({

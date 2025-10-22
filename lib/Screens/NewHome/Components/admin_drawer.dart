@@ -176,19 +176,19 @@ class AdminDrawer extends StatelessWidget {
           ),
         ],
       ),
-      _AdminDrawerSection(
-        title: 'Herramientas',
-        icon: Icons.settings_outlined,
-        items: [
-          _AdminMenuItem(
-            title: 'Config Impresora',
-            asset: 'assets/printer.png',
-            accent: const Color(0xFF67E8F9),
-            onTap: () => _openPage(context, const PrinterScreen()),
-          ),
+      // _AdminDrawerSection(
+      //   title: 'Herramientas',
+      //   icon: Icons.settings_outlined,
+      //   items: [
+      //     _AdminMenuItem(
+      //       title: 'Config Impresora',
+      //       asset: 'assets/printer.png',
+      //       accent: const Color(0xFF67E8F9),
+      //       onTap: () => _openPage(context, const PrinterScreen()),
+      //     ),
          
-        ],
-      ),
+      //   ],
+      // ),
       _AdminDrawerSection(
         title: 'Sesión',
         icon: Icons.logout,
@@ -214,9 +214,9 @@ class _DrawerHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           gradient: const LinearGradient(
@@ -236,8 +236,8 @@ class _DrawerHeader extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              height: 58,
-              width: 58,
+              height: 50,
+              width: 50,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(18),
                 color: Colors.white.withValues(alpha: 0.08),
@@ -339,7 +339,7 @@ class _DrawerItemCard extends StatelessWidget {
         onTap: item.onTap,
         borderRadius: BorderRadius.circular(18),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
             gradient: LinearGradient(
@@ -362,8 +362,8 @@ class _DrawerItemCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                height: 48,
-                width: 48,
+                height: 40,
+                width: 40,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
                   gradient: LinearGradient(
@@ -380,7 +380,7 @@ class _DrawerItemCard extends StatelessWidget {
                   child: Image.asset(item.asset, fit: BoxFit.contain),
                 ),
               ),
-              const SizedBox(width: 18),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   item.title,

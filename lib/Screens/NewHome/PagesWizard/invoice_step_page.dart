@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/Screens/NewHome/Components/menu_page.dart';
 import 'package:tester/ViewModels/dispatch_control.dart';
-import 'package:tester/Screens/PositionsFlow/position_hoses_page.dart';
+import 'package:tester/Screens/NewHome/PagesWizard/position_hoses_page.dart';
 
 class InvoiceStepPage extends StatelessWidget {
   final String dispatchId;

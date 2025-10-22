@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/Screens/NewHome/Components/menu_page.dart';
-import 'package:tester/Screens/NewHome/PagesWizard/preset_step_page.dart';
+import 'package:tester/Screens/NewHome/PagesWizard/preset_kind_page.dart';
 import 'package:tester/ViewModels/dispatch_control.dart';
 import 'package:tester/ViewModels/new_map.dart';
 
@@ -99,16 +99,16 @@ class _HoseStepPageState extends State<HoseStepPage> {
             tooltip: 'Actualizar mapa',
             onPressed: _refreshMap,
           ),
-          IconButton(
-            icon: const Icon(Icons.home),
-            tooltip: 'Ir al menu',
-            onPressed: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const MenuPage()),
-                (route) => false,
-              );
-            },
-          ),
+          // IconButton(
+          //   icon: const Icon(Icons.home),
+          //   tooltip: 'Ir al menu',
+          //   onPressed: () {
+          //     Navigator.of(context).pushAndRemoveUntil(
+          //       MaterialPageRoute(builder: (_) => const MenuPage()),
+          //       (route) => false,
+          //     );
+          //   },
+          // ),
         ],
       ),
       body: mapProv.isLoading && map == null

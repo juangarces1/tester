@@ -30,7 +30,7 @@ class Product {
   String servicio;               // SERVICIO/servicio
 
   // Derivado (como en C#): "1" si servicio == "0"; "2" si no.
-  String get productType => servicio == "0" ? "1" : "2";
+  int get productType => servicio == "0" ? 1 : 2;
 
   // ==== Campos propios de la app (mantengo lo que ya tenías) ====
   List<String> images;

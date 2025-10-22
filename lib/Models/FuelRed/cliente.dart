@@ -11,6 +11,8 @@ class Cliente {
   String? tipo;
   String? codigoFrecuente;
   String telefono = '';
+  String? codigoCondicion;
+  int plazo = 0;
 
   // Hazlas no-nulas para evitar NPEs en la UI
   List<String> placas = <String>[];
@@ -35,6 +37,8 @@ class Cliente {
     this.actividadesEconomicas,
     this.actividadPrincipal,
     this.actividadSeleccionada,
+    this.codigoCondicion,
+    required this.plazo,
   }) {
     this.placas = _dedupePlacas(placas ?? const []);
     this.emails = _dedupeEmails(emails ?? (email.isNotEmpty ? [email] : const []));
@@ -55,6 +59,8 @@ class Cliente {
     telefono      = (json['telefono'] ?? '').toString();
     tipo          = json['tipo']?.toString();
     codigoFrecuente = (json['codigoFrecuente'] ?? '').toString();
+    codigoCondicion = json['codigoCondicion']?.toString();
+    plazo           = _toInt(json['plazo']);
 
     // ---- emails: mezcla 'email' + 'emails' sin duplicar
     final listEmails = <String>[];
@@ -68,16 +74,7 @@ class Cliente {
 
     // // ---- placas: acepta List / String "a,b,c" / números
      placas = _parsePlacas(json['placas']); 
-     // 👇 placas: map directo y limpio (sin normalizar si no quieres)
-  // placas = <String>[];
-  // if (json['placas'] is List) {
-  //   for (final p in (json['placas'] as List)) {
-  //     if (p == null) continue;
-  //     final s = p.toString().trim();
-  //     if (s.isEmpty) continue;
-  //     placas.add(s);
-  //   }
-  //}
+    
 
     // ---- actividades
     if (json['actividadesEconomicas'] is List) {
@@ -110,6 +107,8 @@ class Cliente {
     data['tipo'] = tipo;
     data['telefono'] = telefono;
     data['codigoFrecuente'] = codigoFrecuente;
+    data['codigoCondicion'] = codigoCondicion;
+    data['plazo'] = plazo;
 
     // exporta listas ya depuradas
     data['emails'] = emails;
@@ -161,6 +160,7 @@ class Cliente {
               : null),
       actividadPrincipal: actividadPrincipal ?? this.actividadPrincipal,
       actividadSeleccionada: actividadSeleccionada ?? this.actividadSeleccionada,
+      plazo: plazo,
     );
   }
 

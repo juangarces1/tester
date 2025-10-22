@@ -1,284 +1,225 @@
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:tester/Components/cart_card.dart';
-import 'package:tester/Components/loader_component.dart';
+import 'package:tester/Components/cart_inline_readonly.dart';
 import 'package:tester/Models/FuelRed/factura.dart';
 import 'package:tester/constans.dart';
-
+import 'package:tester/helpers/varios_helpers.dart';
 
 
 class DetalleFacturaScreen extends StatefulWidget {
-   final Factura factura;
- 
-   // ignore: use_key_in_widget_constructors
-   const DetalleFacturaScreen({required this.factura});
+  final Factura factura;
+  const DetalleFacturaScreen({super.key, required this.factura});
 
   @override
   State<DetalleFacturaScreen> createState() => _DetalleFacturaScreenState();
 }
 
 class _DetalleFacturaScreenState extends State<DetalleFacturaScreen> {
-  final bool _showLoader = false;  
+  
   @override
   Widget build(BuildContext context) {
-    return   SafeArea(
+    final f = widget.factura;
+    final stripe = _docColor(f);
+
+    return SafeArea(
       child: Scaffold(
+        backgroundColor: kNewborder,
         appBar: AppBar(
           foregroundColor: Colors.white,
-          backgroundColor: kBlueColorLogo,
-          title: Text(widget.factura.nFactura, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold,color: Colors.white),),
-        ),
-        body: Container(
-          color: kColorFondoOscuro,
-          child: Center(
-            child: _showLoader 
-              ? const LoaderComponent(loadingText: 'Por favor espere...',) 
-              : _getContent(),
+          backgroundColor: kNewsurface,
+          title: const Text(
+            'Detalle',
+            style: TextStyle(
+              fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
           ),
-        ),      
-       
+        ),
+        body: CustomScrollView(
+          slivers: [
+            // ===== Header =====
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+                child: _HeaderCard(factura: f, stripe: stripe),
+              ),
+            ),
+        
+            // ===== Detalle: CartInlineReadOnly (sin botones) =====
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 18),
+                child: CartInlineReadOnly(
+                  items: f.detalles,                 // 👈 le pasamos el detalle ya cargado
+                  title: 'Detalle de la factura',    // título dentro del propio widget
+                  denseThumbnails: true,             // miniaturas 48px (más compacto)
+                ),
+              ),
+            ),
+        
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          ],
+        ),
       ),
     );
   }
 
-   Widget _getContent() {
+  Color _docColor(Factura f) {
+    if (f.isDevolucion) return const Color(0xFFE67E22); // NC naranja
+    if (f.isFactura) return const Color(0xFF2ECC71);    // Factura verde
+    if (f.isTicket) return const Color(0xFF3498DB);     // Ticket azul
+    return kPrimaryColor;
+  }
+}
+
+class _HeaderCard extends StatelessWidget {
+  final Factura factura;
+  final Color stripe;
+  const _HeaderCard({required this.factura, required this.stripe});
+
+  @override
+  Widget build(BuildContext context) {
+    final onCard = Colors.black.withOpacity(.86);
+    final onMuted = Colors.black.withOpacity(.62);
+
     return Container(
-      color: const Color.fromARGB(255, 243, 239, 239),
-      child: Column(
-        children: <Widget>[          
-          const SizedBox(height: 5,),     
-          _showHeader(),
-          const SizedBox(height: 5,),    
-         widget.factura.detalles.isEmpty
-          ? Container() 
-          : const Text('Detalle de la Factura',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: kPrimaryColor,
-              ),
-            ),
-          Expanded(
-            child: widget.factura.detalles.isEmpty ? _noContent() : _getProducts(),
+      decoration: BoxDecoration(
+        color: kContrateFondoOscuro,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black.withOpacity(.06)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(.28),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
-    );
-  }
-
-    _showHeader() {
-    return Padding(
-      padding: const EdgeInsets.all(10.0),
-      child: Card(
-        color: kColorFondoOscuro,
-         shadowColor: const Color.fromARGB(255, 0, 2, 3),
-                elevation: 8,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        child: InkWell(        
-          child: Container(
-            margin: const EdgeInsets.all(10),
-            padding: const EdgeInsets.all(5),
-           
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: <Widget> [ 
-                const Center(child: Text('Info Factura', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold,color: Colors.white),)),
-                const SizedBox(height: 5,),
-                Row(                        
-                  children: [                          
-                    const Text(
-                      'Cliente: ', 
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFE5E8EC),
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        widget.factura.cliente, 
-                        style: const TextStyle(
-                          fontSize: 14,                      
-                          color: Color(0xFFE5E8EC),
-                        ),
-                      ),
-                    ),
-                    
-                  ],
+      foregroundDecoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border(left: BorderSide(color: stripe, width: 6)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Chip de tipo + Total
+            Row(
+              children: [
+                _DocTypeChip(factura: factura, color: stripe),
+                const Spacer(),
+                Text(
+                  NumberFormat.currency(symbol: '¢')
+                      .format(factura.totalFactura ?? 0),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: stripe,
+                  ),
                 ),
-                const SizedBox(height: 5,),
-                
-                  Row(                        
-                  children: [                          
-                    const Text(
-                      'Email: ', 
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFE5E8EC),
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        widget.factura.email??'', 
-                        style: const TextStyle(
-                          fontSize: 14,                      
-                          color: Color(0xFFE5E8EC),
-                        ),
-                      ),
-                    ),
-                    
-                  ],
-                ),
-                const SizedBox(height: 5,),
-                Row(
-                  
-                  children: [
-                    const Text(
-                      'Fecha: ', 
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                           color: Color(0xFFE5E8EC),
-                      ),
-                    ),
-                    Text(
-                     DateFormat.yMd().add_jm().format(widget.factura.fechaHoraTrans),    
-                      style: const TextStyle(
-                        fontSize: 14,
-                         color: Color(0xFFE5E8EC),
-                      ),
-                    ),
-                    
-                  ],
-                ),
-                const SizedBox(height: 5,),
-                Row(                        
-                  children: [
-                    const Text(
-                      'Kilometraje: ', 
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                           color: Color(0xFFE5E8EC),
-                      ),
-                    ),
-                    Text(
-                     widget.factura.kilometraje.toString(), 
-                      style: const TextStyle(
-                        fontSize: 14,
-                         color: Color(0xFFE5E8EC),
-                      ),
-                    ),                          
-                  ],
-                ),
-                const SizedBox(height: 5,),
-                Row(                        
-                  children: [
-                    const Text(
-                      'Placa: ', 
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                           color: Color(0xFFE5E8EC),
-                      ),
-                    ),
-                    Text(
-                      widget.factura.nPlaca.toString(), 
-                      style: const TextStyle(
-                        fontSize: 14,
-                         color: Color(0xFFE5E8EC),
-                      ),
-                    ),                          
-                  ],
-                ),
-                const SizedBox(height: 5,),
-                Row(                         
-                  children: [
-                    const Text(
-                      'Impuesto: ', 
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                           color: Color(0xFFE5E8EC),
-                      ),
-                    ),
-                    Text(
-                    NumberFormat.currency(symbol: '¢').format(widget.factura.totalImpuesto), 
-                      style: const TextStyle(
-                        fontSize: 14,
-                         color: Color(0xFFE5E8EC),
-                      ),
-                    ),                          
-                  ],
-                ),
-                const SizedBox(height: 5,),
-                Row(                        
-                  children: [
-                    const Text(
-                      'Total: ', 
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                           color: Color(0xFFE5E8EC),
-                      ),
-                    ),
-                    Text(
-                      NumberFormat.currency(symbol: '¢').format(widget.factura.totalFactura),
-                      style: const TextStyle(
-                        fontSize: 14,
-                         color: Color(0xFFE5E8EC),
-                      ),
-                    ),                          
-                  ],
-                ),              
-              
-               
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
+            const SizedBox(height: 10),
 
+            if (!factura.isTicket)
+              Text(
+                (factura.cliente.trim().isNotEmpty == true
+                        ? factura.cliente
+                        : factura.descripCliente) ??
+                    '',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: onCard,
+                ),
+              ),
 
-   Widget _noContent() {
-    return Center(
-      child: Container(
-        margin: const EdgeInsets.all(20),
-        child: const Text(          
-           'No hay detalle registrado.',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold
-          ),
-        ),
-      ),
-    );
-  }
+            const SizedBox(height: 12),
 
-  Widget _getProducts() {
-    return Padding(
-      padding: const EdgeInsets.all(10.0),
-      child: Container(
-       
-        decoration: BoxDecoration(
-            border: Border.all(
-              color: const Color.fromARGB(255, 136, 133, 133),
-              width: 2.0,
-              style: BorderStyle.solid
+            // Pills
+            Wrap(
+              spacing: 10,
+              runSpacing: 8,
+              children: [
+                _pill('N°', factura.nFactura, onCard, onMuted),
+                _pill('Fecha',
+                   VariosHelpers.formatYYYYmmDDhhMM(factura.fechaHoraTrans),
+                    onCard, onMuted),
+                if ((factura.email ?? '').isNotEmpty)
+                  _pill('Email', factura.email!, onCard, onMuted),
+                _pill('Km', '${factura.kilometraje}', onCard, onMuted),
+                _pill('Placa', '${factura.nPlaca}', onCard, onMuted),
+                _pill(
+                  'Impuesto',
+                  NumberFormat.currency(symbol: '¢')
+                      .format(factura.totalImpuesto ?? 0),
+                  onCard, onMuted,
+                ),
+                _pill(factura.plazo == 0 ? 'Contado' : 'Crédito', '', onCard, onMuted),
+                if (factura.isDevolucion)
+                  _pill('Tipo', 'Nota de Crédito', onCard, onMuted),
+              ],
             ),
-            borderRadius: BorderRadius.circular(20),
-            color: kColorFondoOscuro
-          ),
-        padding: const EdgeInsets.all(10),
-       
-        child: ListView.builder(
-          itemCount: widget.factura.detalles.length,
-          itemBuilder: (context, index) {
-           return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: 
-             CartCard(product: widget.factura.detalles[index],)
-           );  
-          },    
+          ],
         ),
       ),
     );
-  }         
+  }
+
+  Widget _pill(String label, String value, Color onCard, Color onMuted) {
+    final onlyLabel = value.isEmpty;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(.035),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.black.withOpacity(.06)),
+      ),
+      child: onlyLabel
+          ? Text(label, style: TextStyle(color: onMuted, fontWeight: FontWeight.w600))
+          : RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(text: '$label: ', style: TextStyle(color: onMuted, fontWeight: FontWeight.w600)),
+                  TextSpan(text: value,     style: TextStyle(color: onCard,  fontWeight: FontWeight.w900)),
+                ],
+              ),
+            ),
+    );
+  }
+}
+
+class _DocTypeChip extends StatelessWidget {
+  final Factura factura;
+  final Color color;
+  const _DocTypeChip({required this.factura, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final text = factura.isDevolucion
+        ? 'Nota de Crédito'
+        : (factura.isFactura ? 'Factura Electrónica' : 'Ticket Electrónico');
+
+    final hsl = HSLColor.fromColor(color);
+    final readable = hsl.withLightness((hsl.lightness - .22).clamp(0.0, 1.0)).toColor();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withOpacity(.35)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w800,
+          color: readable,
+          letterSpacing: .2,
+        ),
+      ),
+    );
+  }
 }
