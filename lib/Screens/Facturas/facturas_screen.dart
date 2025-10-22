@@ -452,13 +452,12 @@ class _FacturasScreenState extends State<FacturasScreen> {
     final usuario = prov.usuario!;
 
     final req = {
-      'nFact': fact.nFactura,
-      'idZona': cierre.idzona,
-      'idCierre': cierre.idcierre,
+      'facturaOrigen': fact.nFactura,   
+      'numeroCierreActivo': cierre.idcierre,
       'cedulaUsuario': usuario.cedulaEmpleado.toString(),
     };
 
-    final resp = await ApiHelper.post('Api/Facturacion/Devolucion', req);
+    final resp = await ApiHelper.post('Api/Facturacion/DevolucionSP', req);
 
     if (!mounted) return;
     setState(() => _loading = false);
