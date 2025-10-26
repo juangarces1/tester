@@ -484,18 +484,12 @@ class _FacturasScreenState extends State<FacturasScreen> {
       return;
     }
 
-    if (isBound) {
-      Fluttertoast.showToast(msg: 'Impresora ocupada…');
+    if (!isBound) {
+      Fluttertoast.showToast(msg: 'Impresora no conectada');
       return;
     }
 
-    final printer = context.read<PrinterProvider>();
-    await printer.runLocked(() async {
-      final ok = await printer.ensureBound();
-      if (!ok) {
-        Fluttertoast.showToast(msg: 'No se pudo conectar a la impresora');
-        return;
-      }
+    
 
       // Prepara datos del encabezado (usuario/pistero)
       final usuario = context.read<CierreActivoProvider>().usuario!;
@@ -513,7 +507,7 @@ class _FacturasScreenState extends State<FacturasScreen> {
         debugPrint('printFactura error: $err\n$st');
         Fluttertoast.showToast(msg: 'Error al imprimir: $err');
       }
-    });
+    
   }
 
   // ====== Util ======

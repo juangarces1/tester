@@ -15,8 +15,8 @@ class Transaccion {
   String estado ="";
   String entregatarjeta ="";
   String canjetarjeta ="";
-  String pan="";
-  String nombrecliente ="";
+  String? pan="";
+  String? nombrecliente ="";
   String facturada ="";
   String? creacion;
   String? subir;
@@ -37,8 +37,8 @@ class Transaccion {
       required this.estado,
       required this.entregatarjeta,
       required this.canjetarjeta,
-      required this.pan,
-      required this.nombrecliente,
+       this.pan,
+       this.nombrecliente,
       required this.facturada,
       this.creacion,
       this.subir,

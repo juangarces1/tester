@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Screens/NewHome/Components/admin_drawer.dart';
+import 'package:tester/Screens/NewHome/Components/admin_hub_screen.dart';
 import 'package:tester/Screens/NewHome/Components/facturacion_page.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/first_page.dart';
 
@@ -37,11 +38,10 @@ class _NewHomeScreenState extends State<NewHomeScreen> {
   Widget build(BuildContext context) {
     final pages = <Widget>[
       const FirstPage(),
-      // DispensersDashboard(
-      //   key: const PageStorageKey('dispensers'),
-      //   isActive: _selectedIndex == 1,
-      // ),
+    
+     
       const FacturacionPage(),
+       const AdminCenterPage(),
     ];
     return SafeArea(
       child: Scaffold(
@@ -72,17 +72,22 @@ class _NewHomeScreenState extends State<NewHomeScreen> {
                 color: Colors.white,
                 tabs: const [
                   GButton(
+                    iconSize: 25,
                     icon: Icons.ev_station,
                     text: 'Despachos',
                   ),
-                  // GButton(
-                  //   icon: Icons.ev_station,
-                  //   text: 'Estado',
-                  // ),
+                 
                   GButton(
+                     iconSize: 25,
                     icon: Icons.receipt_long,
                     text: 'Facturación',
                   ),
+                    GButton(
+                       iconSize: 25,
+                     
+                     icon: Icons.settings_applications,
+                     text: 'Admin',
+                   ),
                 ],
                 selectedIndex: _selectedIndex,
                 onTabChange: (index) {
@@ -94,7 +99,7 @@ class _NewHomeScreenState extends State<NewHomeScreen> {
             ),
           ),
         ),
-        drawer: const AdminDrawer(),
+      //  drawer: const AdminDrawer(),
       ),
     );
   }

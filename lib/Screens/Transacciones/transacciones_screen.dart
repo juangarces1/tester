@@ -237,6 +237,8 @@ class _TransaccionesScreenState extends State<TransaccionesScreen> {
           .toList(),
     };
 
+    items.sort((a, b) => (b.numero ?? 0).compareTo(a.numero ?? 0));
+
     final countAll = prov.length;
     final countUnpaid = prov.unpaid.length;
 
@@ -592,8 +594,9 @@ class _TxCard extends StatelessWidget {
   }
 
   static String _saleTag(Transaccion t) {
-    if (t.numero > 0) return '${t.numero}';
+   
     if (t.idtransaccion > 0) return '${t.idtransaccion}';
+     if (t.numero > 0) return '${t.numero}';
     return '';
   }
 

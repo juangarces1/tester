@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
@@ -36,11 +38,31 @@ class _LoginScreenState extends State<LoginScreen> {
   // ---------------- Actual (cédula como "password") ----------------
   String _password = '';
   String _passwordError = '';
+  final TextEditingController _passwordController = TextEditingController();
+
 
   bool _passwordShow = false;
   bool _showLoader = false;
   LogInEstado login = LogInEstado();
   int _selectedZone = 0;
+
+  static Widget _buildAuroraBlob(Color color) {
+    return Container(
+      width: 280,
+      height: 280,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.6),
+            blurRadius: 200,
+            spreadRadius: 40,
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -57,11 +79,30 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Stack(
         children: [
           // BG image
-          Positioned.fill(
-            child: Image.asset(
-              'assets/BgLogin.png',
-              fit: BoxFit.cover,
+          // Positioned.fill(
+          //   child: Image.asset(
+          //     'assets/BgLogin.png',
+          //     fit: BoxFit.cover,
+          //   ),
+          // ),
+           const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF060C18), Color(0xFF131E32)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
+          ),
+          Positioned(
+            top: -120,
+            left: -80,
+            child: _buildAuroraBlob(kPrimaryColor),
+          ),
+          Positioned(
+            bottom: -140,
+            right: -100,
+            child: _buildAuroraBlob(const Color(0x552563EB)),
           ),
 
           // Content
@@ -82,38 +123,40 @@ class _LoginScreenState extends State<LoginScreen> {
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                const SizedBox(height: 12),
-                                const _Header(),
-                                const SizedBox(height: 24),
+                                // const SizedBox(height: 12),
+                               //  const _Header(),
+                               //  const SizedBox(height: 10),
 
-                                _ZoneSelector(
-                                  selected: _selectedZone,
-                                  onSelect: (z) => setState(() => _selectedZone = z),
-                                ),
+                                // _ZoneSelector(
+                                //   selected: _selectedZone,
+                                //   onSelect: (z) => setState(() => _selectedZone = z),
+                                // ),
 
-                                const SizedBox(height: 24),
+                                // const SizedBox(height: 24),
 
-                                // Correo (opcional por ahora)
-                                // _buildEmail(),
-                                // const SizedBox(height: 16),
+                                // // Correo (opcional por ahora)
+                                // // _buildEmail(),
+                                // // const SizedBox(height: 16),
 
-                                _buildPassword(),
-                                const SizedBox(height: 24),
+                                // _buildPassword(),
+                                // const SizedBox(height: 24),
 
-                                DefaultButton(
-                                  text:  'ENTRAR',
-                                  press: _showLoader ? null : _login,
-                                  color: kPrimaryColor,
-                                  gradient: kPrimaryGradientColor,
-                                ),
+                                // DefaultButton(
+                                //   text:  'ENTRAR',
+                                //   press: _showLoader ? null : _login,
+                                //   color: kPrimaryColor,
+                                //   gradient: kPrimaryGradientColor,
+                                // ),
 
-                                const SizedBox(height: 24),
-                                   DefaultButton(
-                                  text: 'NFC',
-                                  press: _showLoader ? null : _goNNfc,
-                                  color: kPrimaryColor,
-                                  gradient: kPrimaryGradientColor,
-                                ),
+                                // const SizedBox(height: 24),
+                                //    DefaultButton(
+                                //   text: 'NFC',
+                                //   press: _showLoader ? null : _goNNfc,
+                                //   color: kPrimaryColor,
+                                //   gradient: kPrimaryGradientColor,
+                                // ),
+
+                                 Expanded(child: _buildFormCard(context)),
                               ],
                             ),
                           ),
@@ -280,6 +323,196 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Widget _buildFormCard(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(32),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(32, 40, 32, 32),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(32),
+            color: Colors.white.withOpacity(0.08),
+            border: Border.all(color: Colors.white.withOpacity(0.12)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.38),
+                blurRadius: 42,
+                offset: const Offset(0, 32),
+                spreadRadius: -20,
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+
+                const _Header(),
+              const SizedBox(height: 32),
+
+              // Row(
+              //   children: [
+              //     Container(
+              //       height: 48,
+              //       width: 48,
+              //       decoration: BoxDecoration(
+              //         borderRadius: BorderRadius.circular(16),
+              //         gradient: const LinearGradient(
+              //           colors: [Color(0xFF2563EB), Color(0xFF1E40AF)],
+              //           begin: Alignment.topLeft,
+              //           end: Alignment.bottomRight,
+              //         ),
+              //       ),
+              //       child: const Icon(
+              //         Icons.person_outline,
+              //         color: Colors.white,
+              //       ),
+              //     ),
+              //     const SizedBox(width: 16),
+              //     Column(
+              //       crossAxisAlignment: CrossAxisAlignment.start,
+              //       children: [
+              //         Text(
+              //           'Bienvenido',
+              //           style:
+              //               textTheme.titleMedium?.copyWith(
+              //                 color: Colors.white70,
+              //                 letterSpacing: 0.2,
+              //               ) ??
+              //               const TextStyle(
+              //                 color: Colors.white70,
+              //                 fontSize: 14,
+              //                 fontWeight: FontWeight.w600,
+              //               ),
+              //         ),
+              //         const SizedBox(height: 4),
+              //         Text(
+              //           'Inicia Sesión',
+              //           style:
+              //               textTheme.titleLarge?.copyWith(
+              //                 color: Colors.white,
+              //                 fontWeight: FontWeight.w700,
+              //               ) ??
+              //               const TextStyle(
+              //                 color: Colors.white,
+              //                 fontSize: 20,
+              //                 fontWeight: FontWeight.w700,
+              //               ),
+              //         ),
+              //       ],
+              //     ),
+              //   ],
+              // ),
+
+               _ZoneSelector(
+                                  selected: _selectedZone,
+                                  onSelect: (z) => setState(() => _selectedZone = z),
+                                ),
+
+              const SizedBox(height: 32),
+              TextField(
+                controller: _passwordController,
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
+                obscureText: !_passwordShow,
+                style: const TextStyle(color: Colors.white),
+                cursorColor: Colors.white,
+                decoration: InputDecoration(
+                  labelText: 'Cedula',
+                  hintText: 'Digita tu numero de cedula',
+                  prefixIcon: const Icon(
+                    Icons.badge_outlined,
+                    color: Colors.white70,
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _passwordShow
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      color: Colors.white70,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _passwordShow = !_passwordShow;
+                      });
+                    },
+                  ),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.07),
+                  labelStyle: const TextStyle(color: Colors.white70),
+                  hintStyle: const TextStyle(color: Colors.white38),
+                  errorText: _passwordShow ? _passwordError : null,
+                  errorStyle: const TextStyle(color: Colors.redAccent),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: BorderSide(
+                      color: Colors.white.withOpacity(0.18),
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: BorderSide(
+                      color: Colors.white.withOpacity(0.38),
+                    ),
+                  ),
+                ),
+                onChanged: (value) {
+                  _password = value;
+                  if (_passwordShow) {
+                    setState(() {
+                      _passwordShow = false;
+                    });
+                  }
+                },
+                onSubmitted: (_) => _login(),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                  onPressed: _login,
+                  child: const Text('Ingresar'),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'El acceso esta restringido a personal autorizado. Contacta a sistemas para recuperar tus credenciales.',
+                style:
+                    textTheme.bodySmall?.copyWith(
+                      color: Colors.white60,
+                      height: 1.4,
+                    ) ??
+                    const TextStyle(
+                      color: Colors.white60,
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
  
 }
 
@@ -309,19 +542,23 @@ class _Header extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          'Controla tu estación al instante',
+        const Text(
+          'Elige una zona e inicia sesión para continuar',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 18,
-            color: Colors.lightBlueAccent.shade100,
+            color:Colors.white,
             fontWeight: FontWeight.w500,
           ),
         ),
       ],
     );
   }
+
+  
 }
+
+ 
 
 class _ZoneSelector extends StatelessWidget {
   final int selected;
@@ -351,6 +588,7 @@ class _ZoneSelector extends StatelessWidget {
           color: isSelected ? Colors.white : Colors.black,
         ),
       ),
+      checkmarkColor: Colors.white,
       selected: isSelected,
       onSelected: (_) => onSelect(value),
       selectedColor: kPrimaryColor,

@@ -44,4 +44,15 @@ class MapProvider extends ChangeNotifier {
     notifyListeners();
 
   }
+
+      // Dentro de MapProvider
+    void reset() {
+      _stationMap = null;   // Limpia el mapa cargado
+      _loading = true;      // Marca como pendiente de carga
+      _error = null;        // Borra mensajes de error
+      _toastShown = false;  // Permite que vuelva a mostrarse el toast inicial
+      notifyListeners();    // Notifica a la UI
+    }
+
+
 }

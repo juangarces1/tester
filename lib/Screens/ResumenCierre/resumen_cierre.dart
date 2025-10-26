@@ -4,8 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:tester/Components/app_bar_custom.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Models/ResumenCierre/cierre_caja_general.dart';
-import 'package:tester/Models/FuelRed/all_fact.dart';
-import 'package:tester/Models/FuelRed/cierreactivo.dart';
+
 import 'package:tester/Models/FuelRed/cierrefinal.dart';
 import 'package:tester/Models/FuelRed/empleado.dart';
 import 'package:tester/Models/FuelRed/response.dart';

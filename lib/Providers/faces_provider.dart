@@ -10,4 +10,10 @@ class FacesProvider extends ChangeNotifier {
 
   FaceView? getByPos(int pos) =>
       _faces.firstWhere((f) => f.pos == pos, orElse: () => throw StateError('POS no encontrado'));
+
+
+  void reset() {
+    _faces.clear();
+    notifyListeners();
+  }
 }

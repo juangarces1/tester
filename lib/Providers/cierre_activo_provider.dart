@@ -167,4 +167,9 @@ class CierreActivoProvider extends ChangeNotifier {
         turno: '',
         tipoempleado: '',
       );
+
+  void reset() {
+   _cierre = null; // elimina el cierre activo
+  notifyListeners();
+}
 }

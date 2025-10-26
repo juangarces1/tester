@@ -193,4 +193,13 @@ class ClienteProvider with ChangeNotifier {
     final codigo = (c.codigo).trim(); // String no-nullable en tu modelo
     return codigo.isNotEmpty ? codigo : c.documento.trim();
   }
+
+  void reset() {
+  _clientesContado = [];
+  _clientesCredito = [];
+  _clientesPromo = [];
+  _isLoading = false;
+  _errorMessage = null;
+  notifyListeners();
+}
 }

@@ -53,4 +53,13 @@ class UsuarioProvider extends ChangeNotifier {
     _fuelUser = null;
     notifyListeners();
   }
+
+  // Dentro de UsuarioProvider
+    void reset() {
+      _current = null;    // cierra sesión del usuario de consola
+      _fuelUser = null;   // elimina el usuario FuelRed (empleado)
+      notifyListeners();  // actualiza toda la UI dependiente
+    }
+
+  
 }

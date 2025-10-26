@@ -1,8 +1,7 @@
 // lib/Providers/facturas_provider.dart
 import 'dart:collection';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as context;
-import 'package:provider/provider.dart';
+
 
 import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/FuelRed/cierrefinal.dart';
@@ -12,7 +11,6 @@ import 'package:tester/Models/FuelRed/paid.dart';
 import 'package:tester/Models/FuelRed/peddler.dart';
 import 'package:tester/Models/FuelRed/sinpe.dart';
 import 'package:tester/Models/FuelRed/transferencia.dart';
-import 'package:tester/Providers/cierre_activo_provider.dart';
 
 // Si quieres usar el enum para setear flags:
 import 'package:tester/ViewModels/dispatch_control.dart' show InvoiceType;
@@ -149,5 +147,10 @@ class FacturasProvider with ChangeNotifier {
     invoice.isPeddler = type == InvoiceType.peddler;
     // Si tu modelo Invoice tiene un campo enum propio, mejor guarda también:
     // invoice.invoiceType = type;
+  }
+
+  void reset() {
+    _facturas.clear();      // limpia todas las facturas cargadas o creadas
+    notifyListeners();      // fuerza reconstrucción de widgets dependientes
   }
 }

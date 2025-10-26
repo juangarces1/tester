@@ -20,10 +20,10 @@ void main() {
         ChangeNotifierProvider(create: (_) => ClienteProvider()),
         ChangeNotifierProvider(create: (_) => TransaccionesProvider()),
         ChangeNotifierProvider(create: (_) => FacturasProvider()),
-        ChangeNotifierProvider(create: (_) => PrinterProvider()), // <- una sola vez
+        ChangeNotifierProvider(create: (_) => PrinterProvider()), 
         ChangeNotifierProvider(create: (_) => MapProvider()),
         ChangeNotifierProvider(create: (_) => DespachosProvider()),
-        ChangeNotifierProvider(create: (_) => PrinterProvider()),
+       
       ],
       child: const MyApp(),
     ),
@@ -48,12 +48,6 @@ class MyAppState extends State<MyApp> {
       final desp = context.read<DespachosProvider>();
       final tran = context.read<TransaccionesProvider>();
       desp.bindTransacciones(tran);
-
-      // Inicializa la impresora (bind al servicio nativo)
-     
-      // Si quieres, puedes chequear el estado:
-      // final ok = context.read<PrinterProvider>().isBound;
-      // debugPrint('Printer bound: $ok');
     });
   }
 

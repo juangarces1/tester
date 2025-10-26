@@ -23,6 +23,7 @@ import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 
 import 'package:tester/Screens/NewHome/Components/produccts_page.dart';
+import 'package:tester/Screens/test_print/testprint.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
 import 'package:tester/helpers/varios_helpers.dart';
@@ -217,55 +218,19 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                   ),
                 ),
               ),
-              // if (!isKeyboardVisible)
-              //   Positioned(
-              //     bottom: bottomOffset,
-              //     left: 80,
-              //     child: SizedBox(
-              //       height: 56,
-              //       width: 56,
-              //       child: GestureDetector(
-              //         onTap: () => Navigator.push(
-              //           context,
-              //           MaterialPageRoute(
-              //             builder: (context) =>
-              //                 ProductsPage(index: widget.index),
-              //           ),
-              //         ),
-              //         child: ClipRRect(
-              //           borderRadius: BorderRadius.circular(10),
-              //           child: Image.asset(
-              //             'assets/AceiteNoFondo.png',
-              //             fit: BoxFit.fill,
-              //           ),
-              //         ),
-              //       ),
-              //     ),
-              //   ),
-              // if (!isKeyboardVisible)
-              //   Positioned(
-              //     bottom: bottomOffset,
-              //     left: 10,
-              //     child: BotonTransacciones(
-              //       imagePath: 'assets/AddTr.png',
-              //       onItemSelected: onItemSelected, // ver abajo
-              //       zona: factura.cierre!.idzona!,
-              //     ),
-              //   ),
+            
               _showLoader
                   ? const LoaderComponent(loadingText: "Creando Factura...")
                   : Container(),
             ],
           ),
         ),
-        // floatingActionButton: isKeyboardVisible
-        //     ? null
-        //     : FloatingButtonWithModal(index: widget.index),
+      
       ),
     );
   }
 
-  // â† MutaciÃ³n SOLO vÃ­a Provider/Service (sin setState de negocio)
+
   void onItemSelected(Product product) {
     final prov = context.read<FacturasProvider>();
     final inv = prov.getInvoiceByIndex(widget.index);
@@ -550,8 +515,8 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             SizedBox(
-              height: getProportionateScreenHeight(35),
-              width: getProportionateScreenWidth(35),
+              height: getProportionateScreenHeight(38),
+              width: getProportionateScreenWidth(38),
               child: TextButton(
                 style: TextButton.styleFrom(
                   shape: RoundedRectangleBorder(
@@ -574,22 +539,30 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: kNewred.withValues(alpha: .18),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: kContrateFondoOscuro, width: 1),
-              ),
-              child: const Text(
-                "CONTADO",
+            // Container(
+            //   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            //   decoration: BoxDecoration(
+            //     color: kNewred.withValues(alpha: .18),
+            //     borderRadius: BorderRadius.circular(10),
+            //     border: Border.all(color: kContrateFondoOscuro, width: 1),
+            //   ),
+            //   child: const Text(
+            //     "CONTADO",
+            //     style: TextStyle(
+            //       color: kNewtextPri,
+            //       fontSize: 20,
+            //       fontWeight: FontWeight.bold,
+            //     ),
+            //   ),
+            // ),
+               const Text(
+                'Contado',
                 style: TextStyle(
-                  color: kNewtextPri,
-                  fontSize: 20,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
+                  color: kNewtextPri,
                 ),
               ),
-            ),
             const Spacer(),
             Container(
               padding: const EdgeInsets.only(top: 8, right: 5),
@@ -697,9 +670,141 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
 
     final decodedJson = jsonDecode(response.result);
     final Factura resdocFactura = Factura.fromJson(decodedJson);
-    resdocFactura.usuario = facturaApp.empleado!.nombreCompleto;
+    resdocFactura.usuario = facturaApp.empleado?.nombreCompleto;
 
-    _goHomeSuccess(facturaApp);
+    if(facturaApp.acumulaPuntos){
+      await _handleAcumulaPuntosPrint(
+        facturaApp, 
+        facturaApp.empleado?.nombreCompleto ?? '',
+        );
+    }
+
+    if(facturaApp.tieneTransferencia){
+      await _handleTransferenciaPrint(facturaApp);
+    }
+
+    if(facturaApp.canjeaPuntos){
+      await _handleCanjeaPuntosPrint(facturaApp);
+    }
+
+    if(facturaApp.tieneSinpe){
+      await _handleSinpePrint(facturaApp);
+    }
+
+
+
+    if (!mounted) return;
+
+    final bool shouldPrint = await _confirmPrintFactura();
+    if (shouldPrint) {
+      await _handleFacturaPrint(resdocFactura);
+    }
+
+    
+
+    await _goHomeSuccess(facturaApp);
+  }
+
+  Future<bool> _confirmPrintFactura() async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Imprimir factura'),
+          content: const Text('Desea imprimir la factura?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('No'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Si'),
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
+  }
+
+  Future<void> _handleFacturaPrint(Factura factura) async {
+    const String tipoDocumento = 'FACTURA';
+   
+
+    const String tipoCliente = 'CONTADO';
+
+    try {
+      final tp = TestPrint(totalChars: 32);
+      Fluttertoast.showToast(msg: 'Factura enviada a impresion');
+      await tp.printFactura(factura, tipoDocumento, tipoCliente);
+    
+    } catch (err, st) {
+      debugPrint('handleFacturaPrint error: $err\n$st');
+      Fluttertoast.showToast(msg: 'Error al imprimir la factura');
+    }
+  }
+
+   Future<void> _handleAcumulaPuntosPrint(Invoice facturaC, String pistero,) async {
+    try {
+      final tp = TestPrint(totalChars: 32);     
+      await tp.printPuntosAcumulados(
+        facturaC.formPago!.clientePuntos.nombre,
+        pistero,
+        facturaC.formPago!.clientePuntos.documento,
+        facturaC.detail!,       
+       );
+    
+    } catch (err, st) {
+      debugPrint('handleAcumulaPuntosPrint error: $err\n$st');
+      Fluttertoast.showToast(msg: 'Error al imprimir los puntos acumulados');
+    }
+  }
+
+   Future<void> _handleCanjeaPuntosPrint(Invoice facturaC,) async {
+    try {
+      final tp = TestPrint(totalChars: 32);     
+      await tp.printPuntosCanje(
+        facturaC.formPago!.clientePuntos.nombre,
+        facturaC.empleado!.nombreCompleto,
+        facturaC.formPago!.clientePuntos.puntos,
+        facturaC.formPago!.clientePuntos.documento,
+        facturaC.formPago!.totalPuntos,
+       );
+    
+    } catch (err, st) {
+      debugPrint('handleCanjeaPuntosPrint error: $err\n$st');
+      Fluttertoast.showToast(msg: 'Error al imprimir los puntos canjeados');
+    }
+  }
+
+   Future<void> _handleSinpePrint(Invoice facturaC,) async {
+    try {
+      final tp = TestPrint(totalChars: 32);     
+      await tp.printSinpe(
+        facturaC.formPago!.sinpe,
+        facturaC.empleado!.nombreCompleto,      
+       );
+    
+    } catch (err, st) {
+      debugPrint('handleSinpePrint error: $err\n$st');
+      Fluttertoast.showToast(msg: 'Error al imprimir el SINPE');
+    }
+  }
+
+  Future<void> _handleTransferenciaPrint(Invoice facturaC) async {
+    try {
+      final tp = TestPrint(totalChars: 32);
+      await tp.printTransferencia(
+        facturaC.formPago!.transfer,
+        facturaC.empleado!.nombreCompleto,    
+       );
+    
+    } catch (err, st) {
+      debugPrint('handleTransferenciaPrint error: $err\n$st');
+      Fluttertoast.showToast(msg: 'Error al imprimir la transferencia');
+    }
   }
 
   Future<void> _goHomeSuccess(Invoice facturaC) async {

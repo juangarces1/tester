@@ -5,7 +5,6 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
 import 'package:tester/Components/cart_inline_section.dart';
-import 'package:tester/Components/client_points.dart';
 import 'package:tester/Components/default_button.dart';
 import 'package:tester/Components/form_pago.dart';
 import 'package:tester/Components/loader_component.dart';
@@ -17,6 +16,7 @@ import 'package:tester/Models/FuelRed/factura.dart';
 import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/Screens/NewHome/Components/produccts_page.dart';
+import 'package:tester/Screens/test_print/testprint.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
 import 'package:tester/helpers/varios_helpers.dart';
@@ -280,8 +280,8 @@ class _TicketScreenState extends State<TicketScreen> {
           child: Row(
             children: [
               SizedBox(
-                height: getProportionateScreenHeight(45),
-                width: getProportionateScreenWidth(45),
+                height: getProportionateScreenHeight(38),
+                width: getProportionateScreenWidth(38),
                 child: TextButton(
                   style: TextButton.styleFrom(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(60)),
@@ -335,6 +335,109 @@ class _TicketScreenState extends State<TicketScreen> {
         ),
       ),
     );
+  }
+
+   Future<void> _handleAcumulaPuntosPrint(Invoice facturaC, String pistero,) async {
+    try {
+      final tp = TestPrint(totalChars: 32);     
+      await tp.printPuntosAcumulados(
+        facturaC.formPago!.clientePuntos.nombre,
+        pistero,
+        facturaC.formPago!.clientePuntos.documento,
+        facturaC.detail!,       
+       );
+    
+    } catch (err, st) {
+      debugPrint('handleAcumulaPuntosPrint error: $err\n$st');
+      Fluttertoast.showToast(msg: 'Error al imprimir los puntos acumulados');
+    }
+  }
+
+   Future<void> _handleCanjeaPuntosPrint(Invoice facturaC,) async {
+    try {
+      final tp = TestPrint(totalChars: 32);     
+      await tp.printPuntosCanje(
+        facturaC.formPago!.clientePuntos.nombre,
+        facturaC.empleado!.nombreCompleto,
+        facturaC.formPago!.clientePuntos.puntos,
+        facturaC.formPago!.clientePuntos.documento,
+        facturaC.formPago!.totalPuntos,
+       );
+    
+    } catch (err, st) {
+      debugPrint('handleCanjeaPuntosPrint error: $err\n$st');
+      Fluttertoast.showToast(msg: 'Error al imprimir los puntos canjeados');
+    }
+  }
+
+   Future<void> _handleSinpePrint(Invoice facturaC,) async {
+    try {
+      final tp = TestPrint(totalChars: 32);     
+      await tp.printSinpe(
+        facturaC.formPago!.sinpe,
+        facturaC.empleado!.nombreCompleto,      
+       );
+    
+    } catch (err, st) {
+      debugPrint('handleSinpePrint error: $err\n$st');
+      Fluttertoast.showToast(msg: 'Error al imprimir el SINPE');
+    }
+  }
+
+  Future<void> _handleTransferenciaPrint(Invoice facturaC) async {
+    try {
+      final tp = TestPrint(totalChars: 32);
+      await tp.printTransferencia(
+        facturaC.formPago!.transfer,
+        facturaC.empleado!.nombreCompleto,    
+       );
+    
+    } catch (err, st) {
+      debugPrint('handleTransferenciaPrint error: $err\n$st');
+      Fluttertoast.showToast(msg: 'Error al imprimir la transferencia');
+    }
+  }
+
+
+   Future<void> _handleTicketPrint(Factura ticket) async {
+  const String tipoDocumento = 'TICKET';
+   
+
+    const String tipoCliente = 'CONTADO';
+
+    try {
+      final tp = TestPrint(totalChars: 32);
+      Fluttertoast.showToast(msg: 'Ticket enviada a impresion');
+      await tp.printFactura(ticket, tipoDocumento, tipoCliente);
+
+    } catch (err, st) {
+      debugPrint('handleTicketPrint error: $err\n$st');
+      Fluttertoast.showToast(msg: 'Error al imprimir el ticket');
+    }
+  }
+
+   Future<bool> _confirmPrintTicket() async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Imprimir ticket'),
+          content: const Text('Desea imprimir el ticket?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('No'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Si'),
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
   }
 
   Widget _infoTicketSection(Invoice factura) {
@@ -467,6 +570,30 @@ class _TicketScreenState extends State<TicketScreen> {
     final decodedJson = jsonDecode(response.result);
     final Factura resdocFactura = Factura.fromJson(decodedJson)
       ..usuario = factura.empleado!.nombreCompleto;
+
+       if(factura.acumulaPuntos){
+      await _handleAcumulaPuntosPrint(
+        factura, 
+        factura.empleado?.nombreCompleto ?? '',
+        );
+    }
+
+    if(factura.tieneTransferencia){
+      await _handleTransferenciaPrint(factura);
+    }
+
+    if(factura.canjeaPuntos){
+      await _handleCanjeaPuntosPrint(factura);
+    }
+
+    if(factura.tieneSinpe){
+      await _handleSinpePrint(factura);
+    }
+
+    final bool shouldPrint = await _confirmPrintTicket();
+    if (shouldPrint) {
+      await _handleTicketPrint(resdocFactura);
+    }
 
     // Limpia y vuelve
     _goHomeSuccess();

@@ -25,8 +25,8 @@ class CardFinal extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 // make an icon indicates to click and show more info
-               Expanded(child: ButtonCierre(text: "Pre-Cierre", gradient: kBlueGradient,color: kBlueColorLogo, press:  precierrePress, )),
-                 Expanded(child: ButtonCierre(text: "Cierre", gradient: kPrimaryGradientColor,color: kPrimaryColor, press: cierrePress, )),
+             //  Expanded(child: ButtonCierre(text: "Pre-Cierre", gradient: kBlueGradient,color: kBlueColorLogo, press:  precierrePress, )),
+                 Expanded(child: ButtonCierre(text: "Finalizar Cierre", gradient: kPrimaryGradientColor,color: kPrimaryColor, press: cierrePress, )),
               ],
             ),
           ),

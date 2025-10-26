@@ -32,4 +32,10 @@ class PrinterProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  void reset() {
+    _isBound = false;  // marca la impresora como no vinculada
+    _busy = false;     // libera cualquier estado de impresión bloqueada
+    notifyListeners(); // notifica a la UI
+  }
 }

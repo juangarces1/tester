@@ -225,7 +225,18 @@ class Invoice {
          -formPago!.totalSinpe;
    } 
 
+  bool get acumulaPuntos =>
+    detail?.any((p) => p.cantidad >= 90 && p.unidad.trim().toUpperCase() == 'L') ?? false;
+  
+  bool get canjeaPuntos => (formPago?.totalPuntos ?? 0) > 0;
 
+
+
+  bool get tieneTransferencia =>
+    formPago?.transfer.transfers.isNotEmpty ?? false;
+
+  bool get tieneSinpe  => (formPago?.totalSinpe ?? 0) > 0;
+  
 
   List<Product> buscarAcumulacion (){
        List<Product> acumulacion = [];

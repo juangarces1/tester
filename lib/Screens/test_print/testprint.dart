@@ -200,6 +200,7 @@ Future<void> lrMoney(
     await Q3Printer.setAlignment(0);
     await Q3Printer.printText('$label\n');
     await Q3Printer.printBlankLines(4, 15); // espacio para firmar
+    await separator();
   }
 
   // ==================== DEMO SIMPLE ====================
@@ -242,19 +243,25 @@ Future<void> lrMoney(
    //   await _ensureBound();
       await _beginDoc();
 
-      await title('ESTACION SAN GERARDO');
-      await subtitle('GRUPO POJI S.A.');
+      await subtitle('ESTACION SAN GERARDO');
       await separator();
-
+      await subtitle('GRUPO POJI S.A.');
       await body();
-      await lr('Ced Jur:', '3-101-110670');
-      await Q3Printer.setAlignment(1);
+       await Q3Printer.setAlignment(1);
+      await Q3Printer.printText('Ced Jur: 3-101-110670\n');     
       await Q3Printer.printText('Chomes, Puntarenas\n');
       await Q3Printer.printText('100 mts sur de la CCSS\n');
       await Q3Printer.printText('info@estacionsangerardo.com\n');
       await Q3Printer.printBlankLines(1, 20);
 
-      await subtitle(tipoDoc);
+    final String docTitle = switch (tipoDoc) {
+        'TICKET'  => 'Ticket Electrónico',
+        'CREDITO' => 'Factura Electrónica',
+        'CONTADO' => 'Factura Electrónica',
+        _         => 'DOCUMENTO',
+      };
+
+      await subtitle(docTitle);
       final claveStr = (fac.clave ?? '').toString();
       if (claveStr.length >= 40) {
         await Q3Printer.printText('${claveStr.substring(21, 40)}\n');
@@ -263,7 +270,7 @@ Future<void> lrMoney(
 
       await Q3Printer.setAlignment(0);
       await Q3Printer.printText('CLAVE\n$claveStr\n');
-      await lr('Factura', fac.nFactura);
+      await lr('No Interno', fac.nFactura);
       await Q3Printer.printBlankLines(1, 12);
 
       await lr('Forma Pago', tipoCliente == 'CONTADO' ? 'Contado' : 'Crédito');
@@ -314,7 +321,11 @@ Future<void> lrMoney(
       await Q3Printer.setFontSize(22);
 
       await Q3Printer.printBlankLines(1, 10);
-      await Q3Printer.printText('Autorizado mediante resolución DGT-R-48-2016\n');
+      await Q3Printer.printText('Autorizado mediante resolución  DGT-R-48-2016\n');
+      if(tipoDoc == 'CREDITO'){
+         await signatureBox();      
+      }
+     
 
       await _endDoc();
     } catch (e, st) {
@@ -340,6 +351,7 @@ Future<void> lrMoney(
     await _beginDoc();
 
     await subtitle('CANJE PUNTOS');
+    await separator();
     await body();
     await lr('Fecha', fmt);
     await lr('Pistero', pistero);
@@ -361,32 +373,40 @@ Future<void> lrMoney(
     String cliente,
     String pistero,
     String doc,
-    List<dynamic> productos,
+    List<Product> productos,
   ) async {
     final fmt = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
-    final totalLitros = productos.fold<double>(0, (sum, p) => sum + p.cantidad);
-    final puntos = (totalLitros.round() * 10).toString();
-
+    
   //  await _ensureBound();
     await _beginDoc();
 
     await subtitle('ACUMULACIÓN DE PUNTOS');
+    await separator();
     await body();
     await lr('Fecha', fmt);
     await lr('Pistero', pistero);
     await Q3Printer.printBlankLines(1, 12);
 
     await lr('Cliente', cliente);
-    await Q3Printer.printText('Tr#   Comb.   Lts\n');
+
+    await subtitle('Transaccion(es)');
+
+    await Q3Printer.printText('Tr#   Comb.  Lts\n');
     await separator();
 
+
+
+    double totalPoints = 0;
     for (final p in productos) {
+      if (p.cantidad < 90 || p.unidad != 'L') continue;
+      
+      totalPoints += (p.cantidad.round() * 10);
       await Q3Printer.printText(
           '${p.transaccion}   ${p.detalle}   ${qty(p.cantidad)}\n');
     }
 
     await Q3Printer.printBlankLines(1, 10);
-    await lr('Puntos Totales', puntos);
+    await lr('Puntos Ganados', totalPoints.toString());
     await lr('Doc #', doc);
     await Q3Printer.printBlankLines(1, 12);
 
@@ -403,6 +423,8 @@ Future<void> lrMoney(
     await _beginDoc();
 
     await subtitle('TRANSFERENCIA');
+    await separator();
+    await subtitle('Cajero: $pistero');
     await body();
     await lr('Fecha', fmt);
     await Q3Printer.printBlankLines(1, 12);
@@ -416,6 +438,10 @@ Future<void> lrMoney(
       await lr('Saldo', '${t.saldo}');
       await separator();
     }
+    await separator();
+    await Q3Printer.printBlankLines(1, 10);
+
+    await lrMoney('Total Aplicado', tr.totalTransfer);
 
     await signatureBox();
 
@@ -430,6 +456,7 @@ Future<void> lrMoney(
     await _beginDoc();
 
     await subtitle('SINPE');
+    await separator();
     await body();
     await lr('Fecha', fmt);
     await lr('Num', sp.numComprobante.toString());
@@ -632,9 +659,7 @@ Future<void> testLikeDevice() async {
     await lr('Volumen', '${tx.volumen.toStringAsFixed(2)} L');
     await lr('Precio/L', money(tx.preciounitario));
     await lrMoney('Total', tx.total);
-    if (tx.nombrecliente.isNotEmpty) {
-      await lr('Cliente', tx.nombrecliente);
-    }
+    
     await _endDoc();
   }
   // ==================== Transacción (producto simple) ====================

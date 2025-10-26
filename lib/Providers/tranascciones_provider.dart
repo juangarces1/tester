@@ -177,4 +177,11 @@ class TransaccionesProvider extends ChangeNotifier {
 
   // ------------------- Privados -------------------
   int _indexOfId(int id) => _items.indexWhere((e) => e.idtransaccion == id);
+
+  void reset() {
+  if (_items.isNotEmpty) {
+    _items.clear();
+    notifyListeners();
+  }
+}
 }

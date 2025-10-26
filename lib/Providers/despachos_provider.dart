@@ -256,4 +256,35 @@ class DespachosProvider extends ChangeNotifier {
     _stopPolling();
     super.dispose();
   }
+
+  // Dentro de DespachosProvider
+void reset() {
+  // 1) Detén la consulta periódica
+  _stopPolling();
+
+  // 2) Cancela todos los watchers en cada DispatchControl
+    for (final d in _despachos) {
+      final w = _stageWatchers.remove(d);
+      if (w != null) d.removeListener(w);
+      d.removeListener(_onChildChanged);
+      d.dispose(); // cancela timers individuales
+    }
+
+    // 3) Limpia todas las estructuras internas
+    _despachos.clear();
+    _watchedHoses.clear();
+    _hoseStatuses.clear();
+    _hoseRaw.clear();
+    _stageWatchers.clear();
+
+    // 4) Restaura estado base
+    _busy = false;
+    _disposed = false;
+    _interval = _okInterval;
+    _lastTickFailed = false;
+
+    // 5) Notifica a la UI que todo fue reseteado
+    notifyListeners();
+  }
+
 }
