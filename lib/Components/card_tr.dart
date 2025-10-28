@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:provider/provider.dart';
 import 'package:tester/Models/FuelRed/product.dart';
+import 'package:tester/Providers/printer_provider.dart';
+import 'package:tester/Screens/test_print/testprint.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 import 'package:tester/sizeconfig.dart';
 
@@ -9,10 +13,10 @@ class CardTr extends StatelessWidget {
   final ValueChanged<Product>? onItemSelected;
   final VoidCallback? onPrint;
 
-  /// Muestra u oculta el icono de imprimir/detalle (por defecto NO se muestra).
+  /// Muestra u oculta el icono de imprimir (por defecto NO se muestra).
   final bool showPrintIcon;
 
-  /// Nuevo: estado visual de selección (para pintar overlay)
+  /// Nuevo: estado visual de seleccion (para pintar overlay)
   final bool selected;
 
   const CardTr({
@@ -116,7 +120,7 @@ class CardTr extends StatelessWidget {
               ),
             ),
 
-            // Overlay de selección (oscurece sutil + borde blanco suave)
+            // Overlay de seleccion (oscurece sutil + borde blanco suave)
             Positioned.fill(
               child: IgnorePointer(
                 ignoring: true,
@@ -146,15 +150,14 @@ class CardTr extends StatelessWidget {
                 child: _CheckBadge(),
               ),
 
-            // Botón opcional (imprimir/detalle)
-            if (showPrintIcon && onPrint != null)
+            // Boton de impresion (usa provider para gestionar estado)
+            if (showPrintIcon)
               Positioned(
                 top: 6,
                 right: 6,
-                child: _ActionCircle(
-                  onTap: onPrint,
-                  tooltip: 'Imprimir / Detalle',
-                  icon: Icons.print,
+                child: _PrintAction(
+                  product: product,
+                  onOverride: onPrint,
                 ),
               ),
           ],
@@ -198,6 +201,68 @@ class _MeterChip extends StatelessWidget {
         overflow: TextOverflow.fade,
       ),
     );
+  }
+}
+
+class _PrintAction extends StatelessWidget {
+  final Product product;
+  final VoidCallback? onOverride;
+
+  const _PrintAction({
+    required this.product,
+    this.onOverride,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<PrinterProvider>(
+      builder: (context, printer, _) {
+        final busy = printer.busy;
+        final bound = printer.isBound;
+        return _ActionCircle(
+          onTap: busy ? null : () => _handleTap(context, printer),
+          tooltip: busy
+              ? 'Imprimiendo...'
+              : (bound ? 'Imprimir' : 'Conectar impresora'),
+          icon: busy ? Icons.print_disabled : Icons.print,
+        );
+      },
+    );
+  }
+
+  void _handleTap(BuildContext context, PrinterProvider printer) async {
+    // if (onOverride != null) {
+    //   printer.runLocked(() async {
+    //     onOverride!.call();
+    //   });
+    //   return;
+    // }
+
+    // printer.runLocked(() async {
+    //   final ok = await printer.ensureBound();
+    //   if (!ok) {
+    //     Fluttertoast.showToast(msg: 'No se pudo conectar a la impresora');
+    //     return;
+    //   }
+    //   try {
+    //     final tp = TestPrint(totalChars: 32);
+    //     await tp.printTransaccion(product);
+    //     Fluttertoast.showToast(msg: 'Transaccion enviada a impresion');
+    //   } catch (e, st) {
+    //     debugPrint('printTransaccion error: $e\n$st');
+    //     Fluttertoast.showToast(msg: 'Error al imprimir: $e');
+    //   }
+    // });
+
+      // final printer = Provider.of<PrinterProvider>(context, listen: false);
+      // final isBusy = printer.busy;
+      // final isBound = printer.isBound;
+      // if (isBusy) return;
+      // if (!isBound) return;
+       final tp = TestPrint(totalChars: 32);
+         await tp.printTransaccion(product);
+        Fluttertoast.showToast(msg: 'Transaccion enviada a impresion');
+
   }
 }
 

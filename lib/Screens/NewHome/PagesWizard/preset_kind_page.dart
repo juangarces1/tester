@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Providers/despachos_provider.dart';
-import 'package:tester/Screens/NewHome/Components/menu_page.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/dispatch_summary_page.dart';
 
 
@@ -243,7 +242,7 @@ class _ChoiceCard extends StatelessWidget {
     required this.icon,
     required this.accent,
     required this.onTap,
-    super.key,
+   
   });
 
   @override

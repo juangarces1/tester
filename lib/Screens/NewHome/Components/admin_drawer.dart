@@ -12,7 +12,7 @@ import 'package:tester/Screens/Transacciones/transacciones_screen.dart';
 import 'package:tester/Screens/Transfers/transferencias_screen.dart';
 import 'package:tester/Screens/Viaticos/viaticos_screen.dart';
 import 'package:tester/Screens/logIn/login_screen.dart';
-import 'package:tester/Screens/test_print/print_screen.dart';
+
 
 class AdminDrawer extends StatelessWidget {
   const AdminDrawer({super.key, });
@@ -429,9 +429,12 @@ class _AdminMenuItem {
 
 void _openPage(BuildContext context, Widget page, {bool replace = false}) {
   Navigator.of(context).pop();
+ 
   Future.microtask(() {
+  
     final route = MaterialPageRoute(builder: (_) => page);
     if (replace) {
+       
       Navigator.of(context).pushReplacement(route);
     } else {
       Navigator.of(context).push(route);

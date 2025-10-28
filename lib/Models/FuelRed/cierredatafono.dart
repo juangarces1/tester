@@ -8,6 +8,7 @@ class CierreDatafono {
   int? idcierre;
   int? idregistrodatafono;  
   String? banco;
+  String? nombreEmpleado;
 
   CierreDatafono(
       {this.idcierredatafono,
@@ -18,7 +19,9 @@ class CierreDatafono {
       this.terminal,
       this.idcierre,
       this.idregistrodatafono,      
-      this.banco});
+      this.banco,
+      this.nombreEmpleado
+  });
 
   CierreDatafono.fromJson(Map<String, dynamic> json) {
     idcierredatafono = json['idcierredatafono'];
@@ -31,6 +34,7 @@ class CierreDatafono {
     idcierre = json['idcierre'];
     idregistrodatafono = json['idregistrodatafono'];    
      banco = json['banco'];
+    nombreEmpleado = json['nombreEmpleado'];
   }
 
   Map<String, dynamic> toJson() {

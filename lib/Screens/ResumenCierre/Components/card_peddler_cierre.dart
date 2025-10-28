@@ -40,7 +40,7 @@ class CardPeddlerCierre extends StatelessWidget {
                      
                       Expanded(
                         child: Text(
-                          entry.cliente!.nombre??'',
+                          entry.cliente!.nombre,
                           
                           textAlign: TextAlign.right,
                           style:  TextStyle(color: foreColor,fontWeight: FontWeight.bold,),

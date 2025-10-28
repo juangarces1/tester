@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-
 class MyCustomAppBar extends StatelessWidget implements PreferredSizeWidget {
- final String title;
+  final String title;
   final List<Widget>? actions;
   final Color? backgroundColor;
   final double? elevation;
@@ -10,6 +9,10 @@ class MyCustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Color? shadowColor;
   final Color? foreColor;
   final PreferredSizeWidget? bottom;
+
+  /// Callback opcional para la acción de volver.
+  /// Si no se proporciona, se usará Navigator.maybePop(context).
+  final VoidCallback? onBack;
 
   const MyCustomAppBar({
     super.key,
@@ -21,30 +24,36 @@ class MyCustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.shadowColor,
     this.foreColor,
     this.bottom,
+    this.onBack, // <- nuevo
   });
+
+  void _handleBack(BuildContext context) {
+    if (onBack != null) {
+      onBack!();
+    } else {
+      Navigator.maybePop(context);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      title: Text(title, style: TextStyle(color: foreColor, fontWeight: FontWeight.bold, fontSize: 20)),
+      title: Text(
+        title,
+        style: TextStyle(color: foreColor, fontWeight: FontWeight.bold, fontSize: 20),
+      ),
       actions: actions,
       leading: automaticallyImplyLeading && Navigator.canPop(context)
           ? Padding(
-              padding: const EdgeInsets.all(8.0), // Adjust padding as needed
+              padding: const EdgeInsets.all(8.0),
               child: TextButton(
                 style: TextButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(60),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(60)),
                   backgroundColor: Colors.white,
                   padding: EdgeInsets.zero,
                 ),
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Icon(
-                  Icons.arrow_back,
-                  color: Colors.black, // Change this color as needed
-                  size: 24.0, // Adjust size as needed
-                ),
+                onPressed: () => _handleBack(context), // <- usa callback si viene
+                child: const Icon(Icons.arrow_back, color: Colors.black, size: 24.0),
               ),
             )
           : null,

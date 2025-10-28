@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Components/cart_inline_section.dart';
 import 'package:tester/Components/default_button.dart';
@@ -14,7 +15,9 @@ import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/FuelRed/peddler.dart';
 import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
+import 'package:tester/Providers/printer_provider.dart';
 import 'package:tester/Screens/NewHome/Components/produccts_page.dart';
+import 'package:tester/Screens/test_print/testprint.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
 import 'package:tester/helpers/varios_helpers.dart';
@@ -526,7 +529,7 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
         controller: or,
         keyboardType: TextInputType.text,
         decoration: darkDecoration(
-          label: 'Ingresa el Numero...',
+          label: 'Orden Numero...',
           hint: 'Orden',
           suffixIcon: const Icon(Icons.confirmation_number, color: kNewtextSec),
           enabledBorder: darkBorder(color: Colors.amber),
@@ -665,29 +668,22 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
       return;
     }
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Peddler creado exitosamente'),
-        content: const Text('¿Desea imprimir el Peddler?'),
-        actions: [
-          TextButton(
-            child: const Text('Si'),
-            onPressed: () {
-              // Aquí tu lógica de impresión si aplica...
-              // Navigator.of(context).pop();
-            },
-          ),
-          TextButton(
-            child: const Text('No'),
-            onPressed: () {
-              Navigator.of(context).pop();
-              _goHomeSuccess();
-            },
-          ),
-        ],
-      ),
-    );
+   // await _handlePrint(pd);
+     await _handlePrint(pd);
+    await _goHomeSuccess();
+  }
+
+   Future<void> _handlePrint(Peddler p,) async {
+    try {
+      final tp = TestPrint(totalChars: 32);     
+      await tp.printPeddler(
+        p,      
+       );
+    
+    } catch (err, st) {
+      debugPrint('handlePeddlerPrint error: $err\n$st');
+      Fluttertoast.showToast(msg: 'Error al imprimir el Peddler');
+    }
   }
 
   Future<void> _goHomeSuccess() async {

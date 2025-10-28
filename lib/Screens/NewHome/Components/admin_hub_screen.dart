@@ -86,11 +86,11 @@ class _AdminCenterPageState extends State<AdminCenterPage> {
                           backgroundColor:kNewsurfaceHi,
                           selectedColor:kNewsurfaceHi,
                           labelStyle: TextStyle(
-                            color: Colors.white.withOpacity(selected ? 0.95 : 0.85),
+                            color: Colors.white.withValues( alpha: selected ? 0.95 : 0.85),
                             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                           ),
                           side: BorderSide(
-                            color: Colors.white.withOpacity(selected ? 0.35 : 0.18),
+                            color: Colors.white.withValues( alpha: selected ? 0.35 : 0.18),
                           ),
                         );
                       }).toList(),
@@ -145,7 +145,7 @@ class _ActionTile extends StatelessWidget {
     final count = _safeCount(context, action.counter);
 
     return Material(
-      color: Colors.white.withOpacity(0.06),
+      color: Colors.white.withValues(alpha: 0.06),
       borderRadius: BorderRadius.circular(14),
       child: ListTile(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -156,8 +156,8 @@ class _ActionTile extends StatelessWidget {
         ),
         subtitle: action.subtitle == null
             ? null
-            : Text(action.subtitle!, style: TextStyle(color: Colors.white.withOpacity(0.75))),
-        trailing: Icon(Icons.chevron_right_rounded, color: Colors.white.withOpacity(0.85)),
+            : Text(action.subtitle!, style: TextStyle(color: Colors.white.withValues(alpha: 0.75))),
+        trailing: Icon(Icons.chevron_right_rounded, color: Colors.white.withValues(alpha: 0.85)),
         onTap: action.onTap,
       ),
     );
@@ -180,10 +180,10 @@ class _IconWithBadge extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             gradient: LinearGradient(
-              colors: [color.withOpacity(0.55), color.withOpacity(0.2)],
+              colors: [color.withValues(alpha: 0.55), color.withValues(alpha: 0.2)],
               begin: Alignment.topLeft, end: Alignment.bottomRight,
             ),
-            border: Border.all(color: color.withOpacity(0.35)),
+            border: Border.all(color: color.withValues(alpha: 0.35)),
           ),
           child: Icon(icon, color: Colors.white),
         ),

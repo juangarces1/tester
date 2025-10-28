@@ -310,7 +310,7 @@ class _FacturasScreenState extends State<FacturasScreen> {
             child: Column(
               children: [
                 Icon(Icons.inbox_outlined,
-                    size: 56, color: Colors.white.withOpacity(.7)),
+                    size: 56, color: Colors.white.withValues(alpha: .7)),
                 const SizedBox(height: 12),
                 Text(
                   _filtered
@@ -496,9 +496,13 @@ class _FacturasScreenState extends State<FacturasScreen> {
       e.usuario = '${usuario.nombre} ${usuario.apellido1}';
 
       String tipoDocumento = e.isFactura ? 'FACTURA' : 'TICKET';
-      if (e.isDevolucion) tipoDocumento = 'NOTA DE CREDITO';
+      if (tipoDocumento == 'FACTURA') {
+         tipoDocumento = e.plazo == 0 ? 'CONTADO' : 'CREDITO';
+      }
+      
+      if (e.isDevolucion) tipoDocumento = 'NOTA';
       final tipoPago = e.plazo == 0 ? 'CONTADO' : 'CREDITO';
-
+     
       try {
         final tp = TestPrint(totalChars: 32); // mismo ancho que usas en depósitos
         await tp.printFactura(e, tipoDocumento, tipoPago);

@@ -119,6 +119,8 @@ class Q3Binder(private val ctx: Context) {
 
     fun performPrint(feedLines: Int) = svc().printerPerformPrint(feedLines, cb)
 
+    
+
     // ========== Ejemplo de ticket demo (lo que ya probaste) ==========
     fun printSampleTicket() {
         init()

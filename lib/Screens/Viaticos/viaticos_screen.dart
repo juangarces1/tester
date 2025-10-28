@@ -3,9 +3,11 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Components/app_bar_custom.dart';
 import 'package:tester/Components/loader_component.dart';
+import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/Models/FuelRed/viatico.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
+import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/Providers/printer_provider.dart';
 import 'package:tester/Screens/Viaticos/add_viatico_screen.dart';
 import 'package:tester/Screens/test_print/testprint.dart';
@@ -279,20 +281,20 @@ class _ViaticosScreenState extends State<ViaticosScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            height: 56,
-            width: 56,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Colors.deepPurple, Colors.deepPurpleAccent],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Image.asset('assets/viaticos.png', fit: BoxFit.contain),
-          ),
-          const SizedBox(width: 18),
+          // Container(
+          //   height: 56,
+          //   width: 56,
+          //   decoration: BoxDecoration(
+          //     gradient: const LinearGradient(
+          //       colors: [Colors.deepPurple, Colors.deepPurpleAccent],
+          //       begin: Alignment.topLeft,
+          //       end: Alignment.bottomRight,
+          //     ),
+          //     borderRadius: BorderRadius.circular(16),
+          //   ),
+          //   child: Image.asset('assets/viaticos.png', fit: BoxFit.contain),
+          // ),
+          // const SizedBox(width: 18),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -347,6 +349,7 @@ class _ViaticosScreenState extends State<ViaticosScreen> {
                                 msg: 'No se pudo conectar a la impresora');
                             return;
                           }
+                          if (!mounted) return;
                           final pistero = context
                                   .read<CierreActivoProvider>()
                                   .usuario
@@ -515,10 +518,22 @@ class _ViaticosScreenState extends State<ViaticosScreen> {
   }
 
   void _goAdd() async {
+    var cierre = context.read<CierreActivoProvider>().cierreFinal;
+    var usuario = context.read<CierreActivoProvider>().usuario;
+
+    final invoice = Invoice.createInitializedInvoice(cierre!, usuario!);
+   
+    var facturasProvider =
+        Provider.of<FacturasProvider>(context, listen: false);  
+
+
+         final index = facturasProvider.addInvoice(invoice);
+     
+
     String? result = await Navigator.push(
       context,
       MaterialPageRoute(
-          builder: (context) => const AddViaticoScreen()),
+          builder: (context) => AddViaticoScreen(index: index)),
     );
     if (result == 'yes') {
       _getViaticos();

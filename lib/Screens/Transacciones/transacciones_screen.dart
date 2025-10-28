@@ -99,6 +99,7 @@ class _TransaccionesScreenState extends State<TransaccionesScreen> {
 
       // ⬇️ AJUSTA el método del provider que reemplace la lista
       // p. ej. prov.replaceAll(list) / prov.setItems(list) / prov.load(list)
+      if (!mounted) return;
       context.read<TransaccionesProvider>().setAll(list);
     } catch (e) {
       setState(() => _error = 'Error: $e');
@@ -233,11 +234,11 @@ class _TransaccionesScreenState extends State<TransaccionesScreen> {
       TxFilter.noFacturadas =>
         prov.items.where((t) => t.facturada == 'no').toList(),
       TxFilter.tarjeta => prov.items
-          .where((t) => (t.estado ?? '').toLowerCase().contains('tarjeta'))
+          .where((t) => (t.estado).toLowerCase().contains('tarjeta'))
           .toList(),
     };
 
-    items.sort((a, b) => (b.numero ?? 0).compareTo(a.numero ?? 0));
+    items.sort((a, b) => (b.numero).compareTo(a.numero));
 
     final countAll = prov.length;
     final countUnpaid = prov.unpaid.length;
@@ -465,7 +466,7 @@ class _TxCard extends StatelessWidget {
   });
 
   static bool _isInvoiced(Transaccion t) {
-    final v = (t.facturada ?? '').trim().toLowerCase();
+    final v = (t.facturada).trim().toLowerCase();
     // Considera facturada si NO es 'no' (cubre 'si', 'sí', 'pagada', etc.)
     return v.isNotEmpty && v != 'no';
   }

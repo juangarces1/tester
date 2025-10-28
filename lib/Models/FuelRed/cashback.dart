@@ -5,6 +5,7 @@ class Cashback {
   int? cedulaempleado;
   int? idbanco;
   int? idcierre;
+  String? nombreEmpleado;
 
   Cashback(
       {this.idcashback,
@@ -12,7 +13,8 @@ class Cashback {
       this.fechacashback,
       this.cedulaempleado,
       this.idbanco,
-      this.idcierre});
+      this.idcierre,
+      this.nombreEmpleado});
 
   Cashback.fromJson(Map<String, dynamic> json) {
     idcashback = json['idcashback'];
@@ -21,6 +23,7 @@ class Cashback {
     cedulaempleado = json['cedulaempleado'];
     idbanco = json['idbanco'];
     idcierre = json['idcierre'];
+    nombreEmpleado = json['nombreEmpleado'];
   }
 
   Map<String, dynamic> toJson() {
@@ -31,6 +34,7 @@ class Cashback {
     data['cedulaempleado'] = cedulaempleado;
     data['idbanco'] = idbanco;
     data['idcierre'] = idcierre;
+    data['nombreEmpleado'] = nombreEmpleado;
     return data;
   }
 }

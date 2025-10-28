@@ -104,5 +104,14 @@ class Q3Printer {
         'typeface': typeface,
         'fontsize': fontsize,
         'alignment': alignment,
-      });    
+      }); 
+
+      // ---------- NUEVO: corte ----------
+  // /// Corte total (GS V 0)
+  // static Future<void> cutFull() =>
+  //     _ch.invokeMethod<void>('cut', {'mode': 'full'});
+
+  // /// Corte parcial (GS V 1)
+  // static Future<void> cutPartial() =>
+  //     _ch.invokeMethod<void>('cut', {'mode': 'partial'});   
 }

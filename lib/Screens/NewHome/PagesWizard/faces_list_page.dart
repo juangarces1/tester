@@ -194,14 +194,9 @@ class _PositionCard extends StatelessWidget {
     final availableCount = position.hoses
         .where((h) => h.status.toLowerCase() == 'available')
         .length;
-    final pumpLabel = position.pumpName.isNotEmpty &&
-            position.pumpName.toLowerCase() != 'sin mapa'
-        ? position.pumpName
-        : 'Surtidor ${position.pumpId > 0 ? position.pumpId : position.number}';
-    final faceLabel = position.faceLabel.isNotEmpty
-        ? 'Posición ${position.faceLabel}'
-        : 'Posición';
-    final faceDescription = position.faceDescription.trim();
+ 
+ 
+    
 
     return Material(
       color: Colors.transparent,

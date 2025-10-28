@@ -77,17 +77,17 @@ class _HeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final onCard = Colors.black.withOpacity(.86);
-    final onMuted = Colors.black.withOpacity(.62);
+    final onCard = Colors.black.withValues(alpha: .86);
+    final onMuted = Colors.black.withValues(alpha: .62);
 
     return Container(
       decoration: BoxDecoration(
         color: kContrateFondoOscuro,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.black.withOpacity(.06)),
+        border: Border.all(color: Colors.black.withValues(alpha: .06)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.28),
+            color: Colors.black.withValues(alpha: .28),
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -172,9 +172,9 @@ class _HeaderCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(.035),
+        color: Colors.black.withValues(alpha: .035),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.black.withOpacity(.06)),
+        border: Border.all(color: Colors.black.withValues(alpha: .06)),
       ),
       child: onlyLabel
           ? Text(label, style: TextStyle(color: onMuted, fontWeight: FontWeight.w600))
@@ -207,9 +207,9 @@ class _DocTypeChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(.12),
+        color: color.withValues(alpha: .12),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withOpacity(.35)),
+        border: Border.all(color: color.withValues(alpha: .35)),
       ),
       child: Text(
         text,

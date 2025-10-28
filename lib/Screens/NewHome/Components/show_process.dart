@@ -5,7 +5,7 @@ import 'package:tester/Components/app_bar_custom.dart';
 import 'package:tester/Components/card_tr.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
-import 'package:tester/Models/FuelRed/cierrefinal.dart';
+
 import 'package:tester/Models/FuelRed/product.dart';
 import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/Models/FuelRed/transaccion.dart';
@@ -168,6 +168,7 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
                                   itemBuilder: (context, indice) {
                                     final p = transacciones[indice];
                                     return CardTr(
+                                      showPrintIcon: true,
                                       product: p,
                                       lista: 'Tr',
                                       onItemSelected: onItemSelected,

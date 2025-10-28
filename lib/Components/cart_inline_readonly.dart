@@ -192,7 +192,7 @@ class _CartLineInfo extends StatelessWidget {
   final double size = denseThumb ? 48 : 56;
 
   // 1) Prioridad: por nombre (case-insensitive, trim)
-  final name = (product.detalle ?? '').trim().toLowerCase();
+  final name = (product.detalle).trim().toLowerCase();
   ImageProvider? fuelAsset;
   if (name == 'super'  || name == 'comb gasolina super')  {
     fuelAsset = const AssetImage('assets/super.png');

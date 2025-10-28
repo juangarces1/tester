@@ -22,17 +22,17 @@ class FacturaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color stripe = _docColor(factura);
-    final Color onCard = Colors.black.withOpacity(0.86);
-    final Color onMuted = Colors.black.withOpacity(0.62);
+    final Color onCard = Colors.black.withValues(alpha:  0.86);
+    final Color onMuted = Colors.black.withValues(alpha: 0.62);
 
     return Container(
       decoration: BoxDecoration(
         color: kContrateFondoOscuro, // surface clara sobre fondo dark
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.black.withOpacity(.06)),
+        border: Border.all(color: Colors.black.withValues(alpha: .06)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.28),
+            color: Colors.black.withValues(alpha: .28),
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -175,9 +175,9 @@ class _DocTypeChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(.12),
+        color: color.withValues(alpha: .12),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withOpacity(.35)),
+        border: Border.all(color: color.withValues(alpha: .35)),
       ),
       child: Text(
         text,
@@ -216,9 +216,9 @@ class _MetaPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(.035),
+        color: Colors.black.withValues(alpha: .035),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.black.withOpacity(.06)),
+        border: Border.all(color: Colors.black.withValues(alpha: .06)),
       ),
       child: onlyLabel
           ? Text(label, style: TextStyle(color: onMuted, fontWeight: FontWeight.w600))
@@ -265,11 +265,4 @@ class _CircleAction extends StatelessWidget {
   }
 }
 
-extension _ColorX on Color {
-  Color darken([double amount = .22]) {
-    assert(amount >= 0 && amount <= 1);
-    final hsl = HSLColor.fromColor(this);
-    final hslDark = hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0));
-    return hslDark.toColor();
-  }
-}
+

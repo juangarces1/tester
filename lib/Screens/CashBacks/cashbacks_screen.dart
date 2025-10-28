@@ -320,16 +320,16 @@ class _CashbarksScreenState extends State<CashbarksScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SizedBox(
-            height: 56,
-            width: 56,
+          // SizedBox(
+          //   height: 56,
+          //   width: 56,
            
-            child: Image.asset(
-              'assets/cbs.png',
-              fit: BoxFit.fitWidth,
-            ),
-          ),
-          const SizedBox(width: 18),
+          //   child: Image.asset(
+          //     'assets/cbs.png',
+          //     fit: BoxFit.fitWidth,
+          //   ),
+          // ),
+          // const SizedBox(width: 18),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,6 +388,7 @@ class _CashbarksScreenState extends State<CashbarksScreen> {
                                 msg: 'No se pudo conectar a la impresora');
                             return;
                           }
+                          if (!mounted) return;
                           final pistero = context
                                   .read<CierreActivoProvider>()
                                   .usuario

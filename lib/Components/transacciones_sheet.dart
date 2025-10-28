@@ -26,6 +26,7 @@ class TransaccionesSheet {
         final msg = (rs.message.isNotEmpty == true)
             ? rs.message
             : 'No se pudieron cargar transacciones';
+       
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
         return <Product>[];
       }
@@ -201,6 +202,7 @@ class _TransaccionesSheetContentState extends State<_TransaccionesSheetContent> 
                 itemBuilder: (context, i) {
                   final p = transacciones[i];
                   return CardTr(
+                    
                     product: p,
                     lista: 'zona-${widget.zona}',
                     onItemSelected: (prod) {

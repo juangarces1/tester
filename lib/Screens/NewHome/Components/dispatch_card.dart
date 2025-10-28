@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:tester/ConsoleModels/console_transaction.dart';
+
 import 'package:tester/Models/FuelRed/product.dart';
 import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
@@ -290,6 +290,7 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
                         const SnackBar(content: Text('Reintentando autorización…')),
                       );
                       final ok = await widget.d.retryAuthorize();
+                   
                       ScaffoldMessenger.of(context).hideCurrentSnackBar();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text(ok ? 'Autorizado nuevamente ✅' : 'No se pudo autorizar ❌')),
@@ -544,6 +545,8 @@ Widget _pill(String text) => Container(
     invoice.detail = (invoice.detail ?? const <Product>[]).toList();
 
     Response response = await ApiHelper.getTransaccionAsProductById(tx.idtransaccion);
+
+    if(!mounted) return;
 
     if (!response.isSuccess) {
       ScaffoldMessenger.of(context).showSnackBar(

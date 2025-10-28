@@ -148,8 +148,7 @@ class _PeddlersScreenState extends State<PeddlersScreen> {
 
   Widget _peddlerTile(
       Peddler p, bool isBusy, bool isBound) {
-    final cliente = p.cliente?.nombre ?? 'Sin cliente';
-    final fecha = p.fecha?.split('T').first ?? 'Sin fecha registrada';
+    final cliente = p.cliente?.nombre ?? 'Sin cliente';    
     final placa = p.placa?.isNotEmpty == true ? p.placa! : 'Sin placa';
     final chofer = p.chofer?.isNotEmpty == true ? p.chofer! : 'Sin chofer';
     final orden = p.orden?.isNotEmpty == true ? p.orden! : 'Sin orden';
@@ -174,19 +173,19 @@ class _PeddlersScreenState extends State<PeddlersScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            height: 56,
-            width: 56,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Colors.indigo, Colors.indigoAccent],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Image.asset('assets/peddler.png', fit: BoxFit.contain),
-          ),
+          // Container(
+          //   height: 56,
+          //   width: 56,
+          //   decoration: BoxDecoration(
+          //     gradient: const LinearGradient(
+          //       colors: [Colors.indigo, Colors.indigoAccent],
+          //       begin: Alignment.topLeft,
+          //       end: Alignment.bottomRight,
+          //     ),
+          //     borderRadius: BorderRadius.circular(16),
+          //   ),
+          //   child: Image.asset('assets/peddler.png', fit: BoxFit.contain),
+          // ),
           const SizedBox(width: 18),
           Expanded(
             child: Column(
@@ -202,7 +201,7 @@ class _PeddlersScreenState extends State<PeddlersScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Fecha: $fecha',
+                  'Fecha: ${p.fecha}',
                   style: const TextStyle(color: kNewtextMut, fontSize: 14),
                 ),
                 const SizedBox(height: 2),

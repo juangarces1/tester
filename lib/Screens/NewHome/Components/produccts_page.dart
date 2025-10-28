@@ -343,10 +343,7 @@ class _SearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: BorderSide.none,
-    );
+    
 
     return Material(
       elevation: 10,

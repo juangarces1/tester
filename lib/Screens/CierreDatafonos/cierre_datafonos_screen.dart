@@ -329,20 +329,20 @@ class _CierreDatafonosScreenState extends State<CierreDatafonosScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            height: 56,
-            width: 56,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Colors.indigo, Colors.indigoAccent],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Image.asset('assets/data.png', fit: BoxFit.contain),
-          ),
-          const SizedBox(width: 18),
+          // Container(
+          //   height: 56,
+          //   width: 56,
+          //   decoration: BoxDecoration(
+          //     gradient: const LinearGradient(
+          //       colors: [Colors.indigo, Colors.indigoAccent],
+          //       begin: Alignment.topLeft,
+          //       end: Alignment.bottomRight,
+          //     ),
+          //     borderRadius: BorderRadius.circular(16),
+          //   ),
+          //   child: Image.asset('assets/data.png', fit: BoxFit.contain),
+          // ),
+          // const SizedBox(width: 18),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -410,12 +410,8 @@ class _CierreDatafonosScreenState extends State<CierreDatafonosScreen> {
                                 msg: 'No se pudo conectar a la impresora');
                             return;
                           }
-                          final pistero = context
-                                  .read<CierreActivoProvider>()
-                                  .usuario
-                                  ?.nombreCompleto ??
-                              '';
-                          await onPrintPressed(cierre, pistero: pistero);
+                          if (!mounted) return;                         
+                          await onPrintPressed(cierre,);
                         });
                       },
                 icon: const Icon(Icons.print_outlined, color: kNewtextSec),
@@ -586,10 +582,10 @@ class _CierreDatafonosScreenState extends State<CierreDatafonosScreen> {
   }
 
   Future<void> onPrintPressed(CierreDatafono cierre,
-      {required String pistero}) async {
+      ) async {
     try {
       final tp = TestPrint(totalChars: 32);
-      await tp.printCierreDatafono(cierre, pistero);
+      await tp.printCierreDatafono(cierre);
       Fluttertoast.showToast(msg: 'Cierre enviado a impresion');
     } catch (e, st) {
       debugPrint('printCierreDatafono error: $e\n$st');

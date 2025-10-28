@@ -8,7 +8,7 @@ import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/Providers/printer_provider.dart';
 import 'package:tester/Providers/tranascciones_provider.dart';
 import 'package:tester/Providers/usuario_provider.dart';
-import 'package:tester/Screens/logIn/login_card_page.dart';
+
 import 'package:tester/Screens/logIn/login_screen.dart';
 
 void main() {

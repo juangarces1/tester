@@ -157,6 +157,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                         CartInlineCompact(
                           index: widget.index,
                           onAddTransactions: () => TransaccionesSheet.open(
+                           
                             context: context,
                             zona: factura.cierre!.idzona!,
                             onItemSelected: (p) {
@@ -167,7 +168,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                               FacturaService.updateFactura(context, inv);
                             },
                             // opcionales:
-                            showPrintIcon: false,
+                            showPrintIcon: true,
                             onPrintTap: (p) {/* ... */},
                           ),
                           onAddProducts: () {
@@ -730,7 +731,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
   }
 
   Future<void> _handleFacturaPrint(Factura factura) async {
-    const String tipoDocumento = 'FACTURA';
+    const String tipoDocumento = 'CONTADO';
    
 
     const String tipoCliente = 'CONTADO';

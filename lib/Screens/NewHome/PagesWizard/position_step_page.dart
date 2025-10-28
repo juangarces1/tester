@@ -164,10 +164,7 @@ class _PositionCard extends StatelessWidget {
             position.pumpName.toLowerCase() != 'sin mapa'
         ? position.pumpName
         : 'Surtidor ${position.pumpId > 0 ? position.pumpId : position.number}';
-    final faceLabel = position.faceLabel.isNotEmpty
-        ? 'Posición ${position.hoses.first.dispenserKey}'
-        : 'Posición';
-    final faceDescription = position.faceDescription.trim();
+   
 
     return Material(
       color: Colors.transparent,

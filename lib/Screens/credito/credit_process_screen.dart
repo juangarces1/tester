@@ -20,7 +20,9 @@ import 'package:tester/Models/FuelRed/product.dart';
 import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
+import 'package:tester/Providers/printer_provider.dart';
 import 'package:tester/Screens/NewHome/Components/produccts_page.dart';
+import 'package:tester/Screens/test_print/testprint.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
 import 'package:tester/helpers/varios_helpers.dart';
@@ -654,21 +656,29 @@ Widget showObser() {
       resdocFactura.usuario = factura.empleado!.nombreCompleto;   
     //  factura.actualizarCantidadProductos();
    //   factura.resetFactura();
+  if (!mounted) return;
 
-    // final printerProv = context.read<PrinterProvider>();
-    // final device = printerProv.device;
-    // if (device == null) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(content: Text('Selecciona antes un dispositivo')),
-    //   );
-    //   return;
-    // }
-
-    // // Llamas a tu clase de impresión
-    // final testPrint = TestPrint(device: device);  
-      
-    //   testPrint.printFactura(resdocFactura, 'FACTURA', 'CREDITO');
-    //   testPrint.printFactura(resdocFactura, 'FACTURA', 'CREDITO');
+     final printerProv = context.read<PrinterProvider>();
+     
+     if (printerProv.isBound  == false) {
+       ScaffoldMessenger.of(context).showSnackBar(
+         const SnackBar(content: Text('Impresora desconectada. Por favor, verifique la conexión.')),
+       );
+        _goHomeSuccess();
+       return;
+       
+     }
+     if (printerProv.busy  == true) {
+       ScaffoldMessenger.of(context).showSnackBar(
+         const SnackBar(content: Text('Impresora ocupada. Por favor, intente más tarde.')),
+       );
+        _goHomeSuccess();
+       return;
+     }
+      // Llamas a tu clase de impresión
+      final testPrint = TestPrint();
+      await testPrint.printFactura(resdocFactura, 'CREDITO', 'CREDITO', true);
+      await testPrint.printFactura(resdocFactura, 'CREDITO', 'CREDITO', false);
       _goHomeSuccess();
   }
 

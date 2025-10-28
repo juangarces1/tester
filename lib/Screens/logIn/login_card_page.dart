@@ -4,7 +4,7 @@ import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
-import 'package:tester/Components/default_button.dart';
+
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/ConsoleModels/console_user.dart';
 
@@ -102,6 +102,9 @@ class _LoginNfcScreenState extends State<LoginNfcScreen> {
 
       // (opcional) Guardar el empleado “Fuel” en tu provider
       // Si tu UsuarioProvider ya tiene signInFuel(Empleado):
+
+      if(mounted == false) return;
+
       final usuarioProv = context.read<UsuarioProvider>();
       // Descomenta si tienes ese método:
       await usuarioProv.signInFuel(userfuelRed);
@@ -139,7 +142,7 @@ class _LoginNfcScreenState extends State<LoginNfcScreen> {
         verificado: true,
       );
       await usuarioProv.signIn(mockUser);
-
+      if (!mounted) return;
       // 6) Cargar mapa
       final mapProv = context.read<MapProvider>();
       try {
@@ -165,6 +168,8 @@ class _LoginNfcScreenState extends State<LoginNfcScreen> {
         });
         return goInvent(factura.cierreActivo!.cajero.cedulaEmpleado);
       }
+
+      if (!mounted) return;
 
       final clienteProv = context.read<ClienteProvider>();
       await clienteProv.loadClientesBy(ClienteTipo.contado);
@@ -326,7 +331,7 @@ class _Header extends StatelessWidget {
             shadows: [
               Shadow(
                 blurRadius: 10,
-                color: Colors.blueAccent.withOpacity(0.6),
+                color: Colors.blueAccent.withValues(alpha: 0.6),
                 offset: const Offset(0, 2),
               ),
             ],

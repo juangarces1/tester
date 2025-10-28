@@ -732,6 +732,7 @@ class _PreDispenseDialogState extends State<PreDispenseDialog> {
     final ok = await ConsoleApiHelper.postDispense(
        widget.mv.nozzleNumber,
     );
+    if (!mounted) return;
     Navigator.pop(context);               // cerramos el diálogo
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

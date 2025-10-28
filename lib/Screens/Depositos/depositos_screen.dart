@@ -187,20 +187,20 @@ class _DepositosScreenState extends State<DepositosScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            height: 56,
-            width: 56,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Colors.indigo, Colors.indigoAccent],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Image.asset('assets/deposito.png', fit: BoxFit.contain),
-          ),
-          const SizedBox(width: 18),
+          // Container(
+          //   height: 56,
+          //   width: 56,
+          //   decoration: BoxDecoration(
+          //     gradient: const LinearGradient(
+          //       colors: [Colors.indigo, Colors.indigoAccent],
+          //       begin: Alignment.topLeft,
+          //       end: Alignment.bottomRight,
+          //     ),
+          //     borderRadius: BorderRadius.circular(16),
+          //   ),
+          //   child: Image.asset('assets/deposito.png', fit: BoxFit.contain),
+          // ),
+          // const SizedBox(width: 18),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,6 +254,7 @@ class _DepositosScreenState extends State<DepositosScreen> {
                                 msg: 'No se pudo conectar a la impresora');
                             return;
                           }
+                          if (!mounted) return;
                           final pistero = context
                                   .read<CierreActivoProvider>()
                                   .usuario

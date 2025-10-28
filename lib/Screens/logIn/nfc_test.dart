@@ -522,7 +522,7 @@ class _NfcTestPageState extends State<NfcTestPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.blueGrey.withOpacity(0.12),
+        color: Colors.blueGrey.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(100),
       ),
       child: Text('$k: $txt', style: const TextStyle(fontSize: 12)),

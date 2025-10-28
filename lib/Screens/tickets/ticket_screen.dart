@@ -128,6 +128,7 @@ class _TicketScreenState extends State<TicketScreen> {
                      CartInlineCompact(
                           index: widget.index,
                           onAddTransactions: () => TransaccionesSheet.open(
+                            
                               context: context,
                               zona: factura.cierre!.idzona!,
                               onItemSelected: (p) {
@@ -138,8 +139,8 @@ class _TicketScreenState extends State<TicketScreen> {
                                 FacturaService.updateFactura(context, inv);
                               },
                               // opcionales:
-                              showPrintIcon: false,
-                              onPrintTap: (p) { /* ... */ },
+                              showPrintIcon: true,
+                              onPrintTap: null,
                             ),
                           onAddProducts: () {
                             Navigator.push(context,
