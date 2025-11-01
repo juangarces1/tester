@@ -20,6 +20,21 @@ class MapProvider extends ChangeNotifier {
     _toastShown = true;
   }
 
+  /// Devuelve el número de posición (o dispensador) asociado a una manguera.
+  int? positionIndexForNozzle(int nozzleNumber) {
+      final map = _stationMap;
+      if (map == null) return null;
+
+      for (final entry in map.entries) {
+        final hoses = entry.value.hoses;
+        final match = hoses.any((hose) => hose.nozzleNumber == nozzleNumber);
+        if (match) {
+          return entry.key; // o entry.value.number, son iguales
+        }
+      }
+      return null;
+  }
+
   Future<void> loadMap({bool strictPhysicalOnly = false}) async {
     _loading = true;
     _error = null;

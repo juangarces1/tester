@@ -11,6 +11,9 @@ class DespachosProvider extends ChangeNotifier {
   final Set<String> _watchedHoses = {};
   final Map<String, HoseStatus> _hoseStatuses = {};
   final Map<String, String> _hoseRaw = {};
+  final Map<String, num> _hoseTotalVolume = {};
+  final Map<String, num> _hoseTotalAmount = {};
+
 
   TransaccionesProvider? _transProv;              // <- referencia opcional
   void bindTransacciones(TransaccionesProvider p) // <- llamada 1 vez en el arranque
@@ -30,6 +33,12 @@ class DespachosProvider extends ChangeNotifier {
   List<DispatchControl> get despachos => List.unmodifiable(_despachos);
   HoseStatus? getHoseStatus(String hoseId) => _hoseStatuses[hoseId];
   String? getHoseRawStatus(String hoseId) => _hoseRaw[hoseId];
+  
+  num? getHoseTotalVolume(String hoseId) => _hoseTotalVolume[hoseId];
+  num? getHoseTotalAmount(String hoseId) => _hoseTotalAmount[hoseId];
+
+
+  
   bool get isPolling => _pollTimer != null;
 
   String getHoseDisplayLabel(String hoseKey) {
@@ -114,6 +123,9 @@ class DespachosProvider extends ChangeNotifier {
     _watchedHoses.clear();
     _hoseStatuses.clear();
     _hoseRaw.clear();
+    _hoseTotalVolume.clear();
+    _hoseTotalAmount.clear();
+
     _stopPolling();
     _safeNotify();
   }
@@ -188,6 +200,15 @@ class DespachosProvider extends ChangeNotifier {
 
           final parsed = _parseStatus(raw);
           if (_hoseStatuses[key] != parsed) { _hoseStatuses[key] = parsed; changed = true; }
+
+          if (_hoseTotalVolume[key] != hose.totalVolume) {
+              _hoseTotalVolume[key] = hose.totalVolume;
+              changed = true;
+            }
+          if (_hoseTotalAmount[key] != hose.totalAmount) {
+            _hoseTotalAmount[key] = hose.totalAmount;
+            changed = true;
+          }
         }
       }
 
@@ -195,6 +216,9 @@ class DespachosProvider extends ChangeNotifier {
         if (!seen.contains(key)) {
           if (_hoseStatuses[key] != HoseStatus.unknown) { _hoseStatuses[key] = HoseStatus.unknown; changed = true; }
           if (_hoseRaw.containsKey(key)) { _hoseRaw.remove(key); changed = true; }
+          if (_hoseTotalVolume.remove(key) != null) changed = true;
+          if (_hoseTotalAmount.remove(key) != null) changed = true;
+
         }
       }
 
@@ -277,6 +301,8 @@ void reset() {
     _hoseRaw.clear();
     _stageWatchers.clear();
 
+    _hoseTotalVolume.clear();
+    _hoseTotalAmount.clear();
     // 4) Restaura estado base
     _busy = false;
     _disposed = false;

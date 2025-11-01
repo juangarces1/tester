@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:tester/Models/FuelRed/product.dart';
 import 'package:tester/Models/FuelRed/transaccion.dart';
-import 'package:tester/Providers/cierre_activo_provider.dart';
+
 
 class ConsoleTransaction {
   final int id;
@@ -374,6 +373,7 @@ extension ConsoleTxToLegacyTransaccion on ConsoleTransaction {
   Transaccion toTransaccion({
     BuildContext? context,
     int? idCierre,
+    int? Function(int nozzleNumber)? resolveDispenser,
 
     String? nombreProducto,
     String facturada = 'No',
@@ -390,18 +390,8 @@ extension ConsoleTxToLegacyTransaccion on ConsoleTransaction {
     final fmt = dateFormat ?? (dt) => dt.toIso8601String().split('.').first;
     final toInt = redondeoImporte ?? ((v) => v.toInt());
 
-    int resolvedIdCierre = idCierre ??
-        (() {
-          if (context == null) return 0;
-          try {
-            final prov = context.read<CierreActivoProvider>();
-            return prov.cierreFinal?.idcierre
-                ?? prov.value?.cierreFinal.idcierre
-                ?? 0;
-          } catch (_) {
-            return 0;
-          }
-        })();
+    final dispensadorFinal = resolveDispenser?.call(nozzleNumber) ?? nozzleNumber;
+
 
     // 👉 Nuevo: nombre por defecto según fuelCode
     final productName = nombreProducto ?? _fuelName(fuelCode);
@@ -410,13 +400,13 @@ extension ConsoleTxToLegacyTransaccion on ConsoleTransaction {
       idtransaccion: 0,
       numero: id,
       fechatransaccion: fmt(dateTime),
-      dispensador: nozzleNumber,
+      dispensador: dispensadorFinal,
       idproducto: fuelCode,
       nombreproducto: productName, // ← aplicado el mapeo
       total: toInt(totalValue),
       volumen: totalVolume,
       preciounitario: toInt(unitPrice),
-      idcierre: resolvedIdCierre,
+      idcierre: 0,
       estado: 'copiado',
       entregatarjeta: entregoTarjeta,
       canjetarjeta: canjeTarjeta,

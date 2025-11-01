@@ -341,8 +341,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                       backgroundColor: kNewsurfaceHi,
                     ),
                   ),
-                if (factura.formPago!.clienteFactura.actividadSeleccionada != null)
-                
+                if (factura.tieneCodigoActividad)                
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: ShowActividadSelect(

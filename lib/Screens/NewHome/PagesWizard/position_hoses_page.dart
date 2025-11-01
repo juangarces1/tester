@@ -88,7 +88,7 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
     // if ((position?.faceDescription.trim().isNotEmpty ?? false)) {
     //   subtitleParts.add(position!.faceDescription.trim());
     // }
-     final subtitleText = position!.pumpName;
+     final subtitleText = position?.pumpName ?? '';
    
     return Scaffold(
       backgroundColor: Colors.black,
@@ -183,8 +183,8 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
                               gridDelegate:
                                   const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
-                                mainAxisSpacing: 10,
-                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 5,
+                                crossAxisSpacing: 5,
                                 childAspectRatio: 3 / 4,
                               ),
                             ),
@@ -313,22 +313,24 @@ class _HoseCard extends StatelessWidget {
                       ),
                     ),
                ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 15),
               Text(
-                'D0${hose.nozzleNumber}',
+                'M-${hose.nozzleNumber}',
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w800,
-                  fontSize: 24,
+                  fontSize: 18,
                 ),
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: 10),
               Text(
                 hose.fuel.name,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
+                  
                 ),
               ),
               const Spacer(),

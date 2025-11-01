@@ -226,11 +226,16 @@ class Invoice {
    } 
 
   bool get acumulaPuntos =>
-    detail?.any((p) => p.cantidad >= 90 && p.unidad.trim().toUpperCase() == 'L') ?? false;
-  
+  (formPago?.clientePuntos.nombre.trim().isNotEmpty ?? false) &&
+  (detail?.any((p) =>
+        (p.cantidad >= 90) &&
+        ((p.unidad).trim().toUpperCase() == 'L'),
+    ) ?? false);
+    
   bool get canjeaPuntos => (formPago?.totalPuntos ?? 0) > 0;
 
-
+  bool get tieneCodigoActividad =>
+    formPago?.clienteFactura.actividadSeleccionada?.codigo != null;
 
   bool get tieneTransferencia =>
     formPago?.transfer.transfers.isNotEmpty ?? false;

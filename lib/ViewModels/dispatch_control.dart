@@ -9,7 +9,16 @@ import '../ViewModels/new_map.dart' show Fuel, HosePhysical, PositionPhysical;
 
 class DispatchControl extends ChangeNotifier {
   final DespachosProvider _provider;
-  DispatchControl(this._provider) { _provider.addListener(_onProviderTick); }
+  int? Function(int)? _resolveDispenser;
+
+  DispatchControl(
+    this._provider, {
+    int? Function(int)? resolveDispenser, // opcional
+  }) : _resolveDispenser = resolveDispenser {
+    _provider.addListener(_onProviderTick);
+  }
+
+
 
   String?           id;
   PositionPhysical? selectedPosition;
@@ -41,8 +50,18 @@ class DispatchControl extends ChangeNotifier {
   bool _persistingTx = false;
   bool _unpaidFlowRunning = false; // candado simple anti-paralelo
 
+  // Tracking de contadores acumulados del surtidor para obtener progreso relativo
+  double? _hoseVolumeBaseline; // lectura inicial del contador de volumen
+  double? _hoseAmountBaseline; // lectura inicial del contador de monto
+  double? _dispensedVolume;    // volumen abastecido desde la autorización
+  double? _dispensedAmount;    // monto abastecido desde la autorización
+  double? _lastObservedVolumeRaw; // última lectura cruda recibida
+  double? _lastObservedAmountRaw; // última lectura cruda recibida
+
   bool get loadingLastSale => _loadingLastSale;
   bool get persistingTx => _persistingTx;
+  double? get dispensedVolume => _dispensedVolume;
+  double? get dispensedAmount => _dispensedAmount;
 
   DispatchStage stage = DispatchStage.idle;
 
@@ -63,8 +82,7 @@ class DispatchControl extends ChangeNotifier {
   bool get isReadyToAuthorize =>
       stage == DispatchStage.readyToAuthorize && hoseStatus == HoseStatus.available;
 
-  bool _unpaidHookFired = false; // (si mantienes hooks externos)
-
+ 
   bool get canEditInvoiceType =>
       stage == DispatchStage.authorized ||
       stage == DispatchStage.dispatching ||
@@ -100,9 +118,12 @@ class DispatchControl extends ChangeNotifier {
     amountRequest = null;
     authorizationExpired = false;
     _lastObservedHoseStatus = null;
+    _resetTotalsTracking(); // descarta progreso previo al cambiar posición
     _updateStage();
     notifyListeners();
   }
+
+   void setResolver(int? Function(int) r) => _resolveDispenser = r;
 
   void selectHose({ required PositionPhysical pos, required HosePhysical hose }) {
     if (selectedHose != null) _provider.removeWatchedHose(selectedHose!.hoseKey);
@@ -111,6 +132,7 @@ class DispatchControl extends ChangeNotifier {
     fuel             = hose.fuel;
     _provider.addWatchedHose(hose.hoseKey);
     _lastObservedHoseStatus = null;
+    _resetTotalsTracking(); // reinicia el tracking cuando se elige una nueva manguera
     _updateStage();
     _onProviderTick(); // primer sync inmediato
     notifyListeners();
@@ -122,6 +144,7 @@ class DispatchControl extends ChangeNotifier {
     preset = p;
     tankFull = false;
     amountRequest = p.kind == PresetKind.amount ? p.amount : null;
+    _resetTotalsTracking(); // cualquier cambio de preset invalida la medición previa
     _updateStage();
     notifyListeners();
   }
@@ -137,16 +160,19 @@ class DispatchControl extends ChangeNotifier {
   void setTankFull(bool value) {
     tankFull = value;
     if (value) { preset = PresetInfo.empty(); amountRequest = null; }
+    _resetTotalsTracking(); // cambia la estrategia del despacho, reinicia tracking
     _updateStage();
     notifyListeners();
   }
 
   void markReadyToAuthorize() {
+    _resetTotalsTracking(); // asegura que el próximo conteo empiece en cero
     stage = DispatchStage.readyToAuthorize;
     notifyListeners();
   }
 
   void markAuthorizing() {
+    _resetTotalsTracking(); // en authorizing tomamos la primera lectura como baseline
     stage = DispatchStage.authorizing;
     authorizationExpired = false;
     notifyListeners();
@@ -177,6 +203,62 @@ class DispatchControl extends ChangeNotifier {
   //   notifyListeners();
   // }
 
+  /// Mock helper to jump into unpaid stage with a sample console transaction.
+  void mockUnpaidState({ConsoleTransaction? transaction}) {
+    _cancelAuthLossTimer();
+    _cancelFinishTimer();
+
+    final now = DateTime.now();
+   
+    
+    final mockTx = transaction ??
+        ConsoleTransaction(
+          id: 30,
+          fuelingIndex: 258,
+          nozzleNumber: selectedHose?.nozzleNumber ?? 4,
+          fuelCode: selectedHose?.fuelCode ?? 3,
+          fuelTankNumber: selectedHose?.tankNumber ?? 3,
+          totalValue: 66500.0,
+          totalVolume: 100.0,
+          unitPrice: 665.0,
+          duration: 60,
+          dateTime: now,
+          initialTotalizer: 100000,
+          finalTotalizer: 100100,
+          attendantId: '12909579249690290000',
+          attendantIdRaw: 'B32809EE018B2811',
+          customerId: 0,
+          currentVolume: 10.0,
+          saleStatus: 0,
+          saleNumber: 0,
+          saleId: null,
+          reference: null,
+          paymentType: null,
+          mode: null,
+          invoiceType: null,
+          epIdEmpresa: 1,
+          paymentConfirmed: false,
+          createdAt: now,
+          userEmail: 'operator@example.com',
+          
+        );
+
+    consoleTx = mockTx;
+    saleId = mockTx.saleId;
+    saleNumber = mockTx.saleNumber;
+    productId = mockTx.fuelCode;
+    amountDispense = mockTx.totalValue;
+    volumenDispense = mockTx.totalVolume;
+    price = mockTx.unitPrice;
+    tx = mockTx.toTransaccion(
+      resolveDispenser: _resolveDispenser, 
+    );
+    authorizationExpired = false;
+    stage = DispatchStage.unpaid;
+    if (autoUnwatchOnTerminal) _detachWatcher();
+    notifyListeners();
+  }
+
   // ================== NUEVO FLUJO ÚNICO ==================
   // SOLO hace fetch y crea tx local si falta. NUNCA postea aquí.
   Future<void> _fetchLastSaleIfNeeded() async {
@@ -200,7 +282,9 @@ class DispatchControl extends ChangeNotifier {
         price            = consoleTx?.unitPrice;
 
         // ⚠️ Solo crea la Transaccion UNA VEZ; id=0
-        tx ??= consoleTx?.toTransaccion();
+        tx ??= consoleTx?.toTransaccion(
+        resolveDispenser: _resolveDispenser,
+      );
 
         // NO: nada de onLastUnpaid ni POST aquí.
       } else {
@@ -227,14 +311,16 @@ class DispatchControl extends ChangeNotifier {
         notifyListeners();
       }
 
-      // Delay opcional (default 350 ms)
-      final d = delay ?? const Duration(milliseconds: 500);
+      // Delay opcional (default 1500 ms)
+      final d = delay ?? const Duration(milliseconds: 1500);
       if (d.inMilliseconds > 0) {
         await Future.delayed(d);
       }
 
       // 1) Fetch consola (NO postea)
       await _fetchLastSaleIfNeeded();
+
+      
 
       // 2) Persistir si hay tx (esperar para evitar id=0)
       final t = tx;
@@ -327,6 +413,7 @@ class DispatchControl extends ChangeNotifier {
     consoleTx = null;
     authorizationExpired = false;
     _lastUserIdentifier = null;
+    _resetTotalsTracking(); // prepara el control para un uso posterior
     _cancelFinishTimer();
     _detachWatcher();
     selectedPosition = null;
@@ -335,7 +422,7 @@ class DispatchControl extends ChangeNotifier {
     preset           = PresetInfo.empty();
     tankFull         = false;
     fuel             = null;
-    _unpaidHookFired = false;
+    
     type = null; dispenserId = null; hoseId = null; amountRequest = null;
     amountDispense = null; volumenDispense = null; price = null;
     saleId = null; productId = null; saleNumber = null;
@@ -375,12 +462,125 @@ class DispatchControl extends ChangeNotifier {
     }
   }
 
+  bool get _isTrackingProgressStage {
+    switch (stage) {
+      case DispatchStage.authorizing:
+      case DispatchStage.authorized:
+      case DispatchStage.dispatching:
+      case DispatchStage.completed:
+      case DispatchStage.unpaid:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  void _resetTotalsTracking() {
+    _hoseVolumeBaseline = null;
+    _hoseAmountBaseline = null;
+    _dispensedVolume = null;
+    _dispensedAmount = null;
+    _lastObservedVolumeRaw = null;
+    _lastObservedAmountRaw = null;
+  }
+
+  bool _resetTotalsTrackingIfNeeded() {
+    if (_hoseVolumeBaseline != null ||
+        _hoseAmountBaseline != null ||
+        _dispensedVolume != null ||
+        _dispensedAmount != null ||
+        _lastObservedVolumeRaw != null ||
+        _lastObservedAmountRaw != null) {
+      _resetTotalsTracking();
+      return true;
+    }
+    return false;
+  }
+
+  bool _updateTotalsFromProvider() {
+    final key = selectedHose?.hoseKey;
+    if (key == null) {
+      return _resetTotalsTrackingIfNeeded();
+    }
+
+    final volumeRaw = _provider.getHoseTotalVolume(key);
+    final amountRaw = _provider.getHoseTotalAmount(key);
+    final tracking = _isTrackingProgressStage;
+
+    bool changed = false;
+    changed |= _updateProgressValue(raw: volumeRaw, isVolume: true, tracking: tracking);
+    changed |= _updateProgressValue(raw: amountRaw, isVolume: false, tracking: tracking);
+    return changed;
+  }
+
+  bool _updateProgressValue({
+    required num? raw,
+    required bool isVolume,
+    required bool tracking,
+  }) {
+    if (!tracking) {
+      return _resetTotalsTrackingIfNeeded();
+    }
+    if (raw == null) {
+      return false;
+    }
+
+    final rawValue = raw.toDouble();
+    bool changed = false;
+
+    final baseline = isVolume ? _hoseVolumeBaseline : _hoseAmountBaseline;
+    final current = isVolume ? _dispensedVolume : _dispensedAmount;
+
+    if (isVolume) {
+      _lastObservedVolumeRaw = rawValue;
+    } else {
+      _lastObservedAmountRaw = rawValue;
+    }
+
+    if (baseline == null) {
+      if (isVolume) {
+        _hoseVolumeBaseline = rawValue;
+        if ((current ?? 0) != 0) {
+          _dispensedVolume = 0;
+          changed = true;
+        }
+      } else {
+        _hoseAmountBaseline = rawValue;
+        if ((current ?? 0) != 0) {
+          _dispensedAmount = 0;
+          changed = true;
+        }
+      }
+      return changed || (current ?? 0) != 0;
+    }
+
+    final diff = rawValue - baseline;
+    final normalized = diff < 0 ? 0.0 : diff;
+    if (isVolume) {
+      if (_dispensedVolume == null || (_dispensedVolume! - normalized).abs() > 0.0001) {
+        _dispensedVolume = normalized;
+        changed = true;
+      }
+    } else {
+      if (_dispensedAmount == null || (_dispensedAmount! - normalized).abs() > 0.0001) {
+        _dispensedAmount = normalized;
+        changed = true;
+      }
+    }
+
+    return changed;
+  }
+
   void _onProviderTick() {
     if (selectedHose == null) return;
+
+    final totalsChanged = _updateTotalsFromProvider();
     final curr = hoseStatus;
     if (_lastObservedHoseStatus != curr) {
       _lastObservedHoseStatus = curr;
       syncWithHoseStatus();
+      notifyListeners();
+    } else if (totalsChanged) {
       notifyListeners();
     }
   }
@@ -477,7 +677,9 @@ extension DispatchControlApi on DispatchControl {
         return false;
       }
     }
+    // Truco para probar problema decimales en dispensador
 
+    
     // --- PRESET (monto o volumen): PreDispenseV2 autoriza ---
     final isVolume = preset.isVolume;
     final value = isVolume ? preset.volume! : preset.amount!;
@@ -504,6 +706,8 @@ extension DispatchControlApi on DispatchControl {
       return false;
     }
   }
+ 
+ 
   void _clearConsoleValues() {
     consoleTx       = null;
     saleId          = null;

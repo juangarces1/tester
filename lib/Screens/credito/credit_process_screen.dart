@@ -200,11 +200,11 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
                          backgroundColor: kNewsurfaceHi,),
                     ) : Container(),
               
-                   factura.formPago!.clienteFactura.actividadSeleccionada != null ?  
+                     if (factura.tieneCodigoActividad)   
                     Padding(
                       padding: const EdgeInsets.only(left: 10, right: 10),
                       child: ShowActividadSelect(actividad: factura.formPago!.clienteFactura.actividadSeleccionada!, ),
-                    ) : Container(),
+                    ) ,
                    facturaC.formPago!.clienteCredito.nombre.isNotEmpty ?     ShowEmail(email: facturaC.formPago!.clienteCredito.email) : Container(),
                     SizedBox(height: SizeConfig.screenHeight * 0.01),
                     signUpForm(),  

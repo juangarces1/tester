@@ -84,7 +84,8 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
 
   double _progress(DispatchControl dc) {
     final req  = dc.amountRequest;
-    final done = dc.amountDispense;
+    // Preferimos el monto en vivo (dispensedAmount) y caemos al valor final si ya existe.
+    final done = dc.dispensedAmount ?? dc.amountDispense;
     if (req == null || req <= 0 || done == null || done <= 0) return 0;
     final p = done / req;
     if (p.isNaN) return 0;
@@ -98,6 +99,9 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
       builder: (_, __) {
         final color = _statusColor(widget.d);
         final label = _statusLabel(widget.d);
+        // Valores en vivo calculados a partir de los nuevos contadores del surtidor.
+        final liveVolume = widget.d.dispensedVolume ?? widget.d.volumenDispense;
+        final liveAmount = widget.d.dispensedAmount ?? widget.d.amountDispense;
 
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -200,14 +204,14 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
                         Expanded(
                           child: _metricTile(
                             title: 'Litros',
-                            value: _fmtLiters(widget.d.volumenDispense),
+                            value: _fmtLiters(liveVolume),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: _metricTile(
                             title: 'Monto',
-                            value: _fmtMoney(widget.d.amountDispense),
+                            value: _fmtMoney(liveAmount),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -267,17 +271,23 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
                          _goFacturacion(widget.d);
                         }),
 
-                        _miniBtn(
-                          context,
-                          icon: Icons.warning_amber_rounded,
-                          label: 'Forzar Sin pagar',
-                          onTap: () {
-                            widget.d.markUnpaid();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('markUnpaid() ejecutado')),
-                            );
-                          },
-                        ),
+                        if (widget.d.stage == DispatchStage.completed || widget.d.stage == DispatchStage.unpaid)
+                        _miniBtn(context, icon: Icons.settings, label: 'Procesar', onTap: () {
+                         widget.d.markCompleted();
+                         
+                        }),
+
+                        // _miniBtn(
+                        //   context,
+                        //   icon: Icons.warning_amber_rounded,
+                        //   label: 'Forzar Sin pagar',
+                        //   onTap: () {
+                        //     widget.d.markUnpaid();
+                        //     ScaffoldMessenger.of(context).showSnackBar(
+                        //       const SnackBar(content: Text('markUnpaid() ejecutado')),
+                        //     );
+                        //   },
+                        // ),
                     ],
                   ),
                   if (widget.d.canRetry)
@@ -290,7 +300,7 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
                         const SnackBar(content: Text('Reintentando autorización…')),
                       );
                       final ok = await widget.d.retryAuthorize();
-                   
+                    
                       ScaffoldMessenger.of(context).hideCurrentSnackBar();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text(ok ? 'Autorizado nuevamente ✅' : 'No se pudo autorizar ❌')),
@@ -394,20 +404,19 @@ Widget _pill(String text) => Container(
   }
 
   Widget _invoiceTypePill(BuildContext context,) {
-    final current = widget.d.invoiceType?.name.toUpperCase() ?? 'ELEGIR TIPO';
+    final current = widget.d.invoiceType?.name.toUpperCase() ?? 'TIPO';
     return InkWell(
       onTap: () => _pickInvoiceType(context),
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
         decoration: BoxDecoration(
-          color: current == 'ELEGIR TIPO' ? Colors.deepPurple : widget.d.invoiceType!.color,
+          color: current == 'TIPO' ? Colors.deepPurple : widget.d.invoiceType!.color,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            
+          children: [            
             const SizedBox(width: 6),
             Text(current, style:  TextStyle(color: current == 'PEDDLER' ? Colors.black : Colors.white, fontWeight: FontWeight.bold)),
             const SizedBox(width: 6),
@@ -478,42 +487,45 @@ Widget _pill(String text) => Container(
   void _goFacturacion(DispatchControl control) async {
    final type = control.invoiceType;
    final tx   = control.tx;
-
+   
+  
    // CASO ESPECIAL: producto exonerado (idproducto == 4)
   // ==========================================================
   if (tx?.idproducto == 4) {
     try {
+      
       // Actualiza el estado a Exonerado en el backend (si aplica)
        final cp = Provider.of<CierreActivoProvider>(context, listen: false);
        
        //Si la transaccion es de exonerado no se factura se procesa y se marcha completado el despacho
-        if (tx!.estado == "Exonerado") {
-                         
+        
+        tx!.estado ="Exonerado";
+        tx.idcierre = cp.cierreFinal!.idcierre!;
+        Response response  = await ApiHelper.put("TransaccionesApi", tx.idtransaccion.toString(), tx.toJson());
 
-              tx.estado ="Exonerado";
-              tx.idcierre = cp.cierreFinal!.idcierre!;
-              Response response  = await ApiHelper.put("TransaccionesApi", tx.idtransaccion.toString(), tx.toJson());
-
-              if (!response.isSuccess) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error al exonerar transacción: ${response.message}')),
-                );
-                return;
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Transacción exonerada exitosamente')),
-                );
-                control.markCompleted();
-                return;
-              }
+        if (!response.isSuccess) {
+           if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error al exonerar transacción: ${response.message}')),
+          );
+          return;
+        } else {
+           if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Transacción exonerada exitosamente')),
+          );
+          control.markCompleted();
+          return;
         }
+            
 
 
       
       // Finaliza el proceso visualmente
-      widget.d.markCompleted();
+    
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+    
+        ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al exonerar transacción: $e')),
       );
     }

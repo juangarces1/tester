@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Providers/despachos_provider.dart';
+import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/Screens/NewHome/Components/dispatch_card.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/faces_list_page.dart';
 import 'package:tester/ViewModels/dispatch_control.dart';
@@ -51,7 +52,7 @@ Widget build(BuildContext context) {
                   )
                 : ListView.separated(
                     // ← aquí reservamos espacio para el FAB
-                    padding: EdgeInsets.fromLTRB(8, 8, 8, extraBottom),
+                    padding: EdgeInsets.fromLTRB(8, 20, 8, extraBottom),
                     itemCount: despachos.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 20),
                     itemBuilder: (ctx, i) {
@@ -103,16 +104,16 @@ Widget build(BuildContext context) {
                     },
                   ),
           ),
-          Positioned(
-            top: 16,
-            right: 16,
-            child: _buildDispatchCounter(all.length),
-          ),
+           Positioned(
+             left: 3,
+             bottom: 3,
+             child: _buildDispatchCounter(all.length),
+           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: kBlueColorLogo,
-        onPressed: () => _startNewFlow(context),
+        onPressed: () =>  _startNewFlow(context), // _startNewFlow(context),
         child: const Icon(Icons.add, color: Colors.white, size: 35),
       ),
     ),
@@ -120,27 +121,7 @@ Widget build(BuildContext context) {
 }
 
 
-//   Future<void> _startNewMockDispatch(BuildContext ctx) async {
-//   final despachosProv = Provider.of<DespachosProvider>(ctx, listen: false);
-//   final txProv        = Provider.of<Transaccion>(ctx, listen: false);
-
-//   final dispatch = DispatchControl(despachosProv);
-//   dispatch.seedMockAndRegister(
-//     despachos: despachosProv,
-//     transactions: txProv,
-//     useAmount: true,       // o false si prefieres volumen
-//     amount: 280800,         // si useAmount=true
-//     liters: 360.0,          // si useAmount=false
-//     pricePerL: 780.0,
-//     product: 95,
-//     nozzle: 1,
-//     type: InvoiceType.credito,   
-//   );
-
-//   ScaffoldMessenger.of(ctx).showSnackBar(
-//     const SnackBar(content: Text('Despacho mock listo (unpaid)')),
-//   );
-// }
+   
 
   Widget _buildDispatchCounter(int total) {
     return Container(
@@ -150,15 +131,16 @@ Widget build(BuildContext context) {
         borderRadius: BorderRadius.circular(16),
       ),
       child: Text(
-        'Despachos: $total',
+        'Despachos: ${total.toString()}',
         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
       ),
     );
   }
 
   Future<void> _startNewFlow(BuildContext ctx) async {
+    final map = ctx.read<MapProvider>();
     final despachosProv = Provider.of<DespachosProvider>(ctx, listen: false);
-    final dispatch = DispatchControl(despachosProv)
+    final dispatch = DispatchControl(despachosProv, resolveDispenser: map.positionIndexForNozzle)
       ..id = DateTime.now().millisecondsSinceEpoch.toString();
 
     despachosProv.addDispatch(dispatch);
@@ -183,5 +165,17 @@ Widget build(BuildContext context) {
         despachosProv.removeById(dispatch.id!);
       }
     }
+  }
+
+  Future<void> _startMockFlow(BuildContext ctx) async {
+    final map = ctx.read<MapProvider>();
+    final despachosProv = Provider.of<DespachosProvider>(ctx, listen: false);
+    final dispatch = DispatchControl(despachosProv, resolveDispenser: map.positionIndexForNozzle)
+      ..id = DateTime.now().millisecondsSinceEpoch.toString();
+
+    despachosProv.addDispatch(dispatch);
+    dispatch.mockUnpaidState();
+
+    
   }
 }

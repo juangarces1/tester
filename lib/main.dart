@@ -53,10 +53,15 @@ class MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    final base = ThemeData(
+      useMaterial3: true,
+      colorSchemeSeed: const Color(0xFF6750A4),
+      fontFamily: 'Roboto', 
+    );
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Fuelred Mobile',
-      theme: ThemeData(useMaterial3: true),
+      theme: base,
       home: const LoginScreen(),
     );
   }

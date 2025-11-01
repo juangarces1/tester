@@ -406,11 +406,11 @@ class _CartLineCompact extends StatelessWidget {
       buff.write(s[i]);
       cnt++;
       if (cnt == 3 && i != 0) {
-        buff.write(',');
+        buff.write('.');
         cnt = 0;
       }
     }
     final str = buff.toString().split('').reversed.join();
-    return '₡$str';
+    return str;
   }
 }
