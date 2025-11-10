@@ -13,8 +13,8 @@ class Transaccion {
   int preciounitario = 0 ;
   int idcierre = 0 ;
   String estado ="";
-  String entregatarjeta ="";
-  String canjetarjeta ="";
+  String? entregatarjeta ="";
+  String? canjetarjeta ="";
   String? pan="";
   String? nombrecliente ="";
   String facturada ="";
@@ -35,8 +35,8 @@ class Transaccion {
       required this.preciounitario,
       required this.idcierre,
       required this.estado,
-      required this.entregatarjeta,
-      required this.canjetarjeta,
+      this.entregatarjeta,
+      this.canjetarjeta,
        this.pan,
        this.nombrecliente,
       required this.facturada,

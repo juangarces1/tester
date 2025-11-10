@@ -47,17 +47,18 @@ class _AddSinpeScreenState extends State<AddSinpeScreen> {
           foreColor: kNewtextPri,
           backgroundColor: kNewbg,
           actions: <Widget>[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/splash.png',
-                  width: 30,
-                  height: 30,
-                  fit: BoxFit.cover,
+             Container(
+                  height: 40,
+                  width: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Image.asset('assets/sinpe.png', fit: BoxFit.contain),
+                  ),
                 ),
-              ),
-            ),
           ],
         ),
         body: Stack(

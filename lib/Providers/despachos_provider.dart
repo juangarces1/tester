@@ -25,8 +25,8 @@ class DespachosProvider extends ChangeNotifier {
   bool _busy = false;
   bool _disposed = false;
 
-  Duration _interval = const Duration(seconds: 2);
-  final Duration _okInterval = const Duration(seconds: 2);
+  Duration _interval = const Duration(seconds: 1);
+  final Duration _okInterval = const Duration(seconds: 1);
   final Duration _errorInterval = const Duration(seconds: 8);
   bool _lastTickFailed = false;
 
@@ -196,21 +196,37 @@ class DespachosProvider extends ChangeNotifier {
           seen.add(key);
 
           final raw = _extractRawStatus(hose.status);
+          debugPrint('[Poll] Hose $key raw=$raw | parsed=${_parseStatus(raw)}');
           if (_hoseRaw[key] != raw) { _hoseRaw[key] = raw; changed = true; }
 
           final parsed = _parseStatus(raw);
           if (_hoseStatuses[key] != parsed) { _hoseStatuses[key] = parsed; changed = true; }
 
-          if (_hoseTotalVolume[key] != hose.totalVolume) {
-              _hoseTotalVolume[key] = hose.totalVolume;
-              changed = true;
-            }
+          final normalizedVolume = _normalizeHoseVolume(hose.totalVolume);
+          final previousVolume = _hoseTotalVolume[key];
+
+          //  debugPrint(normalizedVolume.toString());   
+          //  debugPrint(previousVolume.toString()); 
+           debugPrint(parsed.toString());   
+           debugPrint(
+            '[Hose $key] normalizedVol=${normalizedVolume.toStringAsFixed(3)} '
+            'previous=${previousVolume?.toStringAsFixed(3) ?? 'null'}',
+          );
+          
+          if (previousVolume == null ||
+              (previousVolume.toDouble() - normalizedVolume).abs() > 0.0001) {
+            _hoseTotalVolume[key] = normalizedVolume;
+            changed = true;
+            
+          }
           if (_hoseTotalAmount[key] != hose.totalAmount) {
             _hoseTotalAmount[key] = hose.totalAmount;
             changed = true;
           }
         }
       }
+
+      
 
       for (final key in _watchedHoses) {
         if (!seen.contains(key)) {
@@ -247,6 +263,13 @@ class DespachosProvider extends ChangeNotifier {
     final s = status.toString();           // p.ej. "Status.fueling"
     final parts = s.split('.');
     return parts.isNotEmpty ? parts.last : s;
+  }
+
+  double _normalizeHoseVolume(num raw) {
+    // Horustec expone el totalizador en centesimas de litro -> convertir a litros.
+    final value = raw.toDouble();
+    if (!value.isFinite) return 0.0;
+    return value / 100.0;
   }
 
   HoseStatus _parseStatus(String raw) {

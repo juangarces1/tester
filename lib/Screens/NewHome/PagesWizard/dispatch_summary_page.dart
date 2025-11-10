@@ -157,18 +157,26 @@ class DispatchSummaryPage extends StatelessWidget {
     return;
   }
 
+ 
+  debugPrint('Stage: ${dispatch.stage}');
+  debugPrint('Hose: ${dispatch.selectedHose?.hoseKey}');
+  debugPrint('Has amount/tank: ${dispatch.hasAmountOrTank}');
+  debugPrint('Hose status: ${dispatch.hoseStatus}');
+  debugPrint('Reason: ${dispatch.notReadyReason}');
+
+  
   // Validación previa: evita llamadas cuando no está listo
-  if (!dispatch.isReadyToAuthorize) {
-    final reason = dispatch.notReadyReason ?? 'No está listo para autorizar.';
-    Fluttertoast.showToast(
-      msg: reason,
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.CENTER,
-      backgroundColor: Colors.orange,
-      textColor: Colors.white,
-    );
-    return;
-  }
+   if (!dispatch.isReadyToAuthorize) {
+     final reason = dispatch.notReadyReason ?? 'No está listo para autorizar.';
+     Fluttertoast.showToast(
+       msg: reason,
+       toastLength: Toast.LENGTH_SHORT,
+       gravity: ToastGravity.CENTER,
+       backgroundColor: Colors.orange,
+       textColor: Colors.white,
+     );
+     return;
+   }
 
  
   // 1) Obtener el usuario actual desde el Provider

@@ -73,29 +73,38 @@ class _AdminCenterPageState extends State<AdminCenterPage> {
               child: Column(
                 children: [
                   // Chips de filtro
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
-                    child: Wrap(
-                      spacing: 8,
-                      children: _AdminFilter.values.map((f) {
-                        final selected = f == _filter;
-                        return ChoiceChip(
-                          label: Text(_filterLabel(f)),
-                          selected: selected,
-                          onSelected: (_) => setState(() => _filter = f),
-                          backgroundColor:kNewsurfaceHi,
-                          selectedColor:kNewsurfaceHi,
-                          labelStyle: TextStyle(
-                            color: Colors.white.withValues( alpha: selected ? 0.95 : 0.85),
-                            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  const SizedBox(height: 12),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      children: [
+                        for (final f in _AdminFilter.values) ...[
+                          ChoiceChip(
+                            checkmarkColor: Colors.white,
+                            label: Text(
+                              _filterLabel(f),
+                              style: TextStyle(
+                                color: _filter == f ? Colors.white : Colors.white70,
+                                fontWeight:
+                                    _filter == f ? FontWeight.w600 : FontWeight.w500,
+                              ),
+                            ),
+                            selected: _filter == f,
+                            backgroundColor: const Color(0xFF1A2130),
+                            selectedColor: const Color(0xFF2A3550),
+                            onSelected: (_) => setState(() => _filter = f),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
-                          side: BorderSide(
-                            color: Colors.white.withValues( alpha: selected ? 0.35 : 0.18),
-                          ),
-                        );
-                      }).toList(),
+                          if (f != _AdminFilter.values.last)
+                            const SizedBox(width: 8),
+                        ],
+                      ],
                     ),
                   ),
+                  const SizedBox(height: 6),
                 ],
               ),
             ),
@@ -212,7 +221,7 @@ class _IconWithBadge extends StatelessWidget {
 
 typedef CounterFn = int Function(BuildContext);
 
-enum _AdminFilter { cash, ops, billing, session }
+enum _AdminFilter { cash,  billing, ops, session }
 
 class _AdminAction {
   const _AdminAction({

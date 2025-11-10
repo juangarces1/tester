@@ -15,7 +15,6 @@ import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/FuelRed/peddler.dart';
 import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
-import 'package:tester/Providers/printer_provider.dart';
 import 'package:tester/Screens/NewHome/Components/produccts_page.dart';
 import 'package:tester/Screens/test_print/testprint.dart';
 import 'package:tester/constans.dart';
@@ -137,8 +136,8 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               SizedBox(
-                height: getProportionateScreenHeight(45),
-                width: getProportionateScreenWidth(45),
+                height: getProportionateScreenHeight(38),
+                width: getProportionateScreenWidth(38),
                 child: TextButton(
                   style: TextButton.styleFrom(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(60)),
@@ -178,49 +177,47 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
       child: Stack(
         children: [
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: getProportionateScreenWidth(20)),
+            padding: EdgeInsets.symmetric(horizontal: getProportionateScreenWidth(10)),
             child: SingleChildScrollView(
               controller: _scrollController,
-              child: Padding(
-                padding: const EdgeInsets.all(5),
-                child: Column(
-                  children: [
-                    CartInlineCompact(
-                      showProductsPage: false,
-                      index: widget.index,
-                      onAddTransactions: () => TransaccionesSheet.open(
-                        context: context,
-                        zona: factura.cierre!.idzona!,
-                        onItemSelected: (p) {
-                          final prov = context.read<FacturasProvider>();
-                          final inv = prov.getInvoiceByIndex(widget.index);
-                          inv.detail ??= [];
-                          inv.detail!.add(p);
-                          FacturaService.updateFactura(context, inv);
-                        },
-                        showPrintIcon: false,
-                        onPrintTap: (p) {},
-                      ),
-                      onAddProducts: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => ProductsPage(index: widget.index)));
+              child: Column(
+                children: [
+                  SizedBox(height: SizeConfig.screenHeight * 0.02),
+                  CartInlineCompact(
+                    showProductsPage: false,
+                    index: widget.index,
+                    onAddTransactions: () => TransaccionesSheet.open(
+                      context: context,
+                      zona: factura.cierre!.idzona!,
+                      onItemSelected: (p) {
+                        final prov = context.read<FacturasProvider>();
+                        final inv = prov.getInvoiceByIndex(widget.index);
+                        inv.detail ??= [];
+                        inv.detail!.add(p);
+                        FacturaService.updateFactura(context, inv);
                       },
+                      showPrintIcon: false,
+                      onPrintTap: (p) {},
                     ),
-                    SizedBox(height: SizeConfig.screenHeight * 0.02),
-                    ShowClient(
-                      factura: facturaC,
-                      padding: const EdgeInsets.only(left: 0.0, right: 0),
-                      tipo: ClienteTipo.peddler,
-                    ),
-                    facturaC.formPago!.clienteCredito.nombre.isNotEmpty
-                        ? ShowEmail(email: facturaC.formPago!.clienteCredito.email)
-                        : const SizedBox.shrink(),
-                    SizedBox(height: SizeConfig.screenHeight * 0.02),
-                    signUpForm(facturaC),
-                    SizedBox(height: SizeConfig.screenHeight * 0.02),
-                    showTotal(facturaC),
-                    const SizedBox(height: 45),
-                  ],
-                ),
+                    onAddProducts: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => ProductsPage(index: widget.index)));
+                    },
+                  ),
+                  SizedBox(height: SizeConfig.screenHeight * 0.02),
+                  ShowClient(
+                    factura: facturaC,
+                    padding: const EdgeInsets.only(left: 5, right: 5),
+                    tipo: ClienteTipo.peddler,
+                  ),
+                  facturaC.formPago!.clienteCredito.nombre.isNotEmpty
+                      ? ShowEmail(email: facturaC.formPago!.clienteCredito.email)
+                      : const SizedBox.shrink(),
+                  SizedBox(height: SizeConfig.screenHeight * 0.02),
+                  signUpForm(facturaC),
+                  SizedBox(height: SizeConfig.screenHeight * 0.02),
+                  showTotal(facturaC),
+                  const SizedBox(height: 45),
+                ],
               ),
             ),
           ),

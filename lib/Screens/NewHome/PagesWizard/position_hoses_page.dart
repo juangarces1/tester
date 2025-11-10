@@ -24,7 +24,7 @@ class PositionHosesPage extends StatefulWidget {
 }
 
 class _PositionHosesPageState extends State<PositionHosesPage> {
-  bool _loadingInFlight = false;
+  final bool _loadingInFlight = false;
 
   @override
   void initState() {
@@ -33,13 +33,13 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
   }
 
   Future<void> _refreshMap() async {
-    if (_loadingInFlight) return;
-    _loadingInFlight = true;
-    try {
-      await context.read<MapProvider>().loadMap(strictPhysicalOnly: true);
-    } finally {
-      _loadingInFlight = false;
-    }
+    // if (_loadingInFlight) return;
+    // _loadingInFlight = true;
+    // try {
+    //   await context.read<MapProvider>().loadMap(strictPhysicalOnly: true);
+    // } finally {
+    //   _loadingInFlight = false;
+    // }
   }
 
   @override

@@ -104,7 +104,7 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
         final liveAmount = widget.d.dispensedAmount ?? widget.d.amountDispense;
 
         return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 8),
+         
           color: const Color(0xFF151515),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Padding(

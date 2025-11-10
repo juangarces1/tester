@@ -38,6 +38,8 @@ class MapProvider extends ChangeNotifier {
   Future<void> loadMap({bool strictPhysicalOnly = false}) async {
     _loading = true;
     _error = null;
+    _stationMap = null;
+    _toastShown = false;
     notifyListeners();
 
     try {

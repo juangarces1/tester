@@ -48,14 +48,18 @@ class _SinpesScreenState extends State<SinpesScreen> {
           actions: <Widget>[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/splash.png',
-                  width: 30,
-                  height: 30,
-                  fit: BoxFit.cover,
+              child: Container(
+                  height: 40,
+                  width: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Image.asset('assets/sinpe.png', fit: BoxFit.contain),
+                  ),
                 ),
-              ),
             ),
           ],
         ),
@@ -170,21 +174,7 @@ class _SinpesScreenState extends State<SinpesScreen> {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Imagen a la izquierda
-        Container(
-          height: 56,
-          width: 56,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(6),
-            child: Image.asset('assets/sinpe.png', fit: BoxFit.contain),
-          ),
-        ),
-        const SizedBox(width: 16),
-
+      
         // Toda la info a la derecha en UNA sola columna
         Expanded(
           child: Column(

@@ -135,7 +135,7 @@ class FacturacionPage extends StatelessWidget {
                   color: facturaActual.isPromo!
                       ? Colors.black
                       : facturaActual.isContado!
-                          ? Colors.orange
+                          ? kPrimaryColor
                           : facturaActual.isTicket!
                               ? Colors.green
                               : facturaActual.isCredit!
@@ -157,7 +157,7 @@ class FacturacionPage extends StatelessWidget {
                         facturaActual.isContado!
                             ? 'assets/factura.png'
                             : facturaActual.isTicket!
-                                ? 'assets/Ticket.png'
+                                ? 'assets/tk.png'
                                 : facturaActual.isCredit!
                                     ? 'assets/Cred1.png'
                                     : facturaActual.isPeddler!

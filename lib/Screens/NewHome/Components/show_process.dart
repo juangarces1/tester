@@ -301,8 +301,20 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
   // ---------- Cargar desde TransaccionesProvider.unpaid ----------
   Future<void> _updateTransactions() async {
     try {
-     
-     var cierre = context.read<CierreActivoProvider>().cierreFinal;
+      final request = {
+        'lookbackMinutes':10
+      };
+      final rsync = await ApiHelper.post('Api/TransaccionesApi/sync-now', request);
+
+      if(!mounted) return;
+      if (!rsync.isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(rsync.message.isNotEmpty == true ? rsync.message : 'No se pudieron sincronizar transacciones')),
+        );
+        return;
+      }
+
+      var cierre = context.read<CierreActivoProvider>().cierreFinal;
 
       final rs = await ApiHelper.getTransaccionesAsProduct(cierre!.idzona);
 
@@ -378,7 +390,7 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
 
     if (state == 'Exonerado') {
       for (var item in cart) {
-        if (item.detalle != 'Comb Exonerado') {
+        if (item.detalle != 'Exonerado') {
           validate = true;
           break;
         }

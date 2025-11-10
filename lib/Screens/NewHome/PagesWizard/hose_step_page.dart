@@ -16,24 +16,24 @@ class HoseStepPage extends StatefulWidget {
 }
 
 class _HoseStepPageState extends State<HoseStepPage> {
-  bool _loadingInFlight = false;
+  final bool _loadingInFlight = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _refreshMap();
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   _refreshMap();
+    // });
   }
 
   Future<void> _refreshMap() async {
-    if (_loadingInFlight) return;
-    _loadingInFlight = true;
-    try {
-      await context.read<MapProvider>().loadMap();
-    } finally {
-      _loadingInFlight = false;
-    }
+    // if (_loadingInFlight) return;
+    // _loadingInFlight = true;
+    // try {
+    //   await context.read<MapProvider>().loadMap();
+    // } finally {
+    //   _loadingInFlight = false;
+    // }
   }
 
   @override

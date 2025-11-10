@@ -312,7 +312,7 @@ class DispatchControl extends ChangeNotifier {
       }
 
       // Delay opcional (default 1500 ms)
-      final d = delay ?? const Duration(milliseconds: 1500);
+      final d = delay ?? const Duration(milliseconds: 1800);
       if (d.inMilliseconds > 0) {
         await Future.delayed(d);
       }
@@ -503,12 +503,13 @@ class DispatchControl extends ChangeNotifier {
       return _resetTotalsTrackingIfNeeded();
     }
 
-    final volumeRaw = _provider.getHoseTotalVolume(key);
+    // El provider ya normaliza el totalizador de volumen a litros (centesimas -> litros).
+    final volumeTotalizer = _provider.getHoseTotalVolume(key);
     final amountRaw = _provider.getHoseTotalAmount(key);
     final tracking = _isTrackingProgressStage;
 
     bool changed = false;
-    changed |= _updateProgressValue(raw: volumeRaw, isVolume: true, tracking: tracking);
+    changed |= _updateProgressValue(raw: volumeTotalizer, isVolume: true, tracking: tracking);
     changed |= _updateProgressValue(raw: amountRaw, isVolume: false, tracking: tracking);
     return changed;
   }

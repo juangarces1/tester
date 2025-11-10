@@ -67,6 +67,7 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
 
   // Para forzar reconstrucción limpia de la lista entre búsquedas
   Key _resultsListKey = UniqueKey();
+  Key _searchFieldKey = UniqueKey();
 
 TextStyle baseStyle = const TextStyle(
   fontStyle: FontStyle.normal,
@@ -139,6 +140,15 @@ TextStyle baseStyle = const TextStyle(
   void _hideKeyboard() {
     FocusScope.of(context).unfocus();
     SystemChannels.textInput.invokeMethod('TextInput.hide');
+  }
+
+  void _restartKeyboardForModeChange() {
+    if (!_searchFocus.hasFocus) return;
+    SystemChannels.textInput.invokeMethod('TextInput.hide');
+    Future.delayed(const Duration(milliseconds: 60), () {
+      if (!mounted) return;
+      FocusScope.of(context).requestFocus(_searchFocus);
+    });
   }
 
   @override
@@ -254,13 +264,17 @@ TextStyle baseStyle = const TextStyle(
                 ],
                 selected: {_mode},
                 onSelectionChanged: (set) {
+                  final nextMode = set.first;
+                  if (_mode == nextMode) return;
                   setState(() {
-                    _mode = set.first;
+                    _mode = nextMode;
                     _queryCtrl.clear();
                     _filterUsers.clear();
                     _isFiltered = false;
                     _resultsListKey = UniqueKey();
+                    _searchFieldKey = UniqueKey();
                   });
+                  _restartKeyboardForModeChange();
                 },
                 style: ButtonStyle(
                   backgroundColor:
@@ -278,6 +292,7 @@ TextStyle baseStyle = const TextStyle(
 
             // Barra de búsqueda
             TextField(
+              key: _searchFieldKey,
               focusNode: _searchFocus,
               controller: _queryCtrl,
               autofocus: true,

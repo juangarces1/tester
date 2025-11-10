@@ -240,7 +240,7 @@ class FormPagoState extends State<FormPago> {
                 bottomRight: Radius.circular(18),
               ),
             ),
-            padding: const EdgeInsets.only(left: 10, right: 10, bottom: 0, top: 0),
+          
             child: Column(
               children: [
                 Padding(

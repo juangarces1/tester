@@ -125,7 +125,7 @@ class _NewHomeScreenState extends State<NewHomeScreen> {
     // Fondo transparente porque lo pintamos con el gradient en flexibleSpace
     backgroundColor: Colors.transparent,
     elevation: 3,
-    shadowColor: Colors.white,
+    shadowColor: kPrimaryColor,
     // Fondo con gradient y sombra SIN fijar alto
     flexibleSpace: Material(
       type: MaterialType.transparency,

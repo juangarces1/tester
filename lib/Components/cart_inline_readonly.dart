@@ -256,6 +256,6 @@ class _CartLineInfo extends StatelessWidget {
       }
     }
     final str = buff.toString().split('').reversed.join();
-    return '₡$str';
+    return str;
   }
 }
