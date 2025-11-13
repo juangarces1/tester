@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
+import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/Providers/usuario_provider.dart';
 import 'package:tester/ViewModels/dispatch_control.dart';
@@ -180,8 +181,9 @@ class DispatchSummaryPage extends StatelessWidget {
 
  
   // 1) Obtener el usuario actual desde el Provider
-  final user = context.read<UsuarioProvider>().current;
-  if (user == null || user.identifier.isEmpty) {
+  final user = context.read<CierreActivoProvider>().usuario;
+
+  if (user == null || user.nombre.isEmpty) {
     Fluttertoast.showToast(
       msg: 'Debes iniciar sesión para autorizar.',
       toastLength: Toast.LENGTH_SHORT,
@@ -211,7 +213,7 @@ class DispatchSummaryPage extends StatelessWidget {
   try {
     // Llama a la lógica del ViewModel (maneja markAuthorizing/Authorized y resets)
     final ok = await dispatch
-        .applyPresetAndAuthorize(user.identifier)
+        .applyPresetAndAuthorize(user.attendantId ?? '')
         .timeout(const Duration(seconds: 8));
 
     safeClose();

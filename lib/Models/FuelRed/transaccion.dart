@@ -22,6 +22,8 @@ class Transaccion {
   String? subir;
   int? initialTotalizer;
   int? finalTotalizer;
+  String? attendantId;
+  String? pistero;
 
   Transaccion(
       {required this.idtransaccion,
@@ -43,7 +45,9 @@ class Transaccion {
       this.creacion,
       this.subir,
       this.initialTotalizer,
-      this.finalTotalizer
+      this.finalTotalizer,
+      this.attendantId,
+      this.pistero
       });
 
   Transaccion.fromJson(Map<String, dynamic> json) {
@@ -74,6 +78,8 @@ class Transaccion {
     subir = json['subir'];
     initialTotalizer = json['initialTotalizer'];
     finalTotalizer = json['finalTotalizer'];
+    attendantId = json['attendantId'];
+    pistero = json['pistero'];
   }
 
   static String? _toAspNetIsoUtc(String? s) {
@@ -125,6 +131,7 @@ class Transaccion {
     data['subir'] = subir;
     data['initialTotalizer'] = initialTotalizer;
     data['finalTotalizer'] = finalTotalizer;
+    data['attendantId'] = attendantId;
     return data;
   }
   bool get isUnpaid =>

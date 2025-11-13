@@ -51,12 +51,12 @@ class DispatchControl extends ChangeNotifier {
   bool _unpaidFlowRunning = false; // candado simple anti-paralelo
 
   // Tracking de contadores acumulados del surtidor para obtener progreso relativo
-  double? _hoseVolumeBaseline; // lectura inicial del contador de volumen
-  double? _hoseAmountBaseline; // lectura inicial del contador de monto
   double? _dispensedVolume;    // volumen abastecido desde la autorización
   double? _dispensedAmount;    // monto abastecido desde la autorización
-  double? _lastObservedVolumeRaw; // última lectura cruda recibida
-  double? _lastObservedAmountRaw; // última lectura cruda recibida
+  static const double _simulatedFlowRateLitersPerSecond = 0.65; // ~39 L/min
+  static const Duration _simulatedFlowTickInterval = Duration(milliseconds: 250);
+  Timer? _simulatedFlowTimer;
+  DateTime? _simulatedFlowStartedAt;
 
   bool get loadingLastSale => _loadingLastSale;
   bool get persistingTx => _persistingTx;
@@ -130,6 +130,7 @@ class DispatchControl extends ChangeNotifier {
     selectedPosition = pos;
     selectedHose     = hose;
     fuel             = hose.fuel;
+    _ensureUnitPriceFromSelection(force: true);
     _provider.addWatchedHose(hose.hoseKey);
     _lastObservedHoseStatus = null;
     _resetTotalsTracking(); // reinicia el tracking cuando se elige una nueva manguera
@@ -138,7 +139,12 @@ class DispatchControl extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setInvoiceType(InvoiceType t) { invoiceType = t; _updateStage(); notifyListeners(); }
+  void setInvoiceType(InvoiceType t) {
+    invoiceType = t;
+    _ensureUnitPriceFromSelection(force: true);
+    _updateStage();
+    notifyListeners();
+  }
 
   void setPreset(PresetInfo p) {
     preset = p;
@@ -166,12 +172,14 @@ class DispatchControl extends ChangeNotifier {
   }
 
   void markReadyToAuthorize() {
+    _stopSimulatedFlowTracking();
     _resetTotalsTracking(); // asegura que el próximo conteo empiece en cero
     stage = DispatchStage.readyToAuthorize;
     notifyListeners();
   }
 
   void markAuthorizing() {
+    _stopSimulatedFlowTracking();
     _resetTotalsTracking(); // en authorizing tomamos la primera lectura como baseline
     stage = DispatchStage.authorizing;
     authorizationExpired = false;
@@ -179,6 +187,7 @@ class DispatchControl extends ChangeNotifier {
   }
 
   void markAuthorized()  {
+    _stopSimulatedFlowTracking();
     stage = DispatchStage.authorized;
     authorizationExpired = false;
     notifyListeners();
@@ -186,10 +195,12 @@ class DispatchControl extends ChangeNotifier {
 
   void markDispatching() {
     stage = DispatchStage.dispatching;
+    _startSimulatedFlowTracking();
     notifyListeners();
   }
 
   void markCompleted() {
+    _stopSimulatedFlowTracking();
     _cancelFinishTimer();
     stage = DispatchStage.completed;
     if (autoUnwatchOnTerminal) _detachWatcher();
@@ -270,10 +281,28 @@ class DispatchControl extends ChangeNotifier {
     notifyListeners(); // “sincronizando...”
 
     try {
-      final resp = await ConsoleApiHelper.getTransactionLastByNozzle(nozzle);
+      const maxAttempts = 3;
+      const retryDelay = Duration(milliseconds: 800);
+      ConsoleTransaction? fetchedTx;
 
-      if (resp.isSuccess && resp.result != null) {
-        consoleTx        = resp.result;
+      for (var attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+          final resp = await ConsoleApiHelper.getTransactionLastByNozzle(nozzle);
+          if (resp.isSuccess && resp.result != null) {
+            fetchedTx = resp.result;
+            break;
+          }
+        } catch (_) {
+          // intento fallido, se reintenta si quedan intentos
+        }
+
+        if (attempt < maxAttempts - 1) {
+          await Future.delayed(retryDelay);
+        }
+      }
+
+      if (fetchedTx != null) {
+        consoleTx        = fetchedTx;
         saleId           = consoleTx?.saleId;
         saleNumber       = consoleTx?.saleNumber;
         productId        = consoleTx?.fuelCode;
@@ -283,15 +312,13 @@ class DispatchControl extends ChangeNotifier {
 
         // ⚠️ Solo crea la Transaccion UNA VEZ; id=0
         tx ??= consoleTx?.toTransaccion(
-        resolveDispenser: _resolveDispenser,
-      );
+          resolveDispenser: _resolveDispenser,
+        );
 
         // NO: nada de onLastUnpaid ni POST aquí.
       } else {
         _clearConsoleValues();
       }
-    } catch (_) {
-      _clearConsoleValues();
     } finally {
       _loadingLastSale = false;
       notifyListeners(); // SIEMPRE notifica al terminar
@@ -302,6 +329,7 @@ class DispatchControl extends ChangeNotifier {
   Future<void> markUnpaid({Duration? delay}) async {
     if (_unpaidFlowRunning) return;
     _unpaidFlowRunning = true;
+    _stopSimulatedFlowTracking();
 
     try {
       if (stage != DispatchStage.unpaid) {
@@ -311,7 +339,7 @@ class DispatchControl extends ChangeNotifier {
         notifyListeners();
       }
 
-      // Delay opcional (default 1500 ms)
+      // Delay opcional (default 1800 ms)
       final d = delay ?? const Duration(milliseconds: 1800);
       if (d.inMilliseconds > 0) {
         await Future.delayed(d);
@@ -410,6 +438,7 @@ class DispatchControl extends ChangeNotifier {
 
   void clear() {
     _cancelAuthLossTimer();
+    _stopSimulatedFlowTracking();
     consoleTx = null;
     authorizationExpired = false;
     _lastUserIdentifier = null;
@@ -441,6 +470,7 @@ class DispatchControl extends ChangeNotifier {
   void dispose() {
     _cancelAuthLossTimer();
     _cancelFinishTimer();
+    _stopSimulatedFlowTracking();
     _detachWatcher();
     _provider.removeListener(_onProviderTick);
     super.dispose();
@@ -462,126 +492,146 @@ class DispatchControl extends ChangeNotifier {
     }
   }
 
-  bool get _isTrackingProgressStage {
-    switch (stage) {
-      case DispatchStage.authorizing:
-      case DispatchStage.authorized:
-      case DispatchStage.dispatching:
-      case DispatchStage.completed:
-      case DispatchStage.unpaid:
-        return true;
-      default:
-        return false;
-    }
-  }
-
   void _resetTotalsTracking() {
-    _hoseVolumeBaseline = null;
-    _hoseAmountBaseline = null;
     _dispensedVolume = null;
     _dispensedAmount = null;
-    _lastObservedVolumeRaw = null;
-    _lastObservedAmountRaw = null;
   }
 
-  bool _resetTotalsTrackingIfNeeded() {
-    if (_hoseVolumeBaseline != null ||
-        _hoseAmountBaseline != null ||
-        _dispensedVolume != null ||
-        _dispensedAmount != null ||
-        _lastObservedVolumeRaw != null ||
-        _lastObservedAmountRaw != null) {
-      _resetTotalsTracking();
-      return true;
+  void _ensureUnitPriceFromSelection({bool force = false}) {
+    final hose = selectedHose;
+    if (hose == null) return;
+    final candidate = _preferredUnitPriceFor(hose: hose, type: invoiceType);
+    if (candidate == null || candidate <= 0) return;
+    final current = price?.toDouble() ?? 0;
+    if (force || current <= 0) {
+      price = candidate;
     }
-    return false;
   }
 
-  bool _updateTotalsFromProvider() {
-    final key = selectedHose?.hoseKey;
-    if (key == null) {
-      return _resetTotalsTrackingIfNeeded();
+  double? _preferredUnitPriceFor({required HosePhysical hose, InvoiceType? type}) {
+    double? value;
+    switch (type) {
+      case InvoiceType.credito:
+        value = hose.unitPriceCredit?.toDouble();
+        break;
+      case InvoiceType.peddler:
+      case InvoiceType.ticket:
+      case InvoiceType.contado:
+        value = hose.unitPriceCash?.toDouble();
+        break;
+      default:
+        value = null;
     }
+    value ??= hose.unitPriceCash?.toDouble();
+    value ??= hose.unitPriceCredit?.toDouble();
+    value ??= hose.unitPriceDebit?.toDouble();
+    return value;
+  }
 
-    // El provider ya normaliza el totalizador de volumen a litros (centesimas -> litros).
-    final volumeTotalizer = _provider.getHoseTotalVolume(key);
-    final amountRaw = _provider.getHoseTotalAmount(key);
-    final tracking = _isTrackingProgressStage;
+  void _startSimulatedFlowTracking() {
+    if (stage != DispatchStage.dispatching) return;
+    if (_simulatedFlowTimer != null) return;
+    _simulatedFlowStartedAt ??= DateTime.now();
+    _dispensedVolume ??= 0;
+    if (_resolveUnitPricePerLiter() != null && _dispensedAmount == null) {
+      _dispensedAmount = 0;
+    }
+    _simulatedFlowTimer = Timer.periodic(_simulatedFlowTickInterval, (_) => _tickSimulatedFlow());
+  }
+
+  void _stopSimulatedFlowTracking() {
+    _simulatedFlowTimer?.cancel();
+    _simulatedFlowTimer = null;
+    _simulatedFlowStartedAt = null;
+  }
+
+  void _tickSimulatedFlow() {
+    if (stage != DispatchStage.dispatching) {
+      _stopSimulatedFlowTracking();
+      return;
+    }
+    final start = _simulatedFlowStartedAt;
+    if (start == null) return;
+
+    final elapsedSeconds = DateTime.now().difference(start).inMilliseconds / 1000.0;
+    var liters = elapsedSeconds * _simulatedFlowRateLitersPerSecond;
+    final litersCap = _targetVolumeCapLiters();
+    if (litersCap != null && liters > litersCap) {
+      liters = litersCap;
+    }
 
     bool changed = false;
-    changed |= _updateProgressValue(raw: volumeTotalizer, isVolume: true, tracking: tracking);
-    changed |= _updateProgressValue(raw: amountRaw, isVolume: false, tracking: tracking);
-    return changed;
-  }
-
-  bool _updateProgressValue({
-    required num? raw,
-    required bool isVolume,
-    required bool tracking,
-  }) {
-    if (!tracking) {
-      return _resetTotalsTrackingIfNeeded();
-    }
-    if (raw == null) {
-      return false;
+    if (_dispensedVolume == null || (_dispensedVolume! - liters).abs() > 0.0001) {
+      _dispensedVolume = liters;
+      changed = true;
     }
 
-    final rawValue = raw.toDouble();
-    bool changed = false;
-
-    final baseline = isVolume ? _hoseVolumeBaseline : _hoseAmountBaseline;
-    final current = isVolume ? _dispensedVolume : _dispensedAmount;
-
-    if (isVolume) {
-      _lastObservedVolumeRaw = rawValue;
-    } else {
-      _lastObservedAmountRaw = rawValue;
-    }
-
-    if (baseline == null) {
-      if (isVolume) {
-        _hoseVolumeBaseline = rawValue;
-        if ((current ?? 0) != 0) {
-          _dispensedVolume = 0;
-          changed = true;
-        }
-      } else {
-        _hoseAmountBaseline = rawValue;
-        if ((current ?? 0) != 0) {
-          _dispensedAmount = 0;
-          changed = true;
-        }
+    final unitPrice = _resolveUnitPricePerLiter();
+    if (unitPrice != null && unitPrice > 0) {
+      var amount = liters * unitPrice;
+      final amountCap = amountRequest?.toDouble() ?? preset.amount;
+      if (amountCap != null && amount > amountCap) {
+        amount = amountCap;
       }
-      return changed || (current ?? 0) != 0;
-    }
-
-    final diff = rawValue - baseline;
-    final normalized = diff < 0 ? 0.0 : diff;
-    if (isVolume) {
-      if (_dispensedVolume == null || (_dispensedVolume! - normalized).abs() > 0.0001) {
-        _dispensedVolume = normalized;
-        changed = true;
-      }
-    } else {
-      if (_dispensedAmount == null || (_dispensedAmount! - normalized).abs() > 0.0001) {
-        _dispensedAmount = normalized;
+      if (_dispensedAmount == null || (_dispensedAmount! - amount).abs() > 0.01) {
+        _dispensedAmount = amount;
         changed = true;
       }
     }
 
-    return changed;
+    if (changed) notifyListeners();
+  }
+
+  double? _targetVolumeCapLiters() {
+    if (tankFull) return null;
+    final presetVolume = preset.isVolume ? preset.volume : null;
+    if (presetVolume != null && presetVolume > 0) {
+      return presetVolume;
+    }
+
+    final unitPrice = _resolveUnitPricePerLiter();
+    final amountCap = amountRequest?.toDouble() ?? preset.amount;
+    if (unitPrice != null && unitPrice > 0 && amountCap != null && amountCap > 0) {
+      return amountCap / unitPrice;
+    }
+    return null;
+  }
+
+  double? _resolveUnitPricePerLiter() {
+    if (price != null && price! > 0) {
+      return price!.toDouble();
+    }
+    final hose = selectedHose;
+    if (hose == null) return null;
+
+    double? candidate;
+    switch (invoiceType) {
+      case InvoiceType.credito:
+        candidate = hose.unitPriceCredit?.toDouble();
+        break;
+      case InvoiceType.peddler:
+      case InvoiceType.ticket:
+      case InvoiceType.contado:
+        candidate = hose.unitPriceCash?.toDouble();
+        break;
+      default:
+        candidate = null;
+        break;
+    }
+
+    candidate ??= hose.unitPriceCash?.toDouble();
+    candidate ??= hose.unitPriceCredit?.toDouble();
+    candidate ??= hose.unitPriceDebit?.toDouble();
+    return candidate;
   }
 
   void _onProviderTick() {
     if (selectedHose == null) return;
 
-    final totalsChanged = _updateTotalsFromProvider();
     final curr = hoseStatus;
     if (_lastObservedHoseStatus != curr) {
       _lastObservedHoseStatus = curr;
       syncWithHoseStatus();
-      notifyListeners();
-    } else if (totalsChanged) {
       notifyListeners();
     }
   }

@@ -6,6 +6,7 @@ class Empleado {
   String apellido2 = '';
   String turno = '';
   String tipoempleado = '';
+  String? attendantId;
 
   Empleado({
     required this.cedulaEmpleado,
@@ -14,6 +15,7 @@ class Empleado {
     required this.apellido2,
     required this.turno,
     required this.tipoempleado,
+    this.attendantId,
   });
 
   // Mantengo tu fromJson "clásico" (claves exactas en minúscula)
@@ -24,6 +26,7 @@ class Empleado {
     apellido2      = _asString(json['apellido2']);
     turno          = _asString(json['turno']);
     tipoempleado   = _asString(json['tipoempleado']);
+    attendantId    = _asString(json['attendantId']);
   }
 
   /// NUEVO: parsing tolerante al backend de CardAuth.

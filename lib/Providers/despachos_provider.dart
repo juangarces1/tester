@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:tester/Providers/tranascciones_provider.dart';
+// import 'package:tester/Providers/tranascciones_provider.dart';
 import 'package:tester/ViewModels/dispatch_control.dart';
 import 'package:tester/helpers/console_api_helper.dart';
 
@@ -15,9 +15,9 @@ class DespachosProvider extends ChangeNotifier {
   final Map<String, num> _hoseTotalAmount = {};
 
 
-  TransaccionesProvider? _transProv;              // <- referencia opcional
-  void bindTransacciones(TransaccionesProvider p) // <- llamada 1 vez en el arranque
-    => _transProv = p;
+  // TransaccionesProvider? _transProv;              // <- referencia opcional
+  // void bindTransacciones(TransaccionesProvider p) // <- llamada 1 vez en el arranque
+  //   => _transProv = p;
 
   final Map<DispatchControl, VoidCallback> _stageWatchers = {}; // <- track de listeners por control
 

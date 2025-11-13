@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Components/app_bar_custom.dart';
-import 'package:tester/Components/card_tr.dart';
+import 'package:tester/Components/card_tr_pistero.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
-
 import 'package:tester/Models/FuelRed/product.dart';
 import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/Models/FuelRed/transaccion.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
+import 'package:tester/Providers/printer_provider.dart';
+import 'package:tester/Screens/test_print/testprint.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
 import 'package:tester/sizeconfig.dart';
@@ -167,11 +168,12 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
                                   itemCount: transacciones.length,
                                   itemBuilder: (context, indice) {
                                     final p = transacciones[indice];
-                                    return CardTr(
+                                    return CardTrPistero(
                                       showPrintIcon: true,
                                       product: p,
                                       lista: 'Tr',
                                       onItemSelected: onItemSelected,
+                                      onPrint: () => _handlePrint(p),
                                       selected: p.isFavourite,
                                     );
                                   },
@@ -296,6 +298,25 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
         ],
       ),
     );
+  }
+
+  Future<void> _handlePrint(Product product) async {
+    final printer = context.read<PrinterProvider>();
+    await printer.runLocked(() async {
+      final ok = await printer.ensureBound();
+      if (!ok) {
+        Fluttertoast.showToast(msg: 'No se pudo conectar a la impresora');
+        return;
+      }
+      try {
+        final tp = TestPrint(totalChars: 32);
+        await tp.printTransaccion(product);
+        Fluttertoast.showToast(msg: 'Transaccion enviada a impresion');
+      } catch (e, st) {
+        debugPrint('printTransaccion error: $e\n$st');
+        Fluttertoast.showToast(msg: 'Error al imprimir: $e');
+      }
+    });
   }
 
   // ---------- Cargar desde TransaccionesProvider.unpaid ----------

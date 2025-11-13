@@ -227,7 +227,7 @@ class _CartLineCompact extends StatelessWidget {
                         style: const TextStyle(
                           color: kNewtextPri,
                           fontWeight: FontWeight.w700,
-                          fontSize: 12.5,
+                          fontSize: 15.5,
                           height: 1.0,
                         ),
                       ),
@@ -235,13 +235,13 @@ class _CartLineCompact extends StatelessWidget {
                       // TOTAL del producto (usa product.total)
                       Text(
                         product.transaccion != 0
-                            ? 'Cantidad: ${product.cantidad}  Total: ${_fmtMoney(product.total.toDouble())}'
+                            ? 'Cant: ${product.cantidad}L  Total: ${_fmtMoney(product.total.toDouble())}'
                             :
                        'P/U ${_fmtMoney(product.precioUnit.toDouble())}  Sub-Total: ${_fmtMoney(product.totalProducto.toDouble())} ',
                         style: const TextStyle(
                           color: kNewtextPri,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13.5,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 17.5,
                           height: 1.0,
                         ),
                       ),

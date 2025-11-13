@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:tester/Components/card_tr.dart';
+import 'package:tester/Components/card_tr_pistero.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/FuelRed/product.dart';
 import 'package:tester/Providers/facturas_provider.dart';
@@ -217,7 +218,7 @@ class _TransaccionesSheetContentState extends State<_TransaccionesSheetContent> 
                 itemCount: transacciones.length,
                 itemBuilder: (context, i) {
                   final p = transacciones[i];
-                  return CardTr(
+                  return CardTrPistero(
                     
                     product: p,
                     lista: 'zona-${widget.zona}',

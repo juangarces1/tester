@@ -37,6 +37,7 @@ class Product {
   List<Color> colors;
   bool isFavourite;
   bool isPopular;
+  String? pistero;
 
   Product({
     // C# fields
@@ -72,6 +73,7 @@ class Product {
     required this.colors,
     this.isFavourite = false,
     this.isPopular = false,
+    this.pistero,
   });
 
   // Helpers para parse robusto (acepta num/String/null)
@@ -130,7 +132,9 @@ class Product {
         images           = <String>[],
         colors           = <Color>[],
         isFavourite      = false,
-        isPopular        = false;
+        isPopular        = false,
+        pistero          = json['pistero']; 
+        
 
   /// Serialización estándar (respeta snake_case como en tu API).
   Map<String, dynamic> toJson() {

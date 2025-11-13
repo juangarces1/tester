@@ -16,7 +16,7 @@ import 'package:tester/Screens/logIn/login_screen.dart';
 
 // Provider de transacciones (ajusta el path si lo tienes distinto)
 import 'package:tester/Providers/tranascciones_provider.dart';
-import 'package:tester/constans.dart';
+
 import 'package:tester/helpers/reset_helper.dart'; // <- ojo a la ortografía del archivo en tu proyecto
 
 class AdminCenterPage extends StatefulWidget {

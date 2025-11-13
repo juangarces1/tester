@@ -142,7 +142,7 @@ class _FacesListPageState extends State<FacesListPage> {
                             parent: AlwaysScrollableScrollPhysics(),
                           ),
                           itemCount: positions.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 18),
+                          separatorBuilder: (_, __) => const SizedBox(height: 10),
                           itemBuilder: (_, index) {
                             final position = positions[index];
                             return _PositionCard(
@@ -223,7 +223,7 @@ class _PositionCard extends StatelessWidget {
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -241,7 +241,7 @@ class _PositionCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
-                        vertical: 6,
+                        vertical: 3,
                       ),
                       decoration: BoxDecoration(
                         color: statusColor.withValues(alpha: 0.25),
@@ -259,7 +259,7 @@ class _PositionCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 1),
                 // Text(
                 //   pumpLabel,
                 //   style: const TextStyle(
@@ -288,9 +288,9 @@ class _PositionCard extends StatelessWidget {
                 //     fontWeight: FontWeight.w600,
                 //   ),
                 // ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 2),
                 Text(
-                  'Disponibles ahora: $availableCount',
+                  'Mangueras Disponibles: $availableCount',
                   style: TextStyle(
                     color: statusColor,
                     fontSize: 20,
