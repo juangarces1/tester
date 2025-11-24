@@ -115,33 +115,6 @@ class CardTrPistero extends StatelessWidget {
                 
                             
 
-                      // Row(
-                      //   children: [
-                      //     Expanded(
-                      //       child: _InfoTile(
-                      //         label: 'Litros',
-                      //         value: liters,
-                      //       ),
-                      //     ),
-                      //     const SizedBox(width: 12),
-                      //     Expanded(
-                      //       child: _InfoTile(
-                      //         label: 'Total',
-                      //         value: totalText,
-                      //         emphasize: true,
-                      //         palette: palette,
-                      //       ),
-                      //     ),
-                      //   ],
-                      // ),
-                      // const SizedBox(height: 14),
-                      // Row(
-                      //   children: [
-                      //     _DispChip(text: 'Disp-${product.dispensador}'),
-                      //     const Spacer(),
-                      //     _FuelGlyph(palette: palette),
-                      //   ],
-                      // ),
                     ],
                   ),
                 ),
@@ -204,36 +177,19 @@ class _LaneBadge extends StatelessWidget {
         subtitle != null && subtitle!.isNotEmpty && subtitle != title;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(12, 12, 16, 12),
       decoration: BoxDecoration(
         gradient: palette.gradient,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
-          Text(
-           
-            number > 0 ? number.toString() : '--',
-            style: TextStyle(
-              fontSize: getProportionateScreenWidth(25),
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(width: 16),
+          _LaneNumberBadge(number: number, palette: palette),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Text(
-                //   title,
-                //   style: TextStyle(
-                //     fontSize: getProportionateScreenWidth(14),
-                //     fontWeight: FontWeight.w700,
-                //     color: Colors.white,
-                //     height: 1.1,
-                //   ),
-                // ),
+              children: [               
                 if (showSubtitle) ...[
                   const SizedBox(height: 2),
                   Text(
@@ -243,7 +199,7 @@ class _LaneBadge extends StatelessWidget {
                     style: TextStyle(
                       fontSize: getProportionateScreenWidth(18),
                       fontWeight: FontWeight.w500,
-                      color: Colors.white.withValues(alpha: 0.85),
+                      color: Colors.white,
                     ),
                   ),
                 ],
@@ -251,6 +207,37 @@ class _LaneBadge extends StatelessWidget {
             ),
           ),
           const Icon(Icons.local_gas_station, color: Colors.white, size: 22),
+        ],
+      ),
+    );
+  }
+}
+
+class _LaneNumberBadge extends StatelessWidget {
+  final int number;
+  final _FuelPalette palette;
+
+  const _LaneNumberBadge({
+    required this.number,
+    required this.palette,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final text = number > 0 ? number.toString() : '--';
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: getProportionateScreenWidth(24),
+        fontWeight: FontWeight.w800,
+        color: Colors.white,
+        letterSpacing: 0.2,
+        shadows: [
+          Shadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
     );
@@ -285,16 +272,7 @@ class _InfoTile extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Text(
-          //   label.toUpperCase(),
-          //   style: TextStyle(
-          //     fontSize: 11,
-          //     letterSpacing: 0.6,
-          //     color: Colors.black.withValues(alpha: 0.45),
-          //   ),
-          // ),
-          // const SizedBox(height: 4),
+        children: [         
           Text(
             value,
             style: TextStyle(
@@ -313,51 +291,8 @@ class _InfoTile extends StatelessWidget {
   }
 }
 
-class _DispChip extends StatelessWidget {
-  final String text;
 
-  const _DispChip({required this.text});
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
-      ),
-    );
-  }
-}
-
-class _FuelGlyph extends StatelessWidget {
-  final _FuelPalette palette;
-
-  const _FuelGlyph({required this.palette});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: palette.primary.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Icon(
-        Icons.local_gas_station,
-        size: 20,
-        color: palette.accent,
-      ),
-    );
-  }
-}
 
 class _FuelPalette {
   final Color primary;
@@ -434,11 +369,7 @@ class _PrintAction extends StatelessWidget {
        }
      });
 
-      // final printer = Provider.of<PrinterProvider>(context, listen: false);
-      // final isBusy = printer.busy;
-      // final isBound = printer.isBound;
-      // if (isBusy) return;
-      // if (!isBound) return;
+      
        final tp = TestPrint(totalChars: 32);
          await tp.printTransaccion(product);
         Fluttertoast.showToast(msg: 'Transaccion enviada a impresion');

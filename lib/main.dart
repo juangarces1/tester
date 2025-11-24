@@ -41,14 +41,7 @@ class MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    // Enlaza providers y hace bind de la impresora tras montar el árbol:
-    // WidgetsBinding.instance.addPostFrameCallback((_) async {
-    //   if (!mounted) return;
-
-    //   final desp = context.read<DespachosProvider>();
-    //   final tran = context.read<TransaccionesProvider>();
-    //   desp.bindTransacciones(tran);
-    // });
+    
   }
 
   @override

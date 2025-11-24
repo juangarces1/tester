@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
-
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/ConsoleModels/console_user.dart';
 import 'package:tester/Models/LogIn/estado_login.dart';
@@ -40,24 +39,24 @@ class _LoginScreenState extends State<LoginScreen> {
   String _passwordError = '';
   final TextEditingController _passwordController = TextEditingController();
 
-
   bool _passwordShow = false;
   bool _showLoader = false;
   LogInEstado login = LogInEstado();
   int _selectedZone = 0;
 
-  static Widget _buildAuroraBlob(Color color) {
+  static Widget _buildAuroraBlob(Color color,
+      {double size = 300, double opacity = 0.6}) {
     return Container(
-      width: 280,
-      height: 280,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: color,
+        color: color.withValues(alpha: opacity),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.6),
-            blurRadius: 200,
-            spreadRadius: 40,
+            color: color.withValues(alpha: opacity),
+            blurRadius: 120,
+            spreadRadius: 60,
           ),
         ],
       ),
@@ -78,31 +77,32 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: kContrateFondoOscuro,
       body: Stack(
         children: [
-          // BG image
-          // Positioned.fill(
-          //   child: Image.asset(
-          //     'assets/BgLogin.png',
-          //     fit: BoxFit.cover,
-          //   ),
-          // ),
-           const DecoratedBox(
+          const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF060C18), Color(0xFF131E32)],
+                colors: [Color(0xFF02050A), Color(0xFF0F172A)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
             ),
           ),
+          // Ambient Blobs
           Positioned(
-            top: -120,
-            left: -80,
-            child: _buildAuroraBlob(kPrimaryColor),
+            top: -100,
+            left: -100,
+            child: _buildAuroraBlob(kPrimaryColor, size: 400, opacity: 0.4),
           ),
           Positioned(
-            bottom: -140,
+            bottom: -150,
             right: -100,
-            child: _buildAuroraBlob(const Color(0x552563EB)),
+            child: _buildAuroraBlob(const Color(0xFF3B82F6),
+                size: 350, opacity: 0.3),
+          ),
+          Positioned(
+            top: 200,
+            right: -150,
+            child:
+                _buildAuroraBlob(Colors.purpleAccent, size: 250, opacity: 0.2),
           ),
 
           // Content
@@ -110,54 +110,38 @@ class _LoginScreenState extends State<LoginScreen> {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return SingleChildScrollView(
-                  padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+                  padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom),
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    constraints:
+                        BoxConstraints(minHeight: constraints.maxHeight),
                     child: IntrinsicHeight(
                       child: Center(
                         child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 520),
+                          constraints: const BoxConstraints(maxWidth: 480),
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                // const SizedBox(height: 12),
-                               //  const _Header(),
-                               //  const SizedBox(height: 10),
-
-                                // _ZoneSelector(
-                                //   selected: _selectedZone,
-                                //   onSelect: (z) => setState(() => _selectedZone = z),
-                                // ),
-
-                                // const SizedBox(height: 24),
-
-                                // // Correo (opcional por ahora)
-                                // // _buildEmail(),
-                                // // const SizedBox(height: 16),
-
-                                // _buildPassword(),
-                                // const SizedBox(height: 24),
-
-                                // DefaultButton(
-                                //   text:  'ENTRAR',
-                                //   press: _showLoader ? null : _login,
-                                //   color: kPrimaryColor,
-                                //   gradient: kPrimaryGradientColor,
-                                // ),
-
-                                // const SizedBox(height: 24),
-                                //    DefaultButton(
-                                //   text: 'NFC',
-                                //   press: _showLoader ? null : _goNNfc,
-                                //   color: kPrimaryColor,
-                                //   gradient: kPrimaryGradientColor,
-                                // ),
-
-                                 Expanded(child: _buildFormCard(context)),
-                              ],
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 24),
+                            child: TweenAnimationBuilder<double>(
+                              tween: Tween(begin: 0.0, end: 1.0),
+                              duration: const Duration(milliseconds: 800),
+                              curve: Curves.easeOutQuart,
+                              builder: (context, value, child) {
+                                return Opacity(
+                                  opacity: value,
+                                  child: Transform.translate(
+                                    offset: Offset(0, 30 * (1 - value)),
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Expanded(child: _buildFormCard(context)),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -177,16 +161,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
   /* ================= NUEVO: EMAIL ================= */
   Widget _buildEmail() {
-    return TextField(
+    return _glassTextField(
       controller: _emailCtrl,
+      hint: 'Correo electrónico',
+      icon: Icons.alternate_email,
       keyboardType: TextInputType.emailAddress,
-      style: const TextStyle(color: kNewtextPri),
-      cursorColor: kPrimaryColor,
-      decoration: darkDecoration(
-        hint: 'Correo electrónico',
-        errorText: _emailError.isEmpty ? null : _emailError,
-        suffixIcon: const Icon(Icons.alternate_email, color: kNewtextSec),
-      ),
+      errorText: _emailError.isEmpty ? null : _emailError,
       onChanged: (_) {
         if (_emailError.isNotEmpty) setState(() => _emailError = '');
       },
@@ -195,25 +175,88 @@ class _LoginScreenState extends State<LoginScreen> {
 
   /* ================= PASSWORD (Cédula) ================= */
   Widget _buildPassword() {
-    return TextField(
+    return _glassTextField(
+      controller: _passwordController, // Usando el controller correcto
+      hint: 'Cédula',
+      icon: Icons.badge_outlined,
       keyboardType: TextInputType.number,
       obscureText: !_passwordShow,
-      style: const TextStyle(color: kNewtextPri),
-      cursorColor: kPrimaryColor,
-      decoration: darkDecoration(
-        hint: 'Ingrese la Cédula',
-        errorText: _passwordError.isEmpty ? null : _passwordError,
-        suffixIcon: IconButton(
-          icon: Icon(_passwordShow ? Icons.visibility : Icons.visibility_off, color: kNewtextSec),
-          onPressed: () => setState(() => _passwordShow = !_passwordShow),
-        ),
-      ),
+      errorText: _passwordError.isEmpty
+          ? null
+          : _passwordError, // Usando _passwordError
       onChanged: (v) => _password = v,
+      suffixIcon: IconButton(
+        icon: Icon(
+          _passwordShow
+              ? Icons.visibility_outlined
+              : Icons.visibility_off_outlined,
+          color: Colors.white70,
+        ),
+        onPressed: () => setState(() => _passwordShow = !_passwordShow),
+      ),
+    );
+  }
+
+  // Helper para inputs estilo Glass
+  Widget _glassTextField({
+    TextEditingController? controller,
+    required String hint,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+    bool obscureText = false,
+    String? errorText,
+    ValueChanged<String>? onChanged,
+    Widget? suffixIcon,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        obscureText: obscureText,
+        style:
+            const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+        cursorColor: kPrimaryColor,
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+          prefixIcon: Icon(icon, color: Colors.white70),
+          suffixIcon: suffixIcon,
+          filled: true,
+          fillColor: Colors.white.withValues(alpha: 0.05),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+          ),
+          errorText: errorText,
+          errorStyle: const TextStyle(color: Colors.redAccent),
+        ),
+        onChanged: onChanged,
+      ),
     );
   }
 
   Future<void> _goNNfc() async {
-       Navigator.push(
+    Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => const NfcTestPage(),
@@ -318,7 +361,8 @@ class _LoginScreenState extends State<LoginScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => InventScreen(cedulaEmpleado: cedulaUser, zona: _selectedZone),
+        builder: (_) =>
+            InventScreen(cedulaEmpleado: cedulaUser, zona: _selectedZone),
       ),
     );
   }
@@ -329,19 +373,26 @@ class _LoginScreenState extends State<LoginScreen> {
     return ClipRRect(
       borderRadius: BorderRadius.circular(32),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(32, 40, 32, 32),
+          padding: const EdgeInsets.fromLTRB(32, 48, 32, 40),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(32),
-            color: Colors.white.withOpacity(0.08),
-            border: Border.all(color: Colors.white.withOpacity(0.12)),
+            color: Colors.white.withValues(alpha: 0.03),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withValues(alpha: 0.1),
+                Colors.white.withValues(alpha: 0.02),
+              ],
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.38),
-                blurRadius: 42,
-                offset: const Offset(0, 32),
-                spreadRadius: -20,
+                color: Colors.black.withValues(alpha: 0.4),
+                blurRadius: 50,
+                offset: const Offset(0, 20),
               ),
             ],
           ),
@@ -349,163 +400,74 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-
-                const _Header(),
-              const SizedBox(height: 32),
-
-              // Row(
-              //   children: [
-              //     Container(
-              //       height: 48,
-              //       width: 48,
-              //       decoration: BoxDecoration(
-              //         borderRadius: BorderRadius.circular(16),
-              //         gradient: const LinearGradient(
-              //           colors: [Color(0xFF2563EB), Color(0xFF1E40AF)],
-              //           begin: Alignment.topLeft,
-              //           end: Alignment.bottomRight,
-              //         ),
-              //       ),
-              //       child: const Icon(
-              //         Icons.person_outline,
-              //         color: Colors.white,
-              //       ),
-              //     ),
-              //     const SizedBox(width: 16),
-              //     Column(
-              //       crossAxisAlignment: CrossAxisAlignment.start,
-              //       children: [
-              //         Text(
-              //           'Bienvenido',
-              //           style:
-              //               textTheme.titleMedium?.copyWith(
-              //                 color: Colors.white70,
-              //                 letterSpacing: 0.2,
-              //               ) ??
-              //               const TextStyle(
-              //                 color: Colors.white70,
-              //                 fontSize: 14,
-              //                 fontWeight: FontWeight.w600,
-              //               ),
-              //         ),
-              //         const SizedBox(height: 4),
-              //         Text(
-              //           'Inicia Sesión',
-              //           style:
-              //               textTheme.titleLarge?.copyWith(
-              //                 color: Colors.white,
-              //                 fontWeight: FontWeight.w700,
-              //               ) ??
-              //               const TextStyle(
-              //                 color: Colors.white,
-              //                 fontSize: 20,
-              //                 fontWeight: FontWeight.w700,
-              //               ),
-              //         ),
-              //       ],
-              //     ),
-              //   ],
-              // ),
-
-               _ZoneSelector(
-                                  selected: _selectedZone,
-                                  onSelect: (z) => setState(() => _selectedZone = z),
-                                ),
-
-              const SizedBox(height: 32),
-              TextField(
-                controller: _passwordController,
-                keyboardType: TextInputType.number,
-                textInputAction: TextInputAction.done,
-                obscureText: !_passwordShow,
-                style: const TextStyle(color: Colors.white),
-                cursorColor: Colors.white,
-                decoration: InputDecoration(
-                  labelText: 'Cedula',
-                  hintText: 'Digita tu numero de cedula',
-                  prefixIcon: const Icon(
-                    Icons.badge_outlined,
-                    color: Colors.white70,
-                  ),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _passwordShow
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                      color: Colors.white70,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _passwordShow = !_passwordShow;
-                      });
-                    },
-                  ),
-                  filled: true,
-                  fillColor: Colors.white.withOpacity(0.07),
-                  labelStyle: const TextStyle(color: Colors.white70),
-                  hintStyle: const TextStyle(color: Colors.white38),
-                  errorText: _passwordShow ? _passwordError : null,
-                  errorStyle: const TextStyle(color: Colors.redAccent),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide(
-                      color: Colors.white.withOpacity(0.18),
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide(
-                      color: Colors.white.withOpacity(0.38),
-                    ),
-                  ),
+              const Center(child: _Header()),
+              const SizedBox(height: 40),
+              Center(
+                child: _ZoneSelector(
+                  selected: _selectedZone,
+                  onSelect: (z) => setState(() => _selectedZone = z),
                 ),
-                onChanged: (value) {
-                  _password = value;
-                  if (_passwordShow) {
-                    setState(() {
-                      _passwordShow = false;
-                    });
-                  }
-                },
-                onSubmitted: (_) => _login(),
               ),
-              const SizedBox(height: 28),
-              SizedBox(
+              const SizedBox(height: 40),
+              _buildPassword(),
+              const SizedBox(height: 32),
+              Container(
                 width: double.infinity,
+                height: 56,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: kPrimaryColor.withValues(alpha: 0.4),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: kPrimaryColor,
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18),
                     ),
-                    textStyle: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.4,
-                    ),
+                    padding: EdgeInsets.zero,
                   ),
                   onPressed: _login,
-                  child: const Text('Ingresar'),
+                  child: Ink(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Container(
+                      alignment: Alignment.center,
+                      child: const Text(
+                        'INGRESAR',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                'El acceso esta restringido a personal autorizado. Contacta a sistemas para recuperar tus credenciales.',
-                style:
-                    textTheme.bodySmall?.copyWith(
-                      color: Colors.white60,
-                      height: 1.4,
-                    ) ??
-                    const TextStyle(
-                      color: Colors.white60,
-                      fontSize: 12,
-                      height: 1.4,
-                    ),
+              const SizedBox(height: 24),
+              Center(
+                child: Text(
+                  'Acceso restringido a personal autorizado.',
+                  textAlign: TextAlign.center,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: Colors.white38,
+                    fontSize: 12,
+                  ),
+                ),
               ),
             ],
           ),
@@ -513,7 +475,6 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
- 
 }
 
 /* ================= WIDGETS AUX ================= */
@@ -535,7 +496,7 @@ class _Header extends StatelessWidget {
             shadows: [
               Shadow(
                 blurRadius: 10,
-                color: Colors.blueAccent.withOpacity(0.6),
+                color: Colors.blueAccent.withValues(alpha: 0.6),
                 offset: const Offset(0, 2),
               ),
             ],
@@ -547,18 +508,14 @@ class _Header extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 18,
-            color:Colors.white,
+            color: Colors.white,
             fontWeight: FontWeight.w500,
           ),
         ),
       ],
     );
   }
-
-  
 }
-
- 
 
 class _ZoneSelector extends StatelessWidget {
   final int selected;
