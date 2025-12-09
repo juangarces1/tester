@@ -282,7 +282,7 @@ class DispatchControl extends ChangeNotifier {
 
     try {
       const maxAttempts = 3;
-      const retryDelay = Duration(milliseconds: 800);
+      const retryDelay = Duration(milliseconds: 1200);
       ConsoleTransaction? fetchedTx;
 
       for (var attempt = 0; attempt < maxAttempts; attempt++) {

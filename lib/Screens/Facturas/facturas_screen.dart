@@ -207,6 +207,13 @@ class _FacturasScreenState extends State<FacturasScreen> {
                   child: SearchBar(
                     controller: _searchCtrl,
                     hintText: 'Buscar por Cliente',
+                    // Evita restricciones de ancho minimo del SearchBar (360px) que chocan con el padding
+                    constraints: const BoxConstraints(
+                      minWidth: 0,
+                      maxWidth: double.infinity,
+                      minHeight: 56,
+                      maxHeight: 56,
+                    ),
                     leading: const Icon(Icons.search),
                     onChanged: _onSearchChanged,
                     onSubmitted: (_) => _applyFilters(),
@@ -516,9 +523,15 @@ class _FacturasScreenState extends State<FacturasScreen> {
 
   // ====== Util ======
   void _showError(String msg) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
-    );
-  }
+  if (!mounted) return;
+  ScaffoldMessenger.of(context).clearSnackBars();
+  ScaffoldMessenger.of(context).showSnackBar(
+     SnackBar(
+      content: Text(msg),
+      // comportamiento por defecto: fixed
+      // behavior: SnackBarBehavior.fixed,
+    ),
+  );
+}
+
 }
