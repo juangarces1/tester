@@ -24,7 +24,7 @@ class PositionHosesPage extends StatefulWidget {
 }
 
 class _PositionHosesPageState extends State<PositionHosesPage> {
-  final bool _loadingInFlight = false;
+  bool _loadingInFlight = false;
 
   @override
   void initState() {
@@ -33,13 +33,15 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
   }
 
   Future<void> _refreshMap() async {
-    // if (_loadingInFlight) return;
-    // _loadingInFlight = true;
-    // try {
-    //   await context.read<MapProvider>().loadMap(strictPhysicalOnly: true);
-    // } finally {
-    //   _loadingInFlight = false;
-    // }
+    if (_loadingInFlight) return;
+    setState(() => _loadingInFlight = true);
+    try {
+      await context.read<MapProvider>().loadMap(strictPhysicalOnly: true);
+    } finally {
+      if (mounted) {
+        setState(() => _loadingInFlight = false);
+      }
+    }
   }
 
   @override
@@ -116,7 +118,7 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Actualizar mapa',
-            onPressed: _refreshMap,
+            onPressed: _loadingInFlight ? null : _refreshMap,
           ),
         ],
       ),

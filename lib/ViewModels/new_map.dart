@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+// Asumo que estos imports existen en tu proyecto:
 import 'package:tester/ConsoleModels/dispensersstatusresponse.dart';
-import 'package:tester/ConsoleModels/fuel_palette.dart' as fuel_palette;
-import 'package:tester/ConsoleModels/nozzle_info.dart';
 import 'package:tester/ConsoleModels/pump_faces_model.dart';
+import 'package:tester/Models/FuelRed/nozzle_mapping.dart';
 
 // ----------------------------- MODELOS ----------------------------------
 class Fuel {
@@ -15,7 +15,7 @@ class HosePhysical {
   final int nozzleNumber;
   final String hoseKey;
   final Fuel fuel;
-  final String status; // estado crudo del API (authorized, fueling, etc.)
+  final String status;
   final String? facePosition;
   final String? fullAddress;
   final int? dispenserNumber;
@@ -56,11 +56,11 @@ class HosePhysical {
 }
 
 class PositionPhysical {
-  final int number; // global index 1..N
+  final int number; // Indice global 1..N
   final int pumpId;
   final String pumpName;
   final int faceIndex;
-  final String faceLabel; // etiqueta legible (A/B/1/2)
+  final String faceLabel;
   final String faceDescription;
   final List<HosePhysical> hoses;
 
@@ -75,16 +75,17 @@ class PositionPhysical {
   });
 }
 
-// -----------------------------  BUILDER  ---------------------------------
+// -----------------------------  BUILDER CORREGIDO ---------------------------------
 class PositionBuilder {
   static Map<int, PositionPhysical> build({
     required List<PumpData> pumps,
     required List<DispenserStatus> statuses,
-    required List<NozzleInfo> nozzles,
+    required List<NozzleMapping> mappings,
     bool strictPhysicalOnly = false,
   }) {
     final pumpById = {for (final pump in pumps) pump.id: pump};
 
+    // 1. Mapeo de estados para búsqueda rápida
     final statusByNozzle = <int, _StatusContext>{};
     final statusByKey = <String, _StatusContext>{};
     final statusByDescription = <String, _StatusContext>{};
@@ -102,67 +103,55 @@ class PositionBuilder {
       }
     }
 
-    final nozzleByNumber = {
-      for (final nozzle in nozzles) nozzle.nozzleNumber: nozzle
-    };
+    final assignedKeys = <String>{}; // Para rastrear qué mangueras ya procesamos
+    
+    // CAMBIO IMPORTANTE: Agrupamos por ID de Surtidor (pumpId), no por dirección de manguera
+    final groupsByPumpId = <int, _PositionGroup>{};
 
-    final assignedKeys = <String>{};
-
-    final nozzleToPumpId = <int, int>{};
-    final nozzleFaceIndexByPump = <int, Map<int, int>>{};
-    final groupsByAddress = <String, _PositionGroup>{};
-
-    for (final nozzle in nozzles) {
-      final rawAddress = nozzle.dispenseAddress.trim();
-      final pumpId = _pumpIdFromAddress(rawAddress) ?? nozzle.dispense;
-      final faceIndexCandidate =
-          _indexFromPosition(nozzle.position) ?? nozzle.dispense;
-      final faceIndex = faceIndexCandidate > 0 ? faceIndexCandidate : 1;
-
-      final normalizedLabel = _normalizeLabel(nozzle.position);
-      final fallbackLabel =
-          normalizedLabel.isNotEmpty ? normalizedLabel : _faceLabel(faceIndex);
-      final effectiveAddress =
-          rawAddress.isNotEmpty ? rawAddress : 'P$pumpId-$fallbackLabel';
-      final pumpName = pumpById[pumpId]?.pumpName ??
-          (pumpId > 0 ? 'Surtidor $pumpId' : 'Posición $effectiveAddress');
-
-      final group = groupsByAddress.putIfAbsent(
-        effectiveAddress,
+    // 2. Procesar Configuración (mapping de mangueras)
+    for (final mapping in mappings) {
+      // Determinamos el ID del surtidor
+      final pumpId = mapping.dispenserNumber; // viene directo del mapping
+      
+      // Determinamos el nombre
+      final pumpName = pumpById[pumpId]?.pumpName ?? 'Surtidor $pumpId';
+      
+      // Obtenemos o creamos el grupo para este SURTIDOR
+      final group = groupsByPumpId.putIfAbsent(
+        pumpId,
         () => _PositionGroup(
-          dispenserAddress: effectiveAddress,
           pumpId: pumpId,
           pumpName: pumpName,
-          faceIndex: faceIndex,
+          // Usamos un índice base, puede refinarse si quieres separar caras A/B
+          faceIndex: 1, 
         ),
       );
 
-      group.faceData.addLabel(nozzle.position);
-      if (group.faceData.labelCandidates.isEmpty) {
-        group.faceData.addLabel(fallbackLabel);
-      }
-      if ((group.faceData.description == null ||
-              group.faceData.description!.isEmpty) &&
-          nozzle.fullAddress.trim().isNotEmpty) {
-        group.faceData.description = nozzle.fullAddress;
+      // Agregamos metadata al grupo (etiquetas, descripciones)
+      group.faceData.addLabel(mapping.hoseKey);
+      if (group.faceData.description == null && mapping.hoseKey.isNotEmpty) {
+        // Podríamos usar una descripción genérica del surtidor
+        group.faceData.description = pumpName;
       }
 
+      // Busamos el estado correspondiente
       final statusCtx = _pickStatusFor(
-        nozzleNumber: nozzle.nozzleNumber,
-        hoseKey: nozzle.fullAddress,
-        description: nozzle.fullAddress,
+        nozzleNumber: mapping.hoseNumber,
+        hoseKey: mapping.hoseKey,
+        description: mapping.hoseKey,
         byNozzle: statusByNozzle,
         byKey: statusByKey,
         byDescription: statusByDescription,
         assignedKeys: assignedKeys,
       );
 
+      // Construimos la manguera
       final hose = _buildHose(
         pumpId: group.pumpId,
-        nozzleNumber: nozzle.nozzleNumber,
+        nozzleNumber: mapping.hoseNumber,
         statusCtx: statusCtx,
-        nozzle: nozzle,
-        fallbackKey: nozzle.fullAddress,
+        mapping: mapping,
+        fallbackKey: mapping.hoseKey,
       );
 
       if (hose != null) {
@@ -171,41 +160,26 @@ class PositionBuilder {
           assignedKeys.add(statusCtx.hose.key);
         }
       }
-
-      nozzleToPumpId[nozzle.nozzleNumber] = group.pumpId;
-      final faceIndexForMap =
-          group.faceData.faceIndex > 0 ? group.faceData.faceIndex : faceIndex;
-      nozzleFaceIndexByPump
-          .putIfAbsent(group.pumpId, () => <int, int>{})[nozzle.nozzleNumber] =
-          faceIndexForMap;
     }
 
+    // 3. Generar resultado final de grupos configurados
     final result = <int, PositionPhysical>{};
     var posCounter = 1;
 
-    final sortedGroups = groupsByAddress.values.toList()
-      ..sort((a, b) {
-        final pumpComparison = a.pumpId.compareTo(b.pumpId);
-        if (pumpComparison != 0) return pumpComparison;
+    // Ordenamos por ID de surtidor
+    final sortedPumpIds = groupsByPumpId.keys.toList()..sort();
 
-        final faceComparison =
-            a.faceData.faceIndex.compareTo(b.faceData.faceIndex);
-        if (faceComparison != 0) return faceComparison;
-
-        return a.dispenserAddress.compareTo(b.dispenserAddress);
-      });
-
-    for (final group in sortedGroups) {
+    for (final pumpId in sortedPumpIds) {
+      final group = groupsByPumpId[pumpId]!;
+      
       if (group.faceData.hoses.isEmpty) continue;
 
-      group.faceData.hoses
-          .sort((a, b) => a.nozzleNumber.compareTo(b.nozzleNumber));
-      final faceLabel =
-          _resolveFaceLabel(group.faceData, group.faceData.faceIndex);
-      final description =
-          group.faceData.description?.trim().isNotEmpty == true
-              ? group.faceData.description!.trim()
-              : '${group.pumpName} - Cara $faceLabel';
+      // Ordenamos las mangueras internamente por número
+      group.faceData.hoses.sort((a, b) => a.nozzleNumber.compareTo(b.nozzleNumber));
+
+      final faceLabel = _resolveFaceLabel(group.faceData, group.faceData.faceIndex);
+      // Descripción limpia
+      final description = group.pumpName;
 
       result[posCounter] = PositionPhysical(
         number: posCounter,
@@ -219,56 +193,37 @@ class PositionBuilder {
       posCounter++;
     }
 
+    // 4. Fallback (si strictPhysicalOnly es false): Mangueras en estado pero sin config
     if (!strictPhysicalOnly) {
-      final fallbackGroups = <String, _FallbackGroup>{};
+      final fallbackGroups = <int, _FallbackGroup>{};
 
       for (final status in statuses) {
         for (final hose in status.hoses) {
-          if (assignedKeys.contains(hose.key)) continue;
+          if (assignedKeys.contains(hose.key)) continue; // Ya fue asignada
 
           final ctx = _StatusContext(status, hose);
-          final nozzle = nozzleByNumber[hose.number];
-          final pumpId = nozzleToPumpId[hose.number] ??
-              _pumpIdFromAddress(nozzle?.dispenseAddress) ??
-              status.number;
-          var faceIndex = nozzleFaceIndexByPump[pumpId]?[hose.number] ??
-              _indexFromPosition(nozzle?.position) ??
-              status.number;
-          if (faceIndex <= 0) {
-            faceIndex = 1;
-          }
-
-          final pumpName = pumpById[pumpId]?.pumpName ??
-              (status.description.trim().isNotEmpty
-                  ? status.description
-                  : (pumpId > 0
-                      ? 'Surtidor $pumpId'
-                      : 'Posición ${nozzle?.dispenseAddress ?? hose.key}'));
-          final faceLabel = nozzle?.position ?? _faceLabel(faceIndex);
-          final groupKey = '$pumpId|$faceIndex|$faceLabel';
+          // Intentamos adivinar a qué surtidor pertenece (por el dispenser number del status)
+          final pumpId = status.number; 
+          
+          final pumpName = pumpById[pumpId]?.pumpName ?? 
+              (status.description.isNotEmpty ? status.description : 'Surtidor $pumpId');
 
           final group = fallbackGroups.putIfAbsent(
-            groupKey,
+            pumpId,
             () => _FallbackGroup(
               pumpId: pumpId,
               pumpName: pumpName,
-              faceIndex: faceIndex,
+              faceIndex: 1,
             ),
           );
 
-          group.faceData.addLabel(faceLabel);
-          if ((group.faceData.description == null ||
-                  group.faceData.description!.isEmpty) &&
-              (nozzle?.fullAddress.trim().isNotEmpty ?? false)) {
-            group.faceData.description = nozzle!.fullAddress;
-          }
           group.faceData.description ??= status.description;
 
           final hosePhysical = _buildHose(
             pumpId: pumpId,
             nozzleNumber: hose.number,
             statusCtx: ctx,
-            nozzle: nozzle,
+            mapping: null, // null probablemente
             fallbackKey: hose.key,
           );
 
@@ -279,33 +234,21 @@ class PositionBuilder {
         }
       }
 
-      final orderedFallbackGroups = fallbackGroups.values.toList()
-        ..sort((a, b) {
-          final pumpComparison = a.pumpId.compareTo(b.pumpId);
-          if (pumpComparison != 0) return pumpComparison;
-
-          return a.faceData.faceIndex.compareTo(b.faceData.faceIndex);
-        });
-
-      for (final group in orderedFallbackGroups) {
+      // Procesar fallback groups
+      final sortedFallbackIds = fallbackGroups.keys.toList()..sort();
+      for (final pid in sortedFallbackIds) {
+        final group = fallbackGroups[pid]!;
         if (group.faceData.hoses.isEmpty) continue;
 
-        group.faceData.hoses
-            .sort((a, b) => a.nozzleNumber.compareTo(b.nozzleNumber));
-        final faceLabel =
-            _resolveFaceLabel(group.faceData, group.faceData.faceIndex);
-        final description =
-            group.faceData.description?.trim().isNotEmpty == true
-                ? group.faceData.description!.trim()
-                : '${group.pumpName} - Cara $faceLabel';
+        group.faceData.hoses.sort((a, b) => a.nozzleNumber.compareTo(b.nozzleNumber));
 
         result[posCounter] = PositionPhysical(
           number: posCounter,
           pumpId: group.pumpId,
           pumpName: group.pumpName,
           faceIndex: group.faceData.faceIndex,
-          faceLabel: faceLabel,
-          faceDescription: description,
+          faceLabel: "?",
+          faceDescription: group.faceData.description ?? group.pumpName,
           hoses: List.unmodifiable(group.faceData.hoses),
         );
         posCounter++;
@@ -314,6 +257,8 @@ class PositionBuilder {
 
     return result;
   }
+
+  // --- HELPERS ---
 
   static _StatusContext? _pickStatusFor({
     int? nozzleNumber,
@@ -326,26 +271,17 @@ class PositionBuilder {
   }) {
     if (nozzleNumber != null) {
       final ctx = byNozzle[nozzleNumber];
-      if (ctx != null && !assignedKeys.contains(ctx.hose.key)) {
-        return ctx;
-      }
+      if (ctx != null && !assignedKeys.contains(ctx.hose.key)) return ctx;
     }
-
     if (hoseKey != null && hoseKey.isNotEmpty) {
       final ctx = byKey[hoseKey];
-      if (ctx != null && !assignedKeys.contains(ctx.hose.key)) {
-        return ctx;
-      }
+      if (ctx != null && !assignedKeys.contains(ctx.hose.key)) return ctx;
     }
-
     final descKey = description?.trim().toLowerCase() ?? '';
     if (descKey.isNotEmpty) {
       final ctx = byDescription[descKey];
-      if (ctx != null && !assignedKeys.contains(ctx.hose.key)) {
-        return ctx;
-      }
+      if (ctx != null && !assignedKeys.contains(ctx.hose.key)) return ctx;
     }
-
     return null;
   }
 
@@ -353,71 +289,72 @@ class PositionBuilder {
     required int pumpId,
     required int? nozzleNumber,
     required _StatusContext? statusCtx,
-    required NozzleInfo? nozzle,
+    required NozzleMapping? mapping,
     required String fallbackKey,
   }) {
-    final resolvedNozzle =
-        nozzle?.nozzleNumber ?? statusCtx?.hose.number ?? nozzleNumber;
-    if (resolvedNozzle == null || resolvedNozzle <= 0) {
-      return null;
-    }
+    final resolvedNozzle = mapping?.hoseNumber ?? statusCtx?.hose.number ?? nozzleNumber;
+    if (resolvedNozzle == null || resolvedNozzle <= 0) return null;
 
     final hoseKey = statusCtx?.hose.key ??
-        (nozzle != null
-            ? _hoseKeyFromNozzle(nozzle.nozzleNumber)
-            : (fallbackKey.isNotEmpty
-                ? fallbackKey
-                : 'P$pumpId-H$resolvedNozzle'));
+        (mapping?.hoseKey.isNotEmpty == true
+            ? mapping!.hoseKey
+            : (fallbackKey.isNotEmpty ? fallbackKey : 'P$pumpId-H$resolvedNozzle'));
 
-    final hoseStatus =
-        statusCtx?.hose.status ?? statusCtx?.dispenser.status ?? 'unknown';
+    final hoseStatus = statusCtx?.hose.status ?? statusCtx?.dispenser.status ?? 'unknown';
 
-    final fuel = _fuelFrom(nozzle: nozzle, hose: statusCtx?.hose);
+    final fuel = _fuelFrom(hose: statusCtx?.hose);
+    // Preferimos el dispensador proveniente del mapping porque ya trae la asociaci\u00f3n bomba/manguera.
+    final dispenserNumber = mapping?.dispenserNumber ?? statusCtx?.dispenser.number ?? pumpId;
 
     return HosePhysical(
       nozzleNumber: resolvedNozzle,
       hoseKey: hoseKey,
       fuel: fuel,
       status: hoseStatus,
-      facePosition: nozzle?.position,
-      fullAddress: nozzle?.fullAddress,
-      dispenserNumber: statusCtx?.dispenser.number ?? nozzle?.dispense,
+      facePosition: null,
+      fullAddress: mapping?.hoseKey,
+      dispenserNumber: dispenserNumber,
       dispenserKey: statusCtx?.dispenser.key,
-      fuelCode: nozzle?.fuelCode,
-      tankNumber: nozzle?.tankNumber,
-      pumpType: nozzle?.pumpType,
-      unitPriceCash: nozzle?.unitPriceCash,
-      unitPriceCredit: nozzle?.unitPriceCredit,
-      unitPriceDebit: nozzle?.unitPriceDebit,
-      unitPriceDecimalPlaces: nozzle?.unitPriceDecimalPlaces,
-      totalFieldDecimalPlaces: nozzle?.totalFieldDecimalPlaces,
-      volumeFieldDecimalPlaces: nozzle?.volumeFieldDecimalPlaces,
+      fuelCode: null,
+      tankNumber: null,
+      pumpType: null,
+      unitPriceCash: null,
+      unitPriceCredit: null,
+      unitPriceDebit: null,
+      unitPriceDecimalPlaces: null,
+      totalFieldDecimalPlaces: null,
+      volumeFieldDecimalPlaces: null,
       totalVolume: statusCtx?.hose.totalVolume,
       totalAmount: statusCtx?.hose.totalAmount,
     );
   }
 
   static Fuel _fuelFrom({
-    NozzleInfo? nozzle,
     DispenserHose? hose,
   }) {
-    if (nozzle != null) {
-      final fuelInfo = fuel_palette.fuelFor(nozzle.fuelCode);
-      return Fuel(name: fuelInfo.name, color: fuelInfo.color);
-    }
-
     if (hose != null) {
-      return Fuel(name: hose.fuelType, color: hose.fuelColor);
+      // CORRECCIÓN: Limpieza del string "Manguera 1 Super" -> "Super"
+      String cleanName = hose.fuelType;
+      // Regex: Busca "Manguera", espacio, dígitos, espacio y lo reemplaza por vacío
+      cleanName = cleanName.replaceAll(RegExp(r'Manguera \d+ '), '').trim();
+      // Si por alguna razón la regex borró todo o no coincidió pero queremos limpiar "Manguera "
+      if(cleanName.startsWith("Manguera") && cleanName.split(' ').length > 2) {
+         // Fallback manual si el regex falla en algún caso borde
+         cleanName = cleanName.split(' ').sublist(2).join(' ');
+      }
+      
+      return Fuel(name: cleanName, color: hose.fuelColor ?? Colors.grey);
     }
 
     return const Fuel(name: 'Desconocido', color: Colors.grey);
   }
 }
 
+// ----------------------------- CLASES AUXILIARES INTERNAS ----------------------------------
+
 class _StatusContext {
   final DispenserStatus dispenser;
   final DispenserHose hose;
-
   const _StatusContext(this.dispenser, this.hose);
 }
 
@@ -438,14 +375,13 @@ class _FaceData {
   }
 }
 
+// Agrupamos simplemente por ID de surtidor
 class _PositionGroup {
-  final String dispenserAddress;
   final int pumpId;
   final String pumpName;
   final _FaceData faceData;
 
   _PositionGroup({
-    required this.dispenserAddress,
     required this.pumpId,
     required this.pumpName,
     required int faceIndex,
@@ -464,15 +400,14 @@ class _FallbackGroup {
   }) : faceData = _FaceData(faceIndex);
 }
 
+// ----------------------------- UTILIDADES ----------------------------------
+
 String _resolveFaceLabel(_FaceData data, int faceIndex) {
   if (data.labelCandidates.isNotEmpty) {
     return data.labelCandidates.first;
   }
-  return _faceLabel(faceIndex);
+  return faceIndex.toString();
 }
-
-String _hoseKeyFromNozzle(int nozzleNumber) =>
-    'M${nozzleNumber.toString().padLeft(2, '0')}';
 
 String _normalizeLabel(String? value) {
   if (value == null) return '';
@@ -484,27 +419,20 @@ String _normalizeLabel(String? value) {
 int? _indexFromPosition(String? value) {
   final normalized = _normalizeLabel(value);
   if (normalized.isEmpty) return null;
-
   final code = normalized.codeUnitAt(0);
-  if (code >= 65 && code <= 90) {
-    return code - 64;
-  }
-
+  if (code >= 65 && code <= 90) return code - 64; // A=1, B=2
   return int.tryParse(normalized);
 }
 
+// Nota: Esta función se usa menos ahora que agrupamos por dispense ID directo,
+// pero es útil si el dispense ID viniera nulo.
 int? _pumpIdFromAddress(String? address) {
   if (address == null || address.isEmpty) return null;
   final segment = address.split('-').firstWhere(
-    (element) => element.trim().isNotEmpty,
+        (element) => element.trim().isNotEmpty,
     orElse: () => '',
   );
   final match = RegExp(r'\d+').firstMatch(segment);
   if (match == null) return null;
   return int.tryParse(match.group(0)!);
-}
-
-String _faceLabel(int faceIndex) {
-  if (faceIndex <= 0) return '?';
-  return faceIndex.toString();
 }

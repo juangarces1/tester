@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:tester/Models/FuelRed/nozzle_mapping.dart';
 import 'package:tester/Models/LogIn/inventory_item.dart';
 import 'package:tester/Models/Promo/cliente_promo.dart';
 import 'package:tester/Models/ResumenCierre/cierre_caja_general.dart';
@@ -381,6 +382,29 @@ static Future<Response> getTransacciones(int? zona) async {
       }
      }
      return Response(isSuccess: true, result: transacciones);    
+ }
+
+ static Future<Response> getMapHoseDispenser() async {
+    var url = Uri.parse('${Constans.getAPIUrl()}/api/Shifts/GetHoseKeyMap/');
+    var response = await http.get(
+      url,
+      headers: {
+        'content-type' : 'application/json',
+        'accept' : 'application/json',
+      },        
+    );
+    var body = response.body;
+    if (response.statusCode >= 400) {
+      return Response(isSuccess: false, message: body);
+    }
+    List<NozzleMapping> nozzleMappings     =[];
+    var decodedJson = jsonDecode(body);
+     if(decodedJson != null){
+      for (var item in decodedJson){
+        nozzleMappings.add(NozzleMapping.fromJson(item));
+      }
+     }
+     return Response(isSuccess: true, result: nozzleMappings);    
  }
 
  static Future<Response> getFacturasByCierre(int? cierre) async {
@@ -862,7 +886,9 @@ static Future<Response> getBanks() async {
         clientes.add(Cliente.fromJson(item));
       }
      }
-     return Response(isSuccess: true, result: clientes);    
+     return 
+     
+     Response(isSuccess: true, result: clientes);    
  }
 
    static Future<Response> getClientesTransfer() async {

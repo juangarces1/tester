@@ -357,16 +357,31 @@ extension ConsoleTxToLegacyTransaccion on ConsoleTransaction {
   // Helper privado para nombre por fuelCode
   static String _fuelName(int code) {
     switch (code) {
-      case 1:
-        return 'Super';
-      case 2:
-        return 'Regular';
       case 3:
+        return 'Super';
+      case 1:
+        return 'Regular';
+      case 10:
         return 'Diesel';
-      case 4:
+      case 2:
         return 'Exonerado';
       default:
         return 'Fuel $code';
+    }
+  }
+
+   static int _idProducto(int code) {
+    switch (code) {
+      case 3:
+        return 1;
+      case 1:
+        return 2;
+      case 10:
+        return 3;
+      case 2:
+        return 4;
+      default:
+        return 0;
     }
   }
 
@@ -401,7 +416,7 @@ extension ConsoleTxToLegacyTransaccion on ConsoleTransaction {
       numero: id,
       fechatransaccion: fmt(dateTime),
       dispensador: dispensadorFinal,
-      idproducto: fuelCode,
+      idproducto: _idProducto(fuelCode),
       nombreproducto: productName, // ← aplicado el mapeo
       total: toInt(totalValue),
       volumen: totalVolume,
@@ -417,6 +432,7 @@ extension ConsoleTxToLegacyTransaccion on ConsoleTransaction {
       subir: subir,
       initialTotalizer: initialTotalizer,
       finalTotalizer: finalTotalizer,
+      attendantId: attendantIdRaw,
     );
   }
 }

@@ -16,6 +16,7 @@ import 'package:tester/Screens/logIn/login_screen.dart';
 
 // Provider de transacciones (ajusta el path si lo tienes distinto)
 import 'package:tester/Providers/tranascciones_provider.dart';
+import 'package:tester/Screens/logIn/nfc_test.dart';
 
 import 'package:tester/helpers/reset_helper.dart'; // <- ojo a la ortografía del archivo en tu proyecto
 
@@ -385,6 +386,15 @@ List<_AdminAction> _buildActions(BuildContext context) {
 
     // Sesión
     _AdminAction(
+      title: 'NFC',
+      subtitle: 'Config Nfc Tags',
+      icon: Icons.wifi_tethering_outlined,
+      color: const Color(0xFFEF4444),
+      filter: _AdminFilter.session,
+       onTap: () => open(const NfcTestPage()),
+    ),
+
+     _AdminAction(
       title: 'Cerrar sesión',
       subtitle: 'Volver a iniciar',
       icon: Icons.logout_rounded,

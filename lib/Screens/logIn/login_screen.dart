@@ -268,7 +268,9 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     // Validaciones comunes
     if (_selectedZone == 0) {
-      Fluttertoast.showToast(msg: 'Selecciona la Zona');
+      Fluttertoast.showToast(    
+        gravity: ToastGravity.TOP,    
+        msg: 'Selecciona la Zona');
       return;
     }
 

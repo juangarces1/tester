@@ -22,20 +22,30 @@ class TransaccionesApiHelper {
       .post(postUri, headers: _headers(), body: jsonEncode(tx.toJson()))
       .timeout(_timeout);
 
-  if (res.statusCode != 200 && res.statusCode != 201) {
-    throw Exception('POST falló (${res.statusCode}): ${res.body}');
+  // Éxito normal
+  if (res.statusCode == 200 || res.statusCode == 201) {
+    if (res.body.isEmpty) {
+      throw Exception('POST sin body (esperaba el objeto completo).');
+    }
+    final raw = jsonDecode(res.body);
+    if (raw is! Map<String, dynamic>) {
+      throw Exception('Formato inesperado: esperaba objeto JSON.');
+    }
+    return Transaccion.fromJson(raw);
   }
 
-  if (res.body.isEmpty) {
-    throw Exception('POST sin body (esperaba el objeto completo).');
+  // Duplicado - el worker ya la grabó, recuperar la existente
+  if (res.statusCode == 409) {
+    final numero = tx.numero;
+    final fecha = DateTime.parse(tx.fechatransaccion);
+    final existing = await getByKey(numero, fecha);
+    if (existing != null) {
+      return existing;
+    }
+      throw Exception('Transacción duplicada pero no se pudo recuperar la existente.');
   }
 
-  final raw = jsonDecode(res.body);
-  if (raw is! Map<String, dynamic>) {
-    throw Exception('Formato inesperado: esperaba objeto JSON.');
-  }
-
-  return Transaccion.fromJson(raw); // ← objeto completo del servidor
+  throw Exception('POST falló (${res.statusCode}): ${res.body}');
 }
 
 
@@ -52,19 +62,25 @@ class TransaccionesApiHelper {
     throw Exception('GET falló (${res.statusCode}): ${res.body}');
   }
 
-  // /// Intenta extraer el id desde diferentes formas de respuesta
-  // static int? _extractId(Map<String, dynamic> json) {
-  //   // ajusta si tu backend usa otro nombre
-  //   final candidates = ['id', 'idtransaccion', 'Idtransaccion', 'IdTransaccion'];
-  //   for (final k in candidates) {
-  //     final v = json[k];
-  //     if (v is int) return v;
-  //     if (v is num) return v.toInt();
-  //     if (v is String) {
-  //       final n = int.tryParse(v);
-  //       if (n != null) return n;
-  //     }
-  //   }
-  //   return null;
-  // }
+  /// GET /TransaccionesApi/byKey?numero={numero}&fecha={fecha}
+  /// Busca transacción existente por su clave única (Numero, Fechatransaccion)
+  static Future<Transaccion?> getByKey(int numero, DateTime fecha) async {
+    final uri = Uri.parse(
+      '${Constans.getAPIUrl()}/api/TransaccionesApi/byKey'
+    ).replace(queryParameters: {
+      'numero': numero.toString(),
+      'fecha': fecha.toIso8601String(),
+    });
+
+    final res = await http.get(uri, headers: _headers()).timeout(_timeout);
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body);
+      return Transaccion.fromJson(data);
+    } else if (res.statusCode == 404) {
+      return null;
+    }
+    throw Exception('GET byKey falló (${res.statusCode}): ${res.body}');
+  }
+
+  
 }

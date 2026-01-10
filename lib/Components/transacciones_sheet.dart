@@ -4,7 +4,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:tester/Components/card_tr.dart';
 import 'package:tester/Components/card_tr_pistero.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/FuelRed/product.dart';
@@ -23,18 +22,18 @@ class TransaccionesSheet {
   }) async {
     Future<List<Product>> fetch() async {
      
-      final request = {
-        'lookbackMinutes': 10,
-      };
-      final responseSync = await ApiHelper.post('api/TransaccionesApi/sync-now', request);
-      if (!responseSync.isSuccess) {
-        final msg = (responseSync.message.isNotEmpty == true)
-            ? responseSync.message
-            : 'No se pudo sincronizar transacciones';
-         if (!context.mounted) return <Product>[];
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-        return <Product>[];
-      }
+      // final request = {
+      //   'lookbackMinutes': 10,
+      // };
+      // final responseSync = await ApiHelper.post('api/TransaccionesApi/sync-now', request);
+      // if (!responseSync.isSuccess) {
+      //   final msg = (responseSync.message.isNotEmpty == true)
+      //       ? responseSync.message
+      //       : 'No se pudo sincronizar transacciones';
+      //    if (!context.mounted) return <Product>[];
+      //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      //   return <Product>[];
+      // }
 
       final rs = await ApiHelper.getTransaccionesAsProduct(zona);
       if (!rs.isSuccess) {

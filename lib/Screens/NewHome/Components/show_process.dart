@@ -113,7 +113,9 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
   @override
   void initState() {
     super.initState();
-    _updateTransactions(); // ahora desde TransaccionesProvider (legacy)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateTransactions();
+    });
   }
 
   @override
@@ -321,23 +323,24 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
 
   // ---------- Cargar desde TransaccionesProvider.unpaid ----------
   Future<void> _updateTransactions() async {
+    debugPrint('[_updateTransactions] >>> INICIO');
     try {
-      final request = {
-        'lookbackMinutes':10
-      };
-      final rsync = await ApiHelper.post('Api/TransaccionesApi/sync-now', request);
+      final cierre = context.read<CierreActivoProvider>().cierreFinal;
+      debugPrint('[_updateTransactions] cierre: $cierre');
 
-      if(!mounted) return;
-      if (!rsync.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(rsync.message.isNotEmpty == true ? rsync.message : 'No se pudieron sincronizar transacciones')),
-        );
+      if (cierre == null) {
+        debugPrint('[_updateTransactions] ERROR: cierre es null');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No hay cierre activo')),
+          );
+        }
         return;
       }
 
-      var cierre = context.read<CierreActivoProvider>().cierreFinal;
-
-      final rs = await ApiHelper.getTransaccionesAsProduct(cierre!.idzona);
+      debugPrint('[_updateTransactions] Llamando API con idzona: ${cierre.idzona}');
+      final rs = await ApiHelper.getTransaccionesAsProduct(cierre.idzona);
+      debugPrint('[_updateTransactions] API response isSuccess: ${rs.isSuccess}');
 
       List<Invoice> facturas = [];
       if (mounted) {
@@ -346,24 +349,29 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
 
       if (rs.isSuccess) {
         final List<Product> items = rs.result;
+        debugPrint('[_updateTransactions] Items recibidos: ${items.length}');
         final filtrados = filtrarProductosNoEnFacturas(items, facturas);
+        debugPrint('[_updateTransactions] Items filtrados: ${filtrados.length}');
         if (mounted) {
           setState(() => transacciones = filtrados);
         }
       } else {
+        debugPrint('[_updateTransactions] API error: ${rs.message}');
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(rs.message.isNotEmpty == true ? rs.message : 'No se pudieron cargar transacciones')),
         );
       }
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[_updateTransactions] EXCEPTION: $e');
+      debugPrint('[_updateTransactions] STACKTRACE: $st');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error al actualizar: $e')),
         );
       }
     } finally {
-      
+      debugPrint('[_updateTransactions] <<< FIN');
     }
   }
 

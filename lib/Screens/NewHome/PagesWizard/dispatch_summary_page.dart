@@ -6,7 +6,6 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/despachos_provider.dart';
-import 'package:tester/Providers/usuario_provider.dart';
 import 'package:tester/ViewModels/dispatch_control.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 

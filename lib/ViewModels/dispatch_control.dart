@@ -49,14 +49,11 @@ class DispatchControl extends ChangeNotifier {
   bool _loadingLastSale = false;
   bool _persistingTx = false;
   bool _unpaidFlowRunning = false; // candado simple anti-paralelo
+  DateTime? _unpaidEnteredAt; // timestamp para validar que la tx sea del despacho actual
 
   // Tracking de contadores acumulados del surtidor para obtener progreso relativo
   double? _dispensedVolume;    // volumen abastecido desde la autorización
   double? _dispensedAmount;    // monto abastecido desde la autorización
-  static const double _simulatedFlowRateLitersPerSecond = 0.65; // ~39 L/min
-  static const Duration _simulatedFlowTickInterval = Duration(milliseconds: 250);
-  Timer? _simulatedFlowTimer;
-  DateTime? _simulatedFlowStartedAt;
 
   bool get loadingLastSale => _loadingLastSale;
   bool get persistingTx => _persistingTx;
@@ -208,11 +205,7 @@ class DispatchControl extends ChangeNotifier {
     _provider.removeDispatch(this);
   }
 
-  /// (opcional) si quieres recuperar solo la parte “fetch”
-  // void goGetTr() {
-  //   _fetchLastSaleIfNeeded();
-  //   notifyListeners();
-  // }
+  
 
   /// Mock helper to jump into unpaid stage with a sample console transaction.
   void mockUnpaidState({ConsoleTransaction? transaction}) {
@@ -270,66 +263,66 @@ class DispatchControl extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ================== NUEVO FLUJO ÚNICO ==================
-  // SOLO hace fetch y crea tx local si falta. NUNCA postea aquí.
-  Future<void> _fetchLastSaleIfNeeded() async {
-    if (_loadingLastSale) return;
+  // ================== NUEVO FLUJO: SOLO ESPERAR, NO POSTEAR ==================
+
+  /// Bucle 1: Pregunta a la consola por la última tx de la manguera
+  /// hasta obtener una con hora válida (≥ -30s de _unpaidEnteredAt)
+  Future<ConsoleTransaction?> _waitForConsoleTx() async {
     final nozzle = selectedHose?.nozzleNumber;
-    if (nozzle == null || nozzle == 0) return;
+    if (nozzle == null || nozzle == 0) return null;
 
-    _loadingLastSale = true;
-    notifyListeners(); // “sincronizando...”
+    const maxAttempts = 15;
+    const retryDelay = Duration(milliseconds: 500);
 
-    try {
-      const maxAttempts = 3;
-      const retryDelay = Duration(milliseconds: 1200);
-      ConsoleTransaction? fetchedTx;
-
-      for (var attempt = 0; attempt < maxAttempts; attempt++) {
-        try {
-          final resp = await ConsoleApiHelper.getTransactionLastByNozzle(nozzle);
-          if (resp.isSuccess && resp.result != null) {
-            fetchedTx = resp.result;
-            break;
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        final resp = await ConsoleApiHelper.getTransactionLastByNozzle(nozzle);
+        if (resp.isSuccess && resp.result != null) {
+          final candidate = resp.result;
+          if (_isTransactionInValidTimeRange(candidate)) {
+            return candidate;
           }
-        } catch (_) {
-          // intento fallido, se reintenta si quedan intentos
+          // tx fuera de rango, continuar reintentando
         }
-
-        if (attempt < maxAttempts - 1) {
-          await Future.delayed(retryDelay);
-        }
+      } catch (_) {
+        // intento fallido, se reintenta
       }
 
-      if (fetchedTx != null) {
-        consoleTx        = fetchedTx;
-        saleId           = consoleTx?.saleId;
-        saleNumber       = consoleTx?.saleNumber;
-        productId        = consoleTx?.fuelCode;
-        amountDispense   = consoleTx?.totalValue;
-        volumenDispense  = consoleTx?.totalVolume;
-        price            = consoleTx?.unitPrice;
-
-        // ⚠️ Solo crea la Transaccion UNA VEZ; id=0
-        tx ??= consoleTx?.toTransaccion(
-          resolveDispenser: _resolveDispenser,
-        );
-
-        // NO: nada de onLastUnpaid ni POST aquí.
-      } else {
-        _clearConsoleValues();
+      if (attempt < maxAttempts - 1) {
+        await Future.delayed(retryDelay);
       }
-    } finally {
-      _loadingLastSale = false;
-      notifyListeners(); // SIEMPRE notifica al terminar
     }
+    return null;
   }
 
-  // ÚNICO dueño del pipeline unpaid → fetch → persistir
+  /// Bucle 2: Pregunta a nuestra BD por (numero, fecha) hasta que el worker la grabe
+  Future<Transaccion?> _waitForDbTx(int numero, DateTime fecha) async {
+    const maxAttempts = 15;
+    const retryDelay = Duration(milliseconds: 500);
+
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        final found = await TransaccionesApiHelper.getByKey(numero, fecha);
+        if (found != null) {
+          return found;
+        }
+      } catch (_) {
+        // intento fallido, se reintenta
+      }
+
+      if (attempt < maxAttempts - 1) {
+        await Future.delayed(retryDelay);
+      }
+    }
+    return null;
+  }
+
+  // ÚNICO dueño del pipeline unpaid → esperar consola → esperar BD
   Future<void> markUnpaid({Duration? delay}) async {
     if (_unpaidFlowRunning) return;
     _unpaidFlowRunning = true;
     _stopSimulatedFlowTracking();
+    _unpaidEnteredAt = DateTime.now().toUtc().subtract(const Duration(hours: 6)); // hora Costa Rica (UTC-6)
 
     try {
       if (stage != DispatchStage.unpaid) {
@@ -345,27 +338,45 @@ class DispatchControl extends ChangeNotifier {
         await Future.delayed(d);
       }
 
-      // 1) Fetch consola (NO postea)
-      await _fetchLastSaleIfNeeded();
-
-      
-
-      // 2) Persistir si hay tx (esperar para evitar id=0)
-      final t = tx;
-      if (t == null) return;
-
-      _persistingTx = true;
+      _loadingLastSale = true;
       notifyListeners();
+
       try {
-        // (opcional) hook previo si mantienes validaciones
-        final hook = onLastUnpaid;
-        if (hook != null) {
-          await hook(t);
+        // 1) Bucle consola: esperar tx con hora válida
+        final fetchedTx = await _waitForConsoleTx();
+
+        if (fetchedTx == null) {
+          _clearConsoleValues();
+          return;
         }
 
-        final saved = await TransaccionesApiHelper.postAndFetchFull(t);
-        tx = saved; // ← ya con idtransaccion asignado
+        // Guardar datos de consola
+        consoleTx       = fetchedTx;
+        saleId          = fetchedTx.saleId;
+        saleNumber      = fetchedTx.saleNumber;
+        productId       = fetchedTx.fuelCode;
+        amountDispense  = fetchedTx.totalValue;
+        volumenDispense = fetchedTx.totalVolume;
+        price           = fetchedTx.unitPrice;
+        notifyListeners();
+
+        // 2) Bucle BD: esperar que el worker grabe la tx
+        final numero = fetchedTx.fuelingIndex;
+        final fecha = fetchedTx.dateTime;
+
+        _persistingTx = true;
+        notifyListeners();
+
+        final dbTx = await _waitForDbTx(numero, fecha);
+
+        if (dbTx != null) {
+          tx = dbTx; // ← ya con idtransaccion asignado por el worker
+        } else {
+          // Fallback: crear tx local sin id (el worker no la grabó a tiempo)
+          tx ??= fetchedTx.toTransaccion(resolveDispenser: _resolveDispenser);
+        }
       } finally {
+        _loadingLastSale = false;
         _persistingTx = false;
         notifyListeners();
       }
@@ -442,6 +453,7 @@ class DispatchControl extends ChangeNotifier {
     consoleTx = null;
     authorizationExpired = false;
     _lastUserIdentifier = null;
+    _unpaidEnteredAt = null;
     _resetTotalsTracking(); // prepara el control para un uso posterior
     _cancelFinishTimer();
     _detachWatcher();
@@ -481,7 +493,9 @@ class DispatchControl extends ChangeNotifier {
         stage == DispatchStage.authorized  ||
         stage == DispatchStage.dispatching ||
         stage == DispatchStage.completed   ||
-        stage == DispatchStage.unpaid) return;
+        stage == DispatchStage.unpaid) {
+      return;
+    }
 
     if (selectedHose == null) {
       stage = DispatchStage.idle;
@@ -495,6 +509,18 @@ class DispatchControl extends ChangeNotifier {
   void _resetTotalsTracking() {
     _dispensedVolume = null;
     _dispensedAmount = null;
+  }
+
+  /// Valida que la transacción no sea más vieja que 30 segundos antes de _unpaidEnteredAt.
+  bool _isTransactionInValidTimeRange(ConsoleTransaction tx) {
+    final reference = _unpaidEnteredAt;
+    if (reference == null) return true; // sin referencia, aceptar cualquiera
+
+    final txTime = tx.dateTime;
+    final diff = txTime.difference(reference);
+
+    // Aceptar si la tx es máximo 30s antes de la referencia (sin límite superior)
+    return diff.inSeconds >= -30;
   }
 
   void _ensureUnitPriceFromSelection({bool force = false}) {
@@ -528,102 +554,9 @@ class DispatchControl extends ChangeNotifier {
     return value;
   }
 
-  void _startSimulatedFlowTracking() {
-    if (stage != DispatchStage.dispatching) return;
-    if (_simulatedFlowTimer != null) return;
-    _simulatedFlowStartedAt ??= DateTime.now();
-    _dispensedVolume ??= 0;
-    if (_resolveUnitPricePerLiter() != null && _dispensedAmount == null) {
-      _dispensedAmount = 0;
-    }
-    _simulatedFlowTimer = Timer.periodic(_simulatedFlowTickInterval, (_) => _tickSimulatedFlow());
-  }
-
-  void _stopSimulatedFlowTracking() {
-    _simulatedFlowTimer?.cancel();
-    _simulatedFlowTimer = null;
-    _simulatedFlowStartedAt = null;
-  }
-
-  void _tickSimulatedFlow() {
-    if (stage != DispatchStage.dispatching) {
-      _stopSimulatedFlowTracking();
-      return;
-    }
-    final start = _simulatedFlowStartedAt;
-    if (start == null) return;
-
-    final elapsedSeconds = DateTime.now().difference(start).inMilliseconds / 1000.0;
-    var liters = elapsedSeconds * _simulatedFlowRateLitersPerSecond;
-    final litersCap = _targetVolumeCapLiters();
-    if (litersCap != null && liters > litersCap) {
-      liters = litersCap;
-    }
-
-    bool changed = false;
-    if (_dispensedVolume == null || (_dispensedVolume! - liters).abs() > 0.0001) {
-      _dispensedVolume = liters;
-      changed = true;
-    }
-
-    final unitPrice = _resolveUnitPricePerLiter();
-    if (unitPrice != null && unitPrice > 0) {
-      var amount = liters * unitPrice;
-      final amountCap = amountRequest?.toDouble() ?? preset.amount;
-      if (amountCap != null && amount > amountCap) {
-        amount = amountCap;
-      }
-      if (_dispensedAmount == null || (_dispensedAmount! - amount).abs() > 0.01) {
-        _dispensedAmount = amount;
-        changed = true;
-      }
-    }
-
-    if (changed) notifyListeners();
-  }
-
-  double? _targetVolumeCapLiters() {
-    if (tankFull) return null;
-    final presetVolume = preset.isVolume ? preset.volume : null;
-    if (presetVolume != null && presetVolume > 0) {
-      return presetVolume;
-    }
-
-    final unitPrice = _resolveUnitPricePerLiter();
-    final amountCap = amountRequest?.toDouble() ?? preset.amount;
-    if (unitPrice != null && unitPrice > 0 && amountCap != null && amountCap > 0) {
-      return amountCap / unitPrice;
-    }
-    return null;
-  }
-
-  double? _resolveUnitPricePerLiter() {
-    if (price != null && price! > 0) {
-      return price!.toDouble();
-    }
-    final hose = selectedHose;
-    if (hose == null) return null;
-
-    double? candidate;
-    switch (invoiceType) {
-      case InvoiceType.credito:
-        candidate = hose.unitPriceCredit?.toDouble();
-        break;
-      case InvoiceType.peddler:
-      case InvoiceType.ticket:
-      case InvoiceType.contado:
-        candidate = hose.unitPriceCash?.toDouble();
-        break;
-      default:
-        candidate = null;
-        break;
-    }
-
-    candidate ??= hose.unitPriceCash?.toDouble();
-    candidate ??= hose.unitPriceCredit?.toDouble();
-    candidate ??= hose.unitPriceDebit?.toDouble();
-    return candidate;
-  }
+  // Flujo simulado eliminado - ya no se usa
+  void _startSimulatedFlowTracking() {}
+  void _stopSimulatedFlowTracking() {}
 
   void _onProviderTick() {
     if (selectedHose == null) return;

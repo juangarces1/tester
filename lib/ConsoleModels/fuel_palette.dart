@@ -20,10 +20,10 @@ const FuelInfo _kDefaultFuel = FuelInfo('Otro', Icons.local_gas_station, _kAmari
 
 // Si prefieres nombres específicos, cámbialos aquí.
 const Map<int, FuelInfo> kFuelCatalog = {
-  1: FuelInfo('Super', Icons.local_gas_station, _kLila),
-  2: FuelInfo('Regular', Icons.local_gas_station, _kRojo),
-  3: FuelInfo('Diesel', Icons.local_gas_station, _kVerde),
-  4: FuelInfo('Exonerado', Icons.local_gas_station, _kAzul),
+  3: FuelInfo('Super', Icons.local_gas_station, _kLila),
+  1: FuelInfo('Regular', Icons.local_gas_station, _kRojo),
+  10: FuelInfo('Diesel', Icons.local_gas_station, _kVerde),
+  2: FuelInfo('Exonerado', Icons.local_gas_station, _kAzul),
 };
 
 FuelInfo fuelFor(int fuelCode) => kFuelCatalog[fuelCode] ?? _kDefaultFuel;

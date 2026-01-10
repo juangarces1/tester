@@ -79,19 +79,6 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
   String _fmtMoney(num? v) =>
       v == null ? '—' : VariosHelpers.formattedToCurrencyValue(v.toString());
 
-  String _fmtLiters(num? v) =>
-      v == null ? '—' : v.toStringAsFixed(2);
-
-  double _progress(DispatchControl dc) {
-    final req  = dc.amountRequest;
-    // Preferimos el monto en vivo (dispensedAmount) y caemos al valor final si ya existe.
-    final done = dc.dispensedAmount ?? dc.amountDispense;
-    if (req == null || req <= 0 || done == null || done <= 0) return 0;
-    final p = done / req;
-    if (p.isNaN) return 0;
-    return p.clamp(0.0, 1.0).toDouble();
-  }
-
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -99,9 +86,6 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
       builder: (_, __) {
         final color = _statusColor(widget.d);
         final label = _statusLabel(widget.d);
-        // Valores en vivo calculados a partir de los nuevos contadores del surtidor.
-        final liveVolume = widget.d.dispensedVolume ?? widget.d.volumenDispense;
-        final liveAmount = widget.d.dispensedAmount ?? widget.d.amountDispense;
 
         return Card(
          
@@ -195,52 +179,19 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
                     ),
                   ],
 
-                  // ---------- PROGRESO EN VIVO ----------
-                  if (widget.d.stage == DispatchStage.authorized ||
-                       widget.d.stage == DispatchStage.dispatching) ...[
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _metricTile(
-                            title: 'Litros',
-                            value: _fmtLiters(liveVolume),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _metricTile(
-                            title: 'Monto',
-                            value: _fmtMoney(liveAmount),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _metricTile(
-                            title: 'Precio/L',
-                            value: _fmtMoney(widget.d.price),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (widget.d.amountRequest != null && widget.d.amountRequest! > 0) ...[
-                      const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: LinearProgressIndicator(
-                          value: _progress(widget.d),
-                          minHeight: 8,
-                          backgroundColor: Colors.white12,
-                          valueColor: AlwaysStoppedAnimation<Color>(color),
-                        ),
-                      ),
-                    ],
-                  ],
+                  // ---------- ESTADO DE DESPACHO ----------
+                  if (widget.d.stage == DispatchStage.dispatching)
+                    _dispatchingIndicator(),
 
+                  // ---------- SINCRONIZACIÓN / RESUMEN FINAL ----------
                   if (widget.d.stage == DispatchStage.unpaid || widget.d.stage == DispatchStage.completed)
                     Padding(
                       padding: const EdgeInsets.only(top: 10),
-                      child: _finalSummary(widget.d),
+                      child: widget.d.loadingLastSale
+                          ? _syncIndicator('Sincronizando con consola...')
+                          : widget.d.persistingTx
+                              ? _syncIndicator('Esperando confirmación...')
+                              : _finalSummary(widget.d),
                     ),
 
                   const SizedBox(height: 12),
@@ -398,6 +349,69 @@ Widget _pill(String text) => Container(
           Text(title, style: const TextStyle(color: Colors.white54, fontSize: 14, fontWeight: FontWeight.w500)),
           const SizedBox(height: 4),
           Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _dispatchingIndicator() {
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+      ),
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 24, height: 24,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+            ),
+          ),
+          SizedBox(width: 12),
+          Text(
+            'Despachando combustible...',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _syncIndicator(String message) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202020),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(
+            width: 20, height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.orangeAccent),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            message,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+            ),
+          ),
         ],
       ),
     );

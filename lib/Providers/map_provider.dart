@@ -1,6 +1,8 @@
 // lib/providers/map_provider.dart
 import 'package:flutter/material.dart';
 import '../ViewModels/new_map.dart';
+import '../Models/FuelRed/nozzle_mapping.dart';
+import '../helpers/api_helper.dart';
 import '../helpers/console_api_helper.dart';
 
 class MapProvider extends ChangeNotifier {
@@ -45,11 +47,16 @@ class MapProvider extends ChangeNotifier {
     try {
       final pumps = await ConsoleApiHelper.getPumpsAndFaces();
       final statuses = await ConsoleApiHelper.getDispensersStatus();
-      final nozzles = await ConsoleApiHelper.getNozzles();
+      final mappingResp = await ApiHelper.getMapHoseDispenser();
+      if (!mappingResp.isSuccess) {
+        throw Exception(mappingResp.message);
+      }
+
+      final mappings = (mappingResp.result as List<NozzleMapping>? ?? const <NozzleMapping>[]);
       _stationMap = PositionBuilder.build(
         pumps: pumps,
         statuses: statuses,
-        nozzles: nozzles,
+        mappings: mappings,
         strictPhysicalOnly: strictPhysicalOnly,
       );
     } catch (e) {
