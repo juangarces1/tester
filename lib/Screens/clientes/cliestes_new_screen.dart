@@ -18,13 +18,13 @@ import 'package:tester/helpers/api_helper.dart';
 enum SearchMode { nombre, documento }
 
 class ClientesNewScreen extends StatefulWidget {
-  final Invoice factura; 
-  final ClienteTipo tipo; 
+  final Invoice factura;
+  final ClienteTipo tipo;
 
   const ClientesNewScreen({
     super.key,
-    required this.factura,    
-     required this.tipo,
+    required this.factura,
+    required this.tipo,
   });
 
   @override
@@ -59,8 +59,9 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
     final raw = tipo.toString().split('.').last.replaceAll('_', ' ');
     final label = raw
         .split(' ')
-        .map((word) =>
-            word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}')
+        .map((word) => word.isEmpty
+            ? word
+            : '${word[0].toUpperCase()}${word.substring(1)}')
         .join(' ');
     return 'Clientes $label';
   }
@@ -69,12 +70,15 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
   Key _resultsListKey = UniqueKey();
   Key _searchFieldKey = UniqueKey();
 
-TextStyle baseStyle = const TextStyle(
-  fontStyle: FontStyle.normal,
-  fontSize: 20,
-  fontWeight: FontWeight.bold,
-  color: kNewtextPri,
-);
+  // Referencia estable para evitar error en dispose con el contexto
+  ClienteProvider? _clienteProvider;
+
+  TextStyle baseStyle = const TextStyle(
+    fontStyle: FontStyle.normal,
+    fontSize: 20,
+    fontWeight: FontWeight.bold,
+    color: kNewtextPri,
+  );
 
   @override
   void initState() {
@@ -86,43 +90,60 @@ TextStyle baseStyle = const TextStyle(
       }
     });
 
-    
+    // Guardamos la referencia y escuchamos cambios
+    _clienteProvider = context.read<ClienteProvider>();
+    _clienteProvider?.addListener(_syncCachedData);
 
-    // Precarga de clientes desde el provider (sin nuevo llamado al API)
-    Future.microtask(() {
-      if (!mounted) return;
+    // Precarga inicial
+    _syncCachedData();
+  }
 
-      final clienteProvider = context.read<ClienteProvider>();
-      final cachedClientes =
-          List<Cliente>.from(clienteProvider.clientesBy(widget.tipo));
+  void _syncCachedData() {
+    if (!mounted || _clienteProvider == null) return;
 
-      final clienteSel = widget.factura.formPago?.clienteFactura;
+    // Si hay una búsqueda activa, la refrescamos en lugar de resetear.
+    // Esto evita que al sincronizar un cliente (que causa un notifyListeners),
+    // la pantalla "salte" de vuelta al cliente de la factura.
+    if (_queryCtrl.text.trim().isNotEmpty) {
+      _performSearch(force: false);
+      return;
+    }
 
-      setState(() {
-        _filterUsers
-          .clear();
-        _statusById.clear();
-        _resultsListKey = UniqueKey();
+    final cachedClientes =
+        List<Cliente>.from(_clienteProvider!.clientesBy(widget.tipo));
 
-        if (clienteSel != null && clienteSel.nombre.isNotEmpty) {
-          final id = _idOf(clienteSel);
-          _filterUsers.add(clienteSel);
-          _statusById[id] = 'Cliente actual ✓';
-          _isFiltered = true;
-        } else {
-          _filterUsers.addAll(cachedClientes);
-          _isFiltered = false;
-        }
-      });
+    final clienteSel = widget.factura.formPago?.clienteFactura;
+
+    setState(() {
+      _filterUsers.clear();
+      _statusById.clear();
+      debugPrint(
+          'Screen sync: Found ${cachedClientes.length} clients for type ${widget.tipo}');
+      // No reseteamos la key aquí para no interrumpir el scroll si es reactivo
+      // _resultsListKey = UniqueKey();
 
       if (clienteSel != null && clienteSel.nombre.isNotEmpty) {
-        _tabController.animateTo(1);
+        final id = _idOf(clienteSel);
+        _filterUsers.add(clienteSel);
+        _statusById[id] = 'Cliente actual ✓';
+        _isFiltered = true;
+      } else {
+        _filterUsers.addAll(cachedClientes);
+        _isFiltered = false;
       }
     });
+
+    if (clienteSel != null &&
+        clienteSel.nombre.isNotEmpty &&
+        _tabController.index == 0) {
+      _tabController.animateTo(1);
+    }
   }
 
   @override
   void dispose() {
+    // Usamos la referencia guardada para evitar "Looking up a deactivated widget's ancestor"
+    _clienteProvider?.removeListener(_syncCachedData);
     _debounce?.cancel();
     _queryCtrl.dispose();
     _searchFocus.dispose();
@@ -175,7 +196,8 @@ TextStyle baseStyle = const TextStyle(
               child: SvgPicture.asset(
                 "assets/Back ICon.svg",
                 height: 15,
-                colorFilter: const ColorFilter.mode(kNewtextPri, BlendMode.srcIn),
+                colorFilter:
+                    const ColorFilter.mode(kNewtextPri, BlendMode.srcIn),
               ),
             ),
           ),
@@ -214,13 +236,33 @@ TextStyle baseStyle = const TextStyle(
             ),
           ),
         ),
-        body: TabBarView(
-          controller: _tabController,
+        body: Stack(
           children: [
-            _buildFilterTab(),
-            Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: _getContent(),
+            TabBarView(
+              controller: _tabController,
+              children: [
+                _buildFilterTab(),
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: _getContent(),
+                ),
+              ],
+            ),
+            Consumer<ClienteProvider>(
+              builder: (context, prov, _) {
+                if (prov.isLoading) {
+                  return const Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: LinearProgressIndicator(
+                      backgroundColor: Colors.transparent,
+                      color: kPrimaryColor,
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
             ),
           ],
         ),
@@ -277,12 +319,12 @@ TextStyle baseStyle = const TextStyle(
                   _restartKeyboardForModeChange();
                 },
                 style: ButtonStyle(
-                  backgroundColor:
-                      WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected)
+                  backgroundColor: WidgetStateProperty.resolveWith((s) =>
+                      s.contains(WidgetState.selected)
                           ? kPrimaryColor
                           : kNewsurfaceHi),
-                  foregroundColor:
-                      WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected)
+                  foregroundColor: WidgetStateProperty.resolveWith((s) =>
+                      s.contains(WidgetState.selected)
                           ? kNewtextPri
                           : kNewtextMut),
                 ),
@@ -298,7 +340,8 @@ TextStyle baseStyle = const TextStyle(
               autofocus: true,
               textInputAction: TextInputAction.search,
               keyboardType: isDoc ? TextInputType.number : TextInputType.name,
-              inputFormatters: isDoc ? [FilteringTextInputFormatter.digitsOnly] : null,
+              inputFormatters:
+                  isDoc ? [FilteringTextInputFormatter.digitsOnly] : null,
               onChanged: _onQueryChanged,
               onSubmitted: (_) {
                 _hideKeyboard();
@@ -307,7 +350,8 @@ TextStyle baseStyle = const TextStyle(
               style: const TextStyle(color: kNewtextPri),
               cursorColor: kPrimaryColor,
               decoration: InputDecoration(
-                hintText: isDoc ? 'Digite # de documento' : 'Nombre del cliente',
+                hintText:
+                    isDoc ? 'Digite # de documento' : 'Nombre del cliente',
                 hintStyle: const TextStyle(color: kNewtextMut),
                 prefixIcon: const Icon(Icons.search, color: kNewtextSec),
                 suffixIcon: Row(
@@ -341,8 +385,10 @@ TextStyle baseStyle = const TextStyle(
                   borderSide: const BorderSide(color: kNewborder),
                 ),
                 enabledBorder: darkBorder(radius: 12),
-                focusedBorder: darkBorder(color: kPrimaryColor, width: 1.8, radius: 12),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                focusedBorder:
+                    darkBorder(color: kPrimaryColor, width: 1.8, radius: 12),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
             ),
 
@@ -385,7 +431,8 @@ TextStyle baseStyle = const TextStyle(
     setState(() {});
     _debounce?.cancel();
     // Ajusta el delay a tu público objetivo (300–500ms). Aquí: 400ms.
-    _debounce = Timer(const Duration(milliseconds: 1000), () => _performSearch());
+    _debounce =
+        Timer(const Duration(milliseconds: 1000), () => _performSearch());
   }
 
   void _performSearch({bool force = false}) {
@@ -416,10 +463,10 @@ TextStyle baseStyle = const TextStyle(
       }
     }
 
-     // lee la lista según el tipo
+    // lee la lista según el tipo
     final clientes = context.read<ClienteProvider>().clientesBy(widget.tipo);
 
-   // 👇 Comparación case-insensitive
+    // 👇 Comparación case-insensitive
     final qn = _norm(q);
     final Iterable<Cliente> result = (_mode == SearchMode.nombre)
         ? clientes.where((c) => _norm(c.nombre).contains(qn))
@@ -430,7 +477,8 @@ TextStyle baseStyle = const TextStyle(
       _filterUsers
         ..clear()
         ..addAll(result);
-      _resultsListKey = UniqueKey(); // fuerza lista “limpia” (sin reuso peligroso)
+      _resultsListKey =
+          UniqueKey(); // fuerza lista “limpia” (sin reuso peligroso)
     });
 
     if (_filterUsers.isNotEmpty) {
@@ -453,14 +501,37 @@ TextStyle baseStyle = const TextStyle(
   Widget _getContent() => _filterUsers.isEmpty ? _noContent() : _getListView();
 
   Widget _noContent() {
+    final prov = context.read<ClienteProvider>();
+    final error = prov.errorMessage;
+
     return Center(
       child: Container(
         margin: const EdgeInsets.all(20),
-        child: Text(
-          _isFiltered
-              ? 'No hay Usuarios con ese criterio de búsqueda.'
-              : 'No hay Usuarios registradas.',
-          style: const TextStyle(color: kNewtextPri, fontSize: 16, fontWeight: FontWeight.bold),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (error != null && error.isNotEmpty) ...[
+              const Icon(Icons.error_outline, color: kNewred, size: 40),
+              const SizedBox(height: 12),
+              Text(
+                error,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: kNewred, fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 24),
+            ],
+            Text(
+              _isFiltered
+                  ? 'No hay Usuarios con ese criterio de búsqueda.'
+                  : 'No hay Usuarios registradas.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  color: kNewtextPri,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
       ),
     );
@@ -474,7 +545,9 @@ TextStyle baseStyle = const TextStyle(
       key: _resultsListKey,
       itemCount: items.length,
       itemBuilder: (context, indice) {
-        if (indice >= items.length) return const SizedBox.shrink(); // guard por si el scheduler llega tarde
+        if (indice >= items.length)
+          return const SizedBox
+              .shrink(); // guard por si el scheduler llega tarde
 
         final c = items[indice];
         final id = _idOf(c);
@@ -507,58 +580,57 @@ TextStyle baseStyle = const TextStyle(
     Navigator.of(context).pop();
   }
 
-void _goAdd() async {
-  final result = await Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => ClietesAddScreen(
-        factura: widget.factura,
-       
+  void _goAdd() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ClietesAddScreen(
+          factura: widget.factura,
+        ),
       ),
-    ),
-  );
-
-  if (!mounted) return;
-
-  // Si regresamos con un Cliente creado, muéstralo en Resultados
-  if (result is Cliente) {
-    final created = result;
-    final id = _idOf(created);
-
-    // 1) Persistir en Provider
-    final prov = context.read<ClienteProvider>();
-     prov.upsertClienteBy(created, tipo: widget.tipo, asFirst: true);
-
-
-    setState(() {
-      // Dedupe por ID estable (documento/código)
-      final existingIdx = _filterUsers.indexWhere((c) => _idOf(c) == id);
-      if (existingIdx >= 0) {
-        _filterUsers[existingIdx] = created;
-      } else {
-        _filterUsers.insert(0, created); // al tope de la lista
-      }
-
-      // Marca visual temporal en el card (aprovechando status por-ID)
-      _statusById[id] = 'Creado ✓';
-
-      _isFiltered = true;
-      _resultsListKey = UniqueKey(); // lista “limpia” para evitar reuso peligroso
-    });
-
-    // Snack amistoso y navega a Resultados
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Cliente creado: ${created.nombre}')),
     );
-    _tabController.animateTo(1);
 
-    // Limpia el status después de 2s
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
-      setState(() => _statusById.remove(id));
-    });
+    if (!mounted) return;
+
+    // Si regresamos con un Cliente creado, muéstralo en Resultados
+    if (result is Cliente) {
+      final created = result;
+      final id = _idOf(created);
+
+      // 1) Persistir en Provider
+      final prov = context.read<ClienteProvider>();
+      prov.upsertClienteBy(created, tipo: widget.tipo, asFirst: true);
+
+      setState(() {
+        // Dedupe por ID estable (documento/código)
+        final existingIdx = _filterUsers.indexWhere((c) => _idOf(c) == id);
+        if (existingIdx >= 0) {
+          _filterUsers[existingIdx] = created;
+        } else {
+          _filterUsers.insert(0, created); // al tope de la lista
+        }
+
+        // Marca visual temporal en el card (aprovechando status por-ID)
+        _statusById[id] = 'Creado ✓';
+
+        _isFiltered = true;
+        _resultsListKey =
+            UniqueKey(); // lista “limpia” para evitar reuso peligroso
+      });
+
+      // Snack amistoso y navega a Resultados
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Cliente creado: ${created.nombre}')),
+      );
+      _tabController.animateTo(1);
+
+      // Limpia el status después de 2s
+      Future.delayed(const Duration(seconds: 2), () {
+        if (!mounted) return;
+        setState(() => _statusById.remove(id));
+      });
+    }
   }
-}
 
   // =========================
   // Acciones por-card

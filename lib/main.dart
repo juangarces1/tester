@@ -17,13 +17,12 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => CierreActivoProvider()),
         ChangeNotifierProvider(create: (_) => UsuarioProvider()),
-        ChangeNotifierProvider(create: (_) => ClienteProvider()),
+        ChangeNotifierProvider(create: (_) => ClienteProvider()..initialize()),
         ChangeNotifierProvider(create: (_) => TransaccionesProvider()),
         ChangeNotifierProvider(create: (_) => FacturasProvider()),
-        ChangeNotifierProvider(create: (_) => PrinterProvider()), 
+        ChangeNotifierProvider(create: (_) => PrinterProvider()),
         ChangeNotifierProvider(create: (_) => MapProvider()),
         ChangeNotifierProvider(create: (_) => DespachosProvider()),
-       
       ],
       child: const MyApp(),
     ),
@@ -40,7 +39,6 @@ class MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    
   }
 
   @override
@@ -48,7 +46,7 @@ class MyAppState extends State<MyApp> {
     final base = ThemeData(
       useMaterial3: true,
       colorSchemeSeed: const Color(0xFF6750A4),
-      fontFamily: 'Roboto', 
+      fontFamily: 'Roboto',
     );
     return MaterialApp(
       debugShowCheckedModeBanner: false,

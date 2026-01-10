@@ -268,9 +268,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     // Validaciones comunes
     if (_selectedZone == 0) {
-      Fluttertoast.showToast(    
-        gravity: ToastGravity.TOP,    
-        msg: 'Selecciona la Zona');
+      Fluttertoast.showToast(
+          gravity: ToastGravity.TOP, msg: 'Selecciona la Zona');
       return;
     }
 
@@ -341,8 +340,8 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     final clienteProv = context.read<ClienteProvider>();
-    await clienteProv.loadClientesBy(ClienteTipo.contado);
-    await clienteProv.loadClientesBy(ClienteTipo.credito);
+    clienteProv.loadClientesBy(ClienteTipo.contado);
+    clienteProv.loadClientesBy(ClienteTipo.credito);
 
     if (!mounted) return;
     context.read<CierreActivoProvider>().setFrom(factura.cierreActivo!);
