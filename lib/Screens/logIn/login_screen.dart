@@ -18,7 +18,6 @@ import 'package:tester/Screens/NewHome/new_home_screen.dart';
 import 'package:tester/Screens/logIn/invent_screen.dart';
 import 'package:tester/Screens/logIn/nfc_test.dart';
 
-import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
 import 'package:tester/sizeconfig.dart';
 
@@ -44,25 +43,6 @@ class _LoginScreenState extends State<LoginScreen> {
   LogInEstado login = LogInEstado();
   int _selectedZone = 0;
 
-  static Widget _buildAuroraBlob(Color color,
-      {double size = 300, double opacity = 0.6}) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color.withValues(alpha: opacity),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: opacity),
-            blurRadius: 120,
-            spreadRadius: 60,
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   void dispose() {
     _emailCtrl.dispose();
@@ -74,37 +54,20 @@ class _LoginScreenState extends State<LoginScreen> {
     SizeConfig().init(context);
 
     return Scaffold(
-      backgroundColor: kContrateFondoOscuro,
       body: Stack(
         children: [
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF02050A), Color(0xFF0F172A)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          // FIXED BACKGROUND
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF02050A), Color(0xFF0F172A)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
               ),
             ),
           ),
-          // Ambient Blobs
-          Positioned(
-            top: -100,
-            left: -100,
-            child: _buildAuroraBlob(kPrimaryColor, size: 400, opacity: 0.4),
-          ),
-          Positioned(
-            bottom: -150,
-            right: -100,
-            child: _buildAuroraBlob(const Color(0xFF3B82F6),
-                size: 350, opacity: 0.3),
-          ),
-          Positioned(
-            top: 200,
-            right: -150,
-            child:
-                _buildAuroraBlob(Colors.purpleAccent, size: 250, opacity: 0.2),
-          ),
-
           // Content
           SafeArea(
             child: LayoutBuilder(
@@ -118,10 +81,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: IntrinsicHeight(
                       child: Center(
                         child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 480),
+                          constraints: const BoxConstraints(maxWidth: 450),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 24),
+                                horizontal: 24, vertical: 40),
                             child: TweenAnimationBuilder<double>(
                               tween: Tween(begin: 0.0, end: 1.0),
                               duration: const Duration(milliseconds: 800),
@@ -130,18 +93,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                 return Opacity(
                                   opacity: value,
                                   child: Transform.translate(
-                                    offset: Offset(0, 30 * (1 - value)),
+                                    offset: Offset(0, 20 * (1 - value)),
                                     child: child,
                                   ),
                                 );
                               },
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Expanded(child: _buildFormCard(context)),
-                                ],
-                              ),
+                              child: _buildFormCard(context),
                             ),
                           ),
                         ),
@@ -208,50 +165,54 @@ class _LoginScreenState extends State<LoginScreen> {
     ValueChanged<String>? onChanged,
     Widget? suffixIcon,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          obscureText: obscureText,
+          style: const TextStyle(
+              color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+          cursorColor: const Color(0xFFFC0102),
+          decoration: InputDecoration(
+            labelText: hint,
+            labelStyle: const TextStyle(color: Colors.white70),
+            prefixIcon: Icon(icon, color: const Color(0xFFFC0102)),
+            suffixIcon: suffixIcon,
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.08),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+            floatingLabelBehavior: FloatingLabelBehavior.auto,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(24),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(24),
+              borderSide:
+                  BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(24),
+              borderSide: const BorderSide(color: Color(0xFFFC0102), width: 2),
+            ),
           ),
-        ],
-      ),
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        obscureText: obscureText,
-        style:
-            const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
-        cursorColor: kPrimaryColor,
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
-          prefixIcon: Icon(icon, color: Colors.white70),
-          suffixIcon: suffixIcon,
-          filled: true,
-          fillColor: Colors.white.withValues(alpha: 0.05),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
-          ),
-          errorText: errorText,
-          errorStyle: const TextStyle(color: Colors.redAccent),
+          onChanged: onChanged,
         ),
-        onChanged: onChanged,
-      ),
+        if (errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 16, top: 8),
+            child: Text(
+              errorText,
+              style: const TextStyle(
+                  color: Colors.orangeAccent,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold),
+            ),
+          ),
+      ],
     );
   }
 
@@ -369,108 +330,71 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildFormCard(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(32),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(32, 48, 32, 40),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(32),
-            color: Colors.white.withValues(alpha: 0.03),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white.withValues(alpha: 0.1),
-                Colors.white.withValues(alpha: 0.02),
-              ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _Header(),
+          const SizedBox(height: 56),
+          const Text(
+            'ZONA DE TRABAJO',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white60,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2.5,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.4),
-                blurRadius: 50,
-                offset: const Offset(0, 20),
-              ),
-            ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Center(child: _Header()),
-              const SizedBox(height: 40),
-              Center(
-                child: _ZoneSelector(
-                  selected: _selectedZone,
-                  onSelect: (z) => setState(() => _selectedZone = z),
-                ),
-              ),
-              const SizedBox(height: 40),
-              _buildPassword(),
-              const SizedBox(height: 32),
-              Container(
-                width: double.infinity,
-                height: 56,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [
-                    BoxShadow(
-                      color: kPrimaryColor.withValues(alpha: 0.4),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    padding: EdgeInsets.zero,
-                  ),
-                  onPressed: _login,
-                  child: Ink(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Container(
-                      alignment: Alignment.center,
-                      child: const Text(
-                        'INGRESAR',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Center(
-                child: Text(
-                  'Acceso restringido a personal autorizado.',
-                  textAlign: TextAlign.center,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: Colors.white38,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
+          const SizedBox(height: 20),
+          _ZoneSelector(
+            selected: _selectedZone,
+            onSelect: (z) => setState(() => _selectedZone = z),
+          ),
+          const SizedBox(height: 48),
+          _buildPassword(),
+          const SizedBox(height: 56),
+          _m3LoginButton(),
+          const SizedBox(height: 32),
+          const Text(
+            'Acceso restringido a personal autorizado.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                color: Colors.white38,
+                fontSize: 12,
+                fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _m3LoginButton() {
+    return SizedBox(
+      height: 64,
+      child: FilledButton(
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFFFC0102),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 0,
+        ),
+        onPressed: _login,
+        child: const Text(
+          'INICIAR SESIÓN',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1,
           ),
         ),
       ),
@@ -485,32 +409,37 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFC0102).withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+            border: Border.all(
+                color: const Color(0xFFFC0102).withValues(alpha: 0.2),
+                width: 2),
+          ),
+          child: const Icon(Icons.local_gas_station_rounded,
+              color: Color(0xFFFC0102), size: 54),
+        ),
+        const SizedBox(height: 28),
+        const Text(
           'FuelRed',
-          textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 40,
-            fontWeight: FontWeight.bold,
+            fontSize: 42,
+            fontWeight: FontWeight.w900,
             color: Colors.white,
-            shadows: [
-              Shadow(
-                blurRadius: 10,
-                color: Colors.blueAccent.withValues(alpha: 0.6),
-                offset: const Offset(0, 2),
-              ),
-            ],
+            letterSpacing: -1,
           ),
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'Elige una zona e inicia sesión para continuar',
-          textAlign: TextAlign.center,
+        const SizedBox(height: 4),
+        Text(
+          'BIENVENIDO DE NUEVO',
           style: TextStyle(
-            fontSize: 18,
-            color: Colors.white,
-            fontWeight: FontWeight.w500,
+            fontSize: 13,
+            color: Colors.white.withValues(alpha: 0.7),
+            fontWeight: FontWeight.w800,
+            letterSpacing: 2,
           ),
         ),
       ],
@@ -525,36 +454,24 @@ class _ZoneSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _chip('Zona 1', 1),
-        const SizedBox(width: 12),
-        _chip('Zona 2', 2),
+    return SegmentedButton<int>(
+      segments: const [
+        ButtonSegment(
+            value: 1, label: Text('ZONA 1'), icon: Icon(Icons.map_outlined)),
+        ButtonSegment(
+            value: 2, label: Text('ZONA 2'), icon: Icon(Icons.map_rounded)),
       ],
-    );
-  }
-
-  Widget _chip(String label, int value) {
-    final bool isSelected = selected == value;
-    return ChoiceChip(
-      label: Text(
-        label,
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: isSelected ? Colors.white : Colors.black,
-        ),
+      selected: {selected},
+      onSelectionChanged: (set) => onSelect(set.first),
+      style: SegmentedButton.styleFrom(
+        backgroundColor: Colors.white.withValues(alpha: 0.05),
+        selectedBackgroundColor: const Color(0xFFFC0102),
+        selectedForegroundColor: Colors.white,
+        foregroundColor: Colors.white70,
+        textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
-      checkmarkColor: Colors.white,
-      selected: isSelected,
-      onSelected: (_) => onSelect(value),
-      selectedColor: kPrimaryColor,
-      backgroundColor: kNewtextPri,
-      elevation: 2,
-      pressElevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
     );
   }
 }

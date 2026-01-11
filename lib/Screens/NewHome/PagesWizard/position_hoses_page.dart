@@ -4,6 +4,7 @@ import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/ViewModels/new_map.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/ViewModels/dispatch_control.dart';
+import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/preset_kind_page.dart';
 
 class PositionHosesPage extends StatefulWidget {
@@ -57,7 +58,8 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
         (p) => p.pumpId == widget.pumpId && p.faceIndex == widget.faceIndex,
       );
       if (sameFace.isNotEmpty) {
-        final list = sameFace.toList()..sort((a, b) => a.number.compareTo(b.number));
+        final list = sameFace.toList()
+          ..sort((a, b) => a.number.compareTo(b.number));
         final first = list.first;
         final mergedHoses = <HosePhysical>[];
         for (final p in list) {
@@ -90,16 +92,18 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
     // if ((position?.faceDescription.trim().isNotEmpty ?? false)) {
     //   subtitleParts.add(position!.faceDescription.trim());
     // }
-     final subtitleText = position?.pumpName ?? '';
-   
+    final subtitleText = position?.pumpName ?? '';
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(titleText, style: const TextStyle(color: Colors.white)),
+            Text(titleText,
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
             if (subtitleText.isNotEmpty)
               Text(
                 subtitleText,
@@ -123,10 +127,12 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
         ],
       ),
       body: mapProv.isLoading && map == null
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: LoaderComponent(loadingText: 'Cargando mangueras...'))
           : map == null
               ? _NoPositionSelected(
-                  message: 'No pudimos cargar las posiciones. Intenta actualizar.',
+                  message:
+                      'No pudimos cargar las posiciones. Intenta actualizar.',
                   onRetry: _refreshMap,
                 )
               : position == null
@@ -138,7 +144,7 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
                   : RefreshIndicator(
                       onRefresh: _refreshMap,
                       color: Colors.white,
-                      backgroundColor: Colors.black87,
+                      backgroundColor: Colors.white.withValues(alpha: 0.1),
                       child: CustomScrollView(
                         physics: const BouncingScrollPhysics(
                           parent: AlwaysScrollableScrollPhysics(),
@@ -167,7 +173,8 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
                                     onTap: () {
                                       if (!isAvailable) return;
                                       if (position == null) return;
-                                      dispatch.selectHose(pos: position, hose: hose);
+                                      dispatch.selectHose(
+                                          pos: position, hose: hose);
                                       despachosProv.refresh();
                                       Navigator.push(
                                         context,
@@ -185,9 +192,10 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
                               gridDelegate:
                                   const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
-                                mainAxisSpacing: 5,
-                                crossAxisSpacing: 5,
-                                childAspectRatio: 3 / 4,
+                                mainAxisSpacing: 16,
+                                crossAxisSpacing: 16,
+                                childAspectRatio:
+                                    0.85, // More vertical for hero style
                               ),
                             ),
                           ),
@@ -252,7 +260,9 @@ class _HoseSummary extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          available > 0 ? '$available disponibles' : 'Sin mangueras disponibles',
+          available > 0
+              ? '$available disponibles'
+              : 'Sin mangueras disponibles',
           style: TextStyle(
             color: availabilityColor,
             fontSize: 13,
@@ -268,84 +278,122 @@ class _HoseCard extends StatelessWidget {
   final HosePhysical hose;
   final bool enabled;
   final VoidCallback onTap;
-  const _HoseCard({required this.hose, this.enabled = true, required this.onTap});
+  const _HoseCard(
+      {required this.hose, this.enabled = true, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final accent = hose.fuel.color;
     final statusLabel = _hoseStatusLabel(hose.status);
     final statusColor = _hoseStatusColor(statusLabel);
     final statusIcon = _hoseStatusIcon(statusLabel);
-    final cardColor = enabled ? accent : accent.withValues(alpha: 0.45);
 
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-        elevation: 6,
-        color: cardColor,
-        shadowColor: accent.withValues(alpha: enabled ? 0.35 : 0.18),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-               Center(
-                 child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.22),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: statusColor, width: 1.2),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(statusIcon, color: Colors.white, size: 14),
-                          const SizedBox(width: 6),
-                          Text(
-                            statusLabel,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ],
+    final fuelColor = hose.fuel.color;
+    // Determine text color for the fuel name based on background brightness
+    final onFuelColor =
+        ThemeData.estimateBrightnessForColor(fuelColor) == Brightness.light
+            ? Colors.black
+            : Colors.white;
+
+    return Card(
+      elevation: 4,
+      clipBehavior: Clip.antiAlias,
+      shadowColor: Colors.black54,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: fuelColor.withValues(alpha: 0.5), width: 1.5),
+      ),
+      color: const Color(0xFF1E1E1E), // Darker card base
+      margin: EdgeInsets.zero,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        child: Column(
+          children: [
+            // Dominant Color Block for Fuel (65% height)
+            Expanded(
+              flex: 65,
+              child: Container(
+                width: double.infinity,
+                color: enabled ? fuelColor : fuelColor.withValues(alpha: 0.4),
+                child: Stack(
+                  children: [
+                    // Subtle background icon
+                    Positioned(
+                      right: -10,
+                      bottom: -10,
+                      child: Icon(
+                        Icons.local_gas_station,
+                        size: 80,
+                        color: onFuelColor.withValues(alpha: 0.1),
                       ),
                     ),
-               ),
-              const SizedBox(height: 15),
-              Text(
-                'M-${hose.nozzleNumber}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 18,
+                    Center(
+                      child: Text(
+                        hose.fuel.name.toUpperCase(),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: onFuelColor,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                hose.fuel.name,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  
+            ),
+            // Information/Status Section (35% height)
+            Expanded(
+              flex: 35,
+              child: Container(
+                width: double.infinity,
+                color: Colors.white, // High contrast for field use
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'M-${hose.nozzleNumber}',
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(statusIcon, color: statusColor, size: 14),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      statusLabel.toUpperCase(),
+                      style: TextStyle(
+                        color: statusColor.withValues(alpha: 0.8).withValues(
+                            alpha: 1,
+                            blue: statusColor.blue * 0.7,
+                            green: statusColor.green * 0.7,
+                            red: statusColor.red *
+                                0.7), // Darker version for white background
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const Spacer(),
-              Align(
-                alignment: Alignment.bottomRight,
-                child: Icon(
-                  Icons.local_gas_station,
-                  color: Colors.white.withValues(alpha: 0.92),
-                  size: 28,
-                ),
-              )
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -380,14 +428,16 @@ Color _hoseStatusColor(String status) {
 IconData _hoseStatusIcon(String status) {
   switch (status.toLowerCase()) {
     case 'disponible':
-      return Icons.check_circle_outline;
+      return Icons.check_circle_rounded;
     case 'autorizada':
-      return Icons.verified_outlined;
+      return Icons.verified_rounded;
     case 'despachando':
-      return Icons.local_fire_department_outlined;
+      return Icons.flash_on_rounded;
     case 'ocupada':
-      return Icons.cancel_outlined;
+      return Icons.lock_rounded;
+    case 'detenida':
+      return Icons.stop_circle_rounded;
     default:
-      return Icons.help_outline;
+      return Icons.help_outline_rounded;
   }
 }

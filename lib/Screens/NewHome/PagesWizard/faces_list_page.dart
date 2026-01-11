@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
+import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/ViewModels/dispatch_control.dart';
@@ -17,11 +19,23 @@ class FacesListPage extends StatefulWidget {
 
 class _FacesListPageState extends State<FacesListPage> {
   bool _loadingInFlight = false;
+  bool _isFirstEntry = true;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _refreshMap());
+    // Polling cada 5 segundos para mantener estados vivos
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) _refreshMap();
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _refreshMap() async {
@@ -30,7 +44,12 @@ class _FacesListPageState extends State<FacesListPage> {
     try {
       await context.read<MapProvider>().loadMap(strictPhysicalOnly: true);
     } finally {
-      _loadingInFlight = false;
+      if (mounted) {
+        setState(() {
+          _loadingInFlight = false;
+          _isFirstEntry = false;
+        });
+      }
     }
   }
 
@@ -38,8 +57,7 @@ class _FacesListPageState extends State<FacesListPage> {
   Widget build(BuildContext context) {
     final mapProv = context.watch<MapProvider>();
     final despachosProv = context.read<DespachosProvider>();
-    final DispatchControl dispatch =
-        despachosProv.getById(widget.dispatchId)!;
+    final DispatchControl dispatch = despachosProv.getById(widget.dispatchId)!;
 
     if (mapProv.isError && !mapProv.toastShown) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -94,10 +112,10 @@ class _FacesListPageState extends State<FacesListPage> {
     positions.sort((a, b) => a.number.compareTo(b.number));
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF121212), // Material Deep Grey
       appBar: AppBar(
-        title: const Text('1. Selecciona posición',
-            style: TextStyle(color: Colors.white)),
+        title: const Text('Selecciona posición',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -109,8 +127,9 @@ class _FacesListPageState extends State<FacesListPage> {
           ),
         ],
       ),
-      body: mapProv.isLoading && map == null
-          ? const Center(child: CircularProgressIndicator())
+      body: _isFirstEntry && mapProv.isLoading
+          ? const Center(
+              child: LoaderComponent(loadingText: 'Cargando mapa...'))
           : map == null
               ? _EmptyState(onRetry: _refreshMap)
               : RefreshIndicator(
@@ -136,18 +155,29 @@ class _FacesListPageState extends State<FacesListPage> {
                             ),
                           ],
                         )
-                      : ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
+                      : GridView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
                           physics: const BouncingScrollPhysics(
                             parent: AlwaysScrollableScrollPhysics(),
                           ),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 16,
+                            childAspectRatio: 0.85, // Reverted to compact size
+                          ),
                           itemCount: positions.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 10),
                           itemBuilder: (_, index) {
                             final position = positions[index];
+                            final status = _statusLabel(position);
+                            final isAvailable =
+                                status.toLowerCase() == 'disponible';
                             return _PositionCard(
                               position: position,
+                              enabled: isAvailable,
                               onTap: () {
+                                if (!isAvailable) return;
                                 dispatch.selectPosition(position);
                                 despachosProv.refresh();
                                 Navigator.push(
@@ -173,133 +203,147 @@ class _FacesListPageState extends State<FacesListPage> {
 class _PositionCard extends StatelessWidget {
   final PositionPhysical position;
   final VoidCallback onTap;
-  const _PositionCard({required this.position, required this.onTap});
+  final bool enabled;
+  const _PositionCard({
+    required this.position,
+    required this.onTap,
+    this.enabled = true,
+  });
 
   @override
   Widget build(BuildContext context) {
-   
     final status = _statusLabel(position);
-     final accent = status == 'Disponible'
-        ? Colors.green
-        : status == 'Autorizada'
-            ? Colors.lightBlueAccent
-            : status == 'Despachando'
-                ? Colors.indigo
-                : status == 'Detenida'
-                ? Colors.orangeAccent
-                : status == 'Ocupada'
-                    ? Colors.redAccent
-                    : Colors.white70;
-    final statusColor = _statusColor(status);
+    final isFueling = status == 'Despachando';
+    final baseColor = _statusColor(status);
+
+    // Dynamic contrast for text on baseColor
+    final onBaseColor =
+        ThemeData.estimateBrightnessForColor(baseColor) == Brightness.light
+            ? Colors.black87
+            : Colors.white;
+
+    // Darker version for text on white background
+    final darkStatusColor = status == 'Despachando'
+        ? const Color.fromARGB(252, 207, 118, 2) // Deep Orange
+        : status == 'Disponible'
+            ? const Color(0xFF1B5E20) // Deep Green
+            : const Color(0xFF1A237E); // Deep Blue
+
     final availableCount = position.hoses
         .where((h) => h.status.toLowerCase() == 'available')
         .length;
- 
- 
-    
 
-    return Material(
-      color: Colors.transparent,
+    String infoText = 'Mangueras: $availableCount';
+    if (isFueling) {
+      final fuelingHose = position.hoses.firstWhere(
+        (h) => h.status.toLowerCase().contains('fuel'),
+        orElse: () => position.hoses.first,
+      );
+      infoText = fuelingHose.fuel.name;
+    }
+
+    return Card(
+      elevation: 4,
+      clipBehavior: Clip.antiAlias,
+      shadowColor: Colors.black54,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+            color: enabled
+                ? baseColor.withValues(alpha: 0.5)
+                : Colors.white.withValues(alpha: 0.1),
+            width: 1.5),
+      ),
+      color: const Color(0xFF1E1E1E),
+      margin: EdgeInsets.zero,
       child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
-        child: Ink(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                accent.withValues(alpha: 0.55),
-                accent.withValues(alpha: 0.85),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: accent.withValues(alpha: 0.35),
-                blurRadius: 18,
-                offset: const Offset(0, 12),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        onTap: enabled ? onTap : null,
+        child: Column(
+          children: [
+            // Dominant Color Block (65%)
+            Expanded(
+              flex: 65,
+              child: Container(
+                width: double.infinity,
+                color: enabled ? baseColor : baseColor.withValues(alpha: 0.2),
+                child: Stack(
                   children: [
-                    Text(
-                      'POS ${position.number.toString().padLeft(2, '0')}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w800,
+                    Positioned(
+                      right: -10,
+                      bottom: -10,
+                      child: Icon(
+                        _statusIcon(status),
+                        size: 80,
+                        color: onBaseColor.withValues(alpha: 0.12),
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.25),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: statusColor, width: 1.3),
-                      ),
+                    Center(
                       child: Text(
-                        status,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
+                        position.number.toString().padLeft(2, '0'),
+                        style: TextStyle(
+                          color: onBaseColor,
+                          fontSize: 50, // Increased by ~15% (from 42)
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 1),
-                // Text(
-                //   pumpLabel,
-                //   style: const TextStyle(
-                //     color: Colors.white,
-                //     fontSize: 20,
-                //     fontWeight: FontWeight.w700,
-                //   ),
-                // ),
-            
-                // Text(
-                //   faceDescription.isNotEmpty
-                //       ? '$faceLabel - $faceDescription'
-                //       : faceLabel,
-                //   style: const TextStyle(
-                //     color: Colors.white60,
-                //     fontSize: 13,
-                //     fontWeight: FontWeight.w600,
-                //   ),
-                // ),
-                // const SizedBox(height: 16),
-                // Text(
-                //   'Total de mangueras: ${position.hoses.length}',
-                //   style: const TextStyle(
-                //     color: Colors.white70,
-                //     fontSize: 16,
-                //     fontWeight: FontWeight.w600,
-                //   ),
-                // ),
-                const SizedBox(height: 2),
-                Text(
-                  'Mangueras Disponibles: $availableCount',
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+            // Status/Info Footer (35%)
+            Expanded(
+              flex: 35,
+              child: Container(
+                width: double.infinity,
+                color: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'POSICIÓN ${position.number}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      status.toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: darkStatusColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    if (isFueling) ...[
+                      const SizedBox(height: 1),
+                      Text(
+                        infoText.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: darkStatusColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -372,7 +416,26 @@ Color _statusColor(String status) {
       return Colors.orangeAccent;
     case 'ocupada':
       return Colors.redAccent;
+    case 'detenida':
+      return Colors.blueGrey;
     default:
       return Colors.white70;
+  }
+}
+
+IconData _statusIcon(String status) {
+  switch (status.toLowerCase()) {
+    case 'disponible':
+      return Icons.check_circle_rounded;
+    case 'autorizada':
+      return Icons.verified_rounded;
+    case 'despachando':
+      return Icons.flash_on_rounded;
+    case 'ocupada':
+      return Icons.lock_rounded;
+    case 'detenida':
+      return Icons.stop_circle_rounded;
+    default:
+      return Icons.help_outline_rounded;
   }
 }
