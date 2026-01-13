@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:tester/Components/card_tr_pistero.dart';
+import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/FuelRed/product.dart';
 import 'package:tester/Providers/facturas_provider.dart';
@@ -21,43 +22,50 @@ class TransaccionesSheet {
     void Function(Product)? onPrintTap,
   }) async {
     Future<List<Product>> fetch() async {
-     
-      // final request = {
-      //   'lookbackMinutes': 10,
-      // };
-      // final responseSync = await ApiHelper.post('api/TransaccionesApi/sync-now', request);
-      // if (!responseSync.isSuccess) {
-      //   final msg = (responseSync.message.isNotEmpty == true)
-      //       ? responseSync.message
-      //       : 'No se pudo sincronizar transacciones';
-      //    if (!context.mounted) return <Product>[];
-      //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-      //   return <Product>[];
-      // }
-
       final rs = await ApiHelper.getTransaccionesAsProduct(zona);
       if (!rs.isSuccess) {
         final msg = (rs.message.isNotEmpty == true)
             ? rs.message
             : 'No se pudieron cargar transacciones';
-         if (!context.mounted) return <Product>[];
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        if (!context.mounted) return <Product>[];
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(msg)));
         return <Product>[];
       }
 
       final List<Product> items = rs.result;
-       if (!context.mounted) return <Product>[];
+      if (!context.mounted) return <Product>[];
       final facturas = context.read<FacturasProvider>().facturas;
       final list = _filtrarProductosNoEnFacturas(items, facturas);
 
-      list.sort((a, b) => b.transaccion.compareTo(a.transaccion)); // DESC
+      list.sort((a, b) => b.transaccion.compareTo(a.transaccion));
       return list;
     }
 
+    // Show loading dialog while fetching
+    if (context.mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => Container(
+          color: Colors.transparent,
+          child: const Center(
+            child: LoaderComponent(loadingText: 'Cargando...'),
+          ),
+        ),
+      );
+    }
+
     final initial = await fetch();
-   
+
+    // Close loading dialog
+    if (context.mounted) {
+      Navigator.of(context).pop();
+    }
+
+    if (!context.mounted) return;
+
     await showModalBottomSheet(
-      
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -121,10 +129,12 @@ class _TransaccionesSheetContent extends StatefulWidget {
   final void Function(Product)? onPrintTap;
 
   @override
-  State<_TransaccionesSheetContent> createState() => _TransaccionesSheetContentState();
+  State<_TransaccionesSheetContent> createState() =>
+      _TransaccionesSheetContentState();
 }
 
-class _TransaccionesSheetContentState extends State<_TransaccionesSheetContent> {
+class _TransaccionesSheetContentState
+    extends State<_TransaccionesSheetContent> {
   late List<Product> _items;
   bool _loading = false;
 
@@ -218,7 +228,6 @@ class _TransaccionesSheetContentState extends State<_TransaccionesSheetContent> 
                 itemBuilder: (context, i) {
                   final p = transacciones[i];
                   return CardTrPistero(
-                    
                     product: p,
                     lista: 'zona-${widget.zona}',
                     onItemSelected: (prod) {
@@ -226,7 +235,9 @@ class _TransaccionesSheetContentState extends State<_TransaccionesSheetContent> 
                       Navigator.of(context).pop();
                     },
                     showPrintIcon: widget.showPrintIcon,
-                    onPrint: widget.onPrintTap == null ? null : () => widget.onPrintTap!(p),
+                    onPrint: widget.onPrintTap == null
+                        ? null
+                        : () => widget.onPrintTap!(p),
                   );
                 },
               ),

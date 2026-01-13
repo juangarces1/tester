@@ -103,8 +103,9 @@ class PositionBuilder {
       }
     }
 
-    final assignedKeys = <String>{}; // Para rastrear qué mangueras ya procesamos
-    
+    final assignedKeys =
+        <String>{}; // Para rastrear qué mangueras ya procesamos
+
     // CAMBIO IMPORTANTE: Agrupamos por ID de Surtidor (pumpId), no por dirección de manguera
     final groupsByPumpId = <int, _PositionGroup>{};
 
@@ -112,10 +113,10 @@ class PositionBuilder {
     for (final mapping in mappings) {
       // Determinamos el ID del surtidor
       final pumpId = mapping.dispenserNumber; // viene directo del mapping
-      
+
       // Determinamos el nombre
       final pumpName = pumpById[pumpId]?.pumpName ?? 'Surtidor $pumpId';
-      
+
       // Obtenemos o creamos el grupo para este SURTIDOR
       final group = groupsByPumpId.putIfAbsent(
         pumpId,
@@ -123,7 +124,7 @@ class PositionBuilder {
           pumpId: pumpId,
           pumpName: pumpName,
           // Usamos un índice base, puede refinarse si quieres separar caras A/B
-          faceIndex: 1, 
+          faceIndex: 1,
         ),
       );
 
@@ -171,13 +172,15 @@ class PositionBuilder {
 
     for (final pumpId in sortedPumpIds) {
       final group = groupsByPumpId[pumpId]!;
-      
+
       if (group.faceData.hoses.isEmpty) continue;
 
       // Ordenamos las mangueras internamente por número
-      group.faceData.hoses.sort((a, b) => a.nozzleNumber.compareTo(b.nozzleNumber));
+      group.faceData.hoses
+          .sort((a, b) => a.nozzleNumber.compareTo(b.nozzleNumber));
 
-      final faceLabel = _resolveFaceLabel(group.faceData, group.faceData.faceIndex);
+      final faceLabel =
+          _resolveFaceLabel(group.faceData, group.faceData.faceIndex);
       // Descripción limpia
       final description = group.pumpName;
 
@@ -203,10 +206,12 @@ class PositionBuilder {
 
           final ctx = _StatusContext(status, hose);
           // Intentamos adivinar a qué surtidor pertenece (por el dispenser number del status)
-          final pumpId = status.number; 
-          
-          final pumpName = pumpById[pumpId]?.pumpName ?? 
-              (status.description.isNotEmpty ? status.description : 'Surtidor $pumpId');
+          final pumpId = status.number;
+
+          final pumpName = pumpById[pumpId]?.pumpName ??
+              (status.description.isNotEmpty
+                  ? status.description
+                  : 'Surtidor $pumpId');
 
           final group = fallbackGroups.putIfAbsent(
             pumpId,
@@ -240,7 +245,8 @@ class PositionBuilder {
         final group = fallbackGroups[pid]!;
         if (group.faceData.hoses.isEmpty) continue;
 
-        group.faceData.hoses.sort((a, b) => a.nozzleNumber.compareTo(b.nozzleNumber));
+        group.faceData.hoses
+            .sort((a, b) => a.nozzleNumber.compareTo(b.nozzleNumber));
 
         result[posCounter] = PositionPhysical(
           number: posCounter,
@@ -292,19 +298,24 @@ class PositionBuilder {
     required NozzleMapping? mapping,
     required String fallbackKey,
   }) {
-    final resolvedNozzle = mapping?.hoseNumber ?? statusCtx?.hose.number ?? nozzleNumber;
+    final resolvedNozzle =
+        mapping?.hoseNumber ?? statusCtx?.hose.number ?? nozzleNumber;
     if (resolvedNozzle == null || resolvedNozzle <= 0) return null;
 
     final hoseKey = statusCtx?.hose.key ??
         (mapping?.hoseKey.isNotEmpty == true
             ? mapping!.hoseKey
-            : (fallbackKey.isNotEmpty ? fallbackKey : 'P$pumpId-H$resolvedNozzle'));
+            : (fallbackKey.isNotEmpty
+                ? fallbackKey
+                : 'P$pumpId-H$resolvedNozzle'));
 
-    final hoseStatus = statusCtx?.hose.status ?? statusCtx?.dispenser.status ?? 'unknown';
+    final hoseStatus =
+        statusCtx?.hose.status ?? statusCtx?.dispenser.status ?? 'unknown';
 
     final fuel = _fuelFrom(hose: statusCtx?.hose);
     // Preferimos el dispensador proveniente del mapping porque ya trae la asociaci\u00f3n bomba/manguera.
-    final dispenserNumber = mapping?.dispenserNumber ?? statusCtx?.dispenser.number ?? pumpId;
+    final dispenserNumber =
+        mapping?.dispenserNumber ?? statusCtx?.dispenser.number ?? pumpId;
 
     return HosePhysical(
       nozzleNumber: resolvedNozzle,
@@ -338,15 +349,79 @@ class PositionBuilder {
       // Regex: Busca "Manguera", espacio, dígitos, espacio y lo reemplaza por vacío
       cleanName = cleanName.replaceAll(RegExp(r'Manguera \d+ '), '').trim();
       // Si por alguna razón la regex borró todo o no coincidió pero queremos limpiar "Manguera "
-      if(cleanName.startsWith("Manguera") && cleanName.split(' ').length > 2) {
-         // Fallback manual si el regex falla en algún caso borde
-         cleanName = cleanName.split(' ').sublist(2).join(' ');
+      if (cleanName.startsWith("Manguera") && cleanName.split(' ').length > 2) {
+        // Fallback manual si el regex falla en algún caso borde
+        cleanName = cleanName.split(' ').sublist(2).join(' ');
       }
-      
+
       return Fuel(name: cleanName, color: hose.fuelColor ?? Colors.grey);
     }
 
     return const Fuel(name: 'Desconocido', color: Colors.grey);
+  }
+
+  /// NUEVO: Construye el mapa vinculando directamente NozzleMapping con DispenserStatus.
+  /// Simplifica la lógica al no requerir datos físicos (pumps).
+  static Map<int, PositionPhysical> buildDirect({
+    required List<DispenserStatus> statuses,
+    required List<NozzleMapping> mappings,
+  }) {
+    // 1. Mapeo de estados por número de manguera (nozzleNumber)
+    final statusByNozzle = <int, DispenserHose>{};
+    for (final status in statuses) {
+      for (final hose in status.hoses) {
+        statusByNozzle[hose.number] = hose;
+      }
+    }
+
+    // 2. Agrupamiento por número de dispensador definido en los mappings
+    final groupsByDispenser = <int, List<HosePhysical>>{};
+
+    for (final mapping in mappings) {
+      final nozzleNum = mapping.hoseNumber;
+      final dispenserNum = mapping.dispenserNumber;
+
+      // Buscamos el estado dinámico (si existe)
+      final hoseStat = statusByNozzle[nozzleNum];
+
+      final hose = HosePhysical(
+        nozzleNumber: nozzleNum,
+        hoseKey: mapping.hoseKey,
+        fuel: _fuelFrom(hose: hoseStat),
+        status: hoseStat?.status ?? 'unknown',
+        dispenserNumber: dispenserNum,
+        totalVolume: hoseStat?.totalVolume,
+        totalAmount: hoseStat?.totalAmount,
+      );
+
+      groupsByDispenser.putIfAbsent(dispenserNum, () => []).add(hose);
+    }
+
+    // 3. Generación de posiciones físicas finales
+    final result = <int, PositionPhysical>{};
+    var posCounter = 1;
+
+    // Ordenar los dispensadores por su número
+    final sortedDispenserIds = groupsByDispenser.keys.toList()..sort();
+
+    for (final dId in sortedDispenserIds) {
+      final hoses = groupsByDispenser[dId]!;
+      // Ordenar mangueras internamente por número
+      hoses.sort((a, b) => a.nozzleNumber.compareTo(b.nozzleNumber));
+
+      result[posCounter] = PositionPhysical(
+        number: posCounter,
+        pumpId: dId,
+        pumpName: 'Surtidor $dId', // Requerido por el usuario
+        faceIndex: 1, // Valor por defecto
+        faceLabel: dId.toString(),
+        faceDescription: 'Surtidor $dId',
+        hoses: List.unmodifiable(hoses),
+      );
+      posCounter++;
+    }
+
+    return result;
   }
 }
 
@@ -430,8 +505,8 @@ int? _pumpIdFromAddress(String? address) {
   if (address == null || address.isEmpty) return null;
   final segment = address.split('-').firstWhere(
         (element) => element.trim().isNotEmpty,
-    orElse: () => '',
-  );
+        orElse: () => '',
+      );
   final match = RegExp(r'\d+').firstMatch(segment);
   if (match == null) return null;
   return int.tryParse(match.group(0)!);

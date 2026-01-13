@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/dispatch_summary_page.dart';
+import 'package:tester/helpers/varios_helpers.dart';
 
 class PresetStepPage extends StatelessWidget {
   final String dispatchId;
@@ -296,12 +297,13 @@ class _PreDispenseAmountFormPageState extends State<PreDispenseAmountFormPage> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Wrap(
               spacing: 12,
               runSpacing: 12,
-              alignment: WrapAlignment.center,
+              alignment: WrapAlignment.start,
               children: [
+                 _quickAmountChip(1000),
                 _quickAmountChip(2000),
                 _quickAmountChip(5000),
                 _quickAmountChip(10000),
@@ -314,7 +316,7 @@ class _PreDispenseAmountFormPageState extends State<PreDispenseAmountFormPage> {
               label: 'Monto a Despachar',
               controller: _ctrl,
               hint: '0.00',
-              prefix: Icons.attach_money,
+              prefix: Icons.money,
               accentColor: Colors.blueAccent,
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))
@@ -366,10 +368,10 @@ class _PreDispenseAmountFormPageState extends State<PreDispenseAmountFormPage> {
     return ActionChip(
       backgroundColor: Colors.white.withValues(alpha: 0.05),
       side: const BorderSide(color: Colors.blueAccent, width: 1.5),
-      avatar: const Icon(Icons.bolt, size: 18, color: Colors.blueAccent),
-      label: Text('₡${v.toStringAsFixed(0)}',
+    
+      label: Text(VariosHelpers.formattedToCurrencyValue(v.toString()),
           style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13)),
+              color: Colors.black, fontWeight: FontWeight.w900, fontSize: 13)),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       onPressed: () => _setQuickAmount(v),
     );

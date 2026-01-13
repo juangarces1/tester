@@ -17,6 +17,17 @@ class ClienteProvider with ChangeNotifier {
   int _loadingCount = 0;
   String? _errorMessage;
 
+  // Paginación para clientes contado
+  int _currentPageContado = 1;
+  final int _pageSizeContado = 50;
+  int _totalPagesContado = 0;
+  int _totalRecordsContado = 0;
+  bool _hasMoreContado = true;
+  bool _isLoadingMoreContado = false;
+  int _maxIdContado = 0;
+  bool _isLoadingContadoSmart = false;
+  bool _cargaContadoCompletada = false;
+
   // Getters públicos
   List<Cliente> get clientesContado => _clientesContado;
   List<Cliente> get clientesCredito => _clientesCredito;
@@ -28,6 +39,13 @@ class ClienteProvider with ChangeNotifier {
 
   bool get isLoading => _loadingCount > 0 || _isLoading;
   String? get errorMessage => _errorMessage;
+  bool get hasMoreContado => _hasMoreContado;
+  bool get isLoadingMoreContado => _isLoadingMoreContado;
+  int get currentPageContado => _currentPageContado;
+  int get totalPagesContado => _totalPagesContado;
+  int get totalRecordsContado => _totalRecordsContado;
+  int get maxIdContado => _maxIdContado;
+  bool get cargaContadoCompletada => _cargaContadoCompletada;
 
   /// Acceso unificado para listas de Cliente (no aplica a 'promo')
   List<Cliente> clientesBy(ClienteTipo tipo) {
@@ -57,6 +75,16 @@ class ClienteProvider with ChangeNotifier {
         debugPrint('Cache loaded: ${_clientesContado.length} clientes contado');
       }
 
+      // Cargar maxId guardado
+      final maxIdStr = await CacheHelper.loadCache('clientes_contado_max_id');
+      _maxIdContado = int.tryParse(maxIdStr ?? '0') ?? 0;
+      debugPrint('MaxID cargado del cache: $_maxIdContado');
+
+      // Cargar bandera de carga completada
+      final completadaStr = await CacheHelper.loadCache('clientes_contado_carga_completada');
+      _cargaContadoCompletada = completadaStr == 'true';
+      debugPrint('Carga completada: $_cargaContadoCompletada');
+
       final creditoJson = await CacheHelper.loadCache('clientes_credito');
       if (creditoJson != null) {
         final List<Cliente> clientes = [];
@@ -85,6 +113,304 @@ class ClienteProvider with ChangeNotifier {
       debugPrint('Error loading cache: $e');
     } finally {
       _loadingCount--;
+      notifyListeners();
+    }
+  }
+
+  /// Carga TODO si cache vacío, o solo NUEVOS si cache existe
+  Future<void> loadClientesContadoSmart() async {
+    // Protección contra llamadas simultáneas
+    if (_isLoadingContadoSmart) {
+      debugPrint('⚠️ loadClientesContadoSmart ya está en ejecución, ignorando llamada');
+      return;
+    }
+
+    _isLoadingContadoSmart = true;
+    _loadingCount++;
+    notifyListeners();
+
+    try {
+      debugPrint('🔍 Verificando estado de clientes contado...');
+      debugPrint('  - En cache: ${_clientesContado.length}');
+      debugPrint('  - Carga completada: $_cargaContadoCompletada');
+      debugPrint('  - MaxID local: $_maxIdContado');
+
+      // Si el cache está vacío, cargar todo
+      if (_clientesContado.isEmpty) {
+        debugPrint('Cache vacío, cargando todos los clientes...');
+        await loadAllClientesContadoPaged();
+        _updateMaxIdContado();
+        return;
+      }
+
+      // Si la carga anterior no completó, continuar desde donde quedó
+      if (!_cargaContadoCompletada) {
+        debugPrint('⚠️ Carga anterior no completó, continuando...');
+        // Continuar usando minId
+        _updateMaxIdContado();
+        await _continuarCargaDesdeMinId();
+        return;
+      }
+
+      // Si ya tiene datos y completó, verificar si hay NUEVOS en el servidor
+      debugPrint('✅ Cache completo, verificando si hay nuevos clientes...');
+      await _cargarNuevosClientes();
+
+    } catch (e) {
+      _errorMessage = 'Error en sincronización: $e';
+      debugPrint('Error in loadClientesContadoSmart: $e');
+    } finally {
+      _isLoadingContadoSmart = false;
+      _loadingCount--;
+      notifyListeners();
+    }
+  }
+
+  /// Continúa la carga desde donde quedó usando minId
+  Future<void> _continuarCargaDesdeMinId() async {
+    debugPrint('♻️ Continuando carga desde id > $_maxIdContado...');
+
+    int currentPage = 1;
+    bool hasMore = true;
+    List<Cliente> nuevosClientes = [];
+
+    while (hasMore) {
+      Response response = await ApiHelper.getClienteContadoPaged(
+        page: currentPage,
+        pageSize: _pageSizeContado,
+        minId: _maxIdContado,
+      );
+
+      if (response.isSuccess) {
+        final result = response.result as Map<String, dynamic>;
+        List<Cliente> pagina = (result['clientes'] as List).cast<Cliente>();
+        _totalRecordsContado = result['totalRecords'] ?? 0;
+
+        nuevosClientes.addAll(pagina);
+
+        int totalPages = result['totalPages'] ?? 0;
+        hasMore = currentPage < totalPages;
+        currentPage++;
+
+        if (pagina.isNotEmpty) {
+          debugPrint('Página $currentPage: +${pagina.length} clientes');
+        }
+      } else {
+        _errorMessage = response.message;
+        hasMore = false;
+      }
+    }
+
+    if (nuevosClientes.isNotEmpty) {
+      _clientesContado.addAll(nuevosClientes);
+      _updateMaxIdContado();
+      await _saveCacheBy(ClienteTipo.contado);
+      _cargaContadoCompletada = true;
+      await CacheHelper.saveCache('clientes_contado_carga_completada', 'true');
+      debugPrint('✅ Carga completada: +${nuevosClientes.length} (total: ${_clientesContado.length})');
+    } else {
+      _cargaContadoCompletada = true;
+      await CacheHelper.saveCache('clientes_contado_carga_completada', 'true');
+      debugPrint('✅ No había clientes pendientes');
+    }
+  }
+
+  /// Carga solo clientes nuevos (id > maxId actual)
+  Future<void> _cargarNuevosClientes() async {
+    int currentPage = 1;
+    bool hasMore = true;
+    List<Cliente> nuevosClientes = [];
+
+    while (hasMore) {
+      Response response = await ApiHelper.getClienteContadoPaged(
+        page: currentPage,
+        pageSize: _pageSizeContado,
+        minId: _maxIdContado,
+      );
+
+      if (response.isSuccess) {
+        final result = response.result as Map<String, dynamic>;
+        List<Cliente> pagina = (result['clientes'] as List).cast<Cliente>();
+
+        nuevosClientes.addAll(pagina);
+
+        int totalPages = result['totalPages'] ?? 0;
+        hasMore = currentPage < totalPages;
+        currentPage++;
+      } else {
+        _errorMessage = response.message;
+        hasMore = false;
+      }
+    }
+
+    if (nuevosClientes.isNotEmpty) {
+      _clientesContado.addAll(nuevosClientes);
+      _updateMaxIdContado();
+      await _saveCacheBy(ClienteTipo.contado);
+      debugPrint('✅ Sincronizados ${nuevosClientes.length} clientes nuevos (total: ${_clientesContado.length})');
+    } else {
+      debugPrint('✅ No hay clientes nuevos');
+    }
+  }
+
+  void _updateMaxIdContado() {
+    if (_clientesContado.isEmpty) {
+      _maxIdContado = 0;
+      return;
+    }
+
+    // Encuentra el ID más alto (codigo es el id convertido a string)
+    _maxIdContado = _clientesContado
+        .map((c) => int.tryParse(c.codigo) ?? 0)
+        .reduce((a, b) => a > b ? a : b);
+
+    debugPrint('MaxID actualizado: $_maxIdContado');
+
+    // Guardar en cache para persistencia
+    CacheHelper.saveCache('clientes_contado_max_id', _maxIdContado.toString());
+  }
+
+  /// Carga TODAS las páginas de clientes contado recursivamente hasta agotarlas (desde cero)
+  Future<void> loadAllClientesContadoPaged() async {
+    _loadingCount++;
+    _errorMessage = '';
+    _currentPageContado = 1;
+    _hasMoreContado = true;
+    _clientesContado.clear();
+    _cargaContadoCompletada = false;
+    notifyListeners();
+
+    int totalCargados = 0;
+    debugPrint('🔄 Iniciando carga completa desde página 1');
+
+    try {
+      // Cargar páginas recursivamente hasta agotarlas
+      while (_hasMoreContado) {
+        Response response = await ApiHelper.getClienteContadoPaged(
+          page: _currentPageContado,
+          pageSize: _pageSizeContado,
+        );
+
+        if (response.isSuccess) {
+          final result = response.result as Map<String, dynamic>;
+          List<Cliente> nuevosClientes =
+              (result['clientes'] as List).cast<Cliente>();
+          _totalPagesContado = result['totalPages'] ?? 0;
+          _totalRecordsContado = result['totalRecords'] ?? 0;
+
+          _clientesContado.addAll(nuevosClientes);
+          totalCargados += nuevosClientes.length;
+
+          // Verificar si hay más páginas usando totalPages
+          _hasMoreContado = _currentPageContado < _totalPagesContado;
+
+          if (_hasMoreContado) {
+            _currentPageContado++;
+            debugPrint(
+                'API load page $_currentPageContado/$_totalPagesContado: ${nuevosClientes.length} clientes (total: $totalCargados/$_totalRecordsContado)');
+          } else {
+            debugPrint(
+                'API load completed: $totalCargados clientes contado cargados en total');
+          }
+        } else {
+          _errorMessage =
+              'Error al cargar los clientes al contado: ${response.message}';
+          _hasMoreContado = false;
+        }
+      }
+
+      // Guardar todo en cache al final
+      await _saveCacheBy(ClienteTipo.contado);
+
+      // Marcar carga como completada
+      _cargaContadoCompletada = true;
+      await CacheHelper.saveCache('clientes_contado_carga_completada', 'true');
+      debugPrint('Cache actualizado con $totalCargados clientes contado');
+      debugPrint('✅ Carga completada exitosamente');
+
+    } catch (e) {
+      _errorMessage = 'Ocurrió un error: ${e.toString()}';
+      _cargaContadoCompletada = false;
+      await CacheHelper.saveCache('clientes_contado_carga_completada', 'false');
+      debugPrint('Error in loadAllClientesContadoPaged: $e');
+    } finally {
+      _loadingCount--;
+      notifyListeners();
+    }
+  }
+
+  /// Carga la primera página de clientes contado con paginación
+  Future<void> loadClientesContadoPaged() async {
+    _loadingCount++;
+    _currentPageContado = 1;
+    _hasMoreContado = true;
+    _errorMessage = '';
+    notifyListeners();
+
+    try {
+      Response response = await ApiHelper.getClienteContadoPaged(
+        page: _currentPageContado,
+        pageSize: _pageSizeContado,
+      );
+
+      if (response.isSuccess) {
+        final result = response.result as Map<String, dynamic>;
+        _clientesContado = (result['clientes'] as List).cast<Cliente>();
+        _totalPagesContado = result['totalPages'] ?? 0;
+        _totalRecordsContado = result['totalRecords'] ?? 0;
+        _hasMoreContado = _currentPageContado < _totalPagesContado;
+        await _saveCacheBy(ClienteTipo.contado);
+        debugPrint(
+            'API load paged: ${_clientesContado.length} clientes contado (page $_currentPageContado/$_totalPagesContado)');
+      } else {
+        _errorMessage =
+            'Error al cargar los clientes al contado: ${response.message}';
+      }
+    } catch (e) {
+      _errorMessage = 'Ocurrió un error: ${e.toString()}';
+      debugPrint('Error in loadClientesContadoPaged: $e');
+    } finally {
+      _loadingCount--;
+      notifyListeners();
+    }
+  }
+
+  /// Carga más páginas de clientes contado
+  Future<void> loadMoreClientesContado() async {
+    if (_isLoadingMoreContado || !_hasMoreContado) return;
+
+    _isLoadingMoreContado = true;
+    _currentPageContado++;
+    _errorMessage = '';
+    notifyListeners();
+
+    try {
+      Response response = await ApiHelper.getClienteContadoPaged(
+        page: _currentPageContado,
+        pageSize: _pageSizeContado,
+      );
+
+      if (response.isSuccess) {
+        final result = response.result as Map<String, dynamic>;
+        List<Cliente> newClientes =
+            (result['clientes'] as List).cast<Cliente>();
+        _totalPagesContado = result['totalPages'] ?? 0;
+        _totalRecordsContado = result['totalRecords'] ?? 0;
+        _clientesContado.addAll(newClientes);
+        _hasMoreContado = _currentPageContado < _totalPagesContado;
+        await _saveCacheBy(ClienteTipo.contado);
+        debugPrint(
+            'API load more: ${newClientes.length} clientes contado (page $_currentPageContado/$_totalPagesContado)');
+      } else {
+        _errorMessage = 'Error al cargar más clientes: ${response.message}';
+        _currentPageContado--; // Revertir incremento de página
+      }
+    } catch (e) {
+      _errorMessage = 'Ocurrió un error: ${e.toString()}';
+      _currentPageContado--; // Revertir incremento de página
+      debugPrint('Error in loadMoreClientesContado: $e');
+    } finally {
+      _isLoadingMoreContado = false;
       notifyListeners();
     }
   }

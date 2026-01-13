@@ -16,10 +16,8 @@ import 'package:tester/sizeconfig.dart';
 
 class FacturacionPage extends StatelessWidget {
   const FacturacionPage({
-    super.key,    
+    super.key,
   });
-
-  
 
   @override
   Widget build(BuildContext context) {
@@ -34,21 +32,38 @@ class FacturacionPage extends StatelessWidget {
         Positioned(
           bottom: 15,
           left: 15,
-          child: SizedBox(
-            height: 56,
-            width: 56,
-            child: GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ShowProcessMenu(),
-                ),
+          child: Container(
+            height: 70,
+            width: 70,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Image.asset(
-                  'assets/AddTr.png',
-                  fit: BoxFit.fill,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ShowProcessMenu(),
+                  ),
+                ),
+                child: const Icon(
+                  Icons.ev_station,
+                  color: Colors.white,
+                  size: 42,
                 ),
               ),
             ),
@@ -58,12 +73,12 @@ class FacturacionPage extends StatelessWidget {
           bottom: 15,
           right: 15,
           child: SizedBox(
-            height: 56,
-            width: 56,
+            height: 70,
+            width: 70,
             child: GestureDetector(
               onTap: () => _mostrarMenu(context),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(16),
                 child: Image.asset(
                   'assets/backToCheck.png',
                   fit: BoxFit.fill,
@@ -85,14 +100,16 @@ class FacturacionPage extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.only(left: 10, right: 10, top: 20),
                   child: GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       crossAxisSpacing: 10,
                       mainAxisSpacing: 10,
                     ),
                     itemCount: facturasProvider.facturas.length,
                     itemBuilder: (context, index) {
-                      return _crearTarjetaFactura(context, facturasProvider.facturas[index]);
+                      return _crearTarjetaFactura(
+                          context, facturasProvider.facturas[index]);
                     },
                   ),
                 ),
@@ -166,7 +183,8 @@ class FacturacionPage extends StatelessWidget {
                       ),
                       fit: BoxFit.cover,
                       child: InkWell(
-                        onTap: () => _navegarSegunTipoInvoice(context, facturaActual),
+                        onTap: () =>
+                            _navegarSegunTipoInvoice(context, facturaActual),
                       ),
                     ),
                   ),
@@ -176,11 +194,14 @@ class FacturacionPage extends StatelessWidget {
                   ? Container()
                   : Text(
                       facturaActual.isCredit!
-                          ? facturaActual.formPago!.clienteCredito.obtenerPrimerNombre()
+                          ? facturaActual.formPago!.clienteCredito
+                              .obtenerPrimerNombre()
                           : facturaActual.isPeddler!
-                              ? facturaActual.formPago!.clienteCredito.obtenerPrimerNombre()
+                              ? facturaActual.formPago!.clienteCredito
+                                  .obtenerPrimerNombre()
                               : facturaActual.isContado!
-                                  ? facturaActual.formPago!.clienteFactura.obtenerPrimerNombre()
+                                  ? facturaActual.formPago!.clienteFactura
+                                      .obtenerPrimerNombre()
                                   : 'hey',
                       style: TextStyle(
                         fontSize: getProportionateScreenWidth(16),
@@ -189,7 +210,8 @@ class FacturacionPage extends StatelessWidget {
                       ),
                     ),
               Text(
-                VariosHelpers.formattedToCurrencyValue(facturaActual.total.toString()),
+                VariosHelpers.formattedToCurrencyValue(
+                    facturaActual.total.toString()),
                 style: TextStyle(
                   fontSize: getProportionateScreenWidth(18),
                   fontWeight: FontWeight.bold,
@@ -227,18 +249,21 @@ class FacturacionPage extends StatelessWidget {
   }
 
   void _navegarSegunTipoInvoice(BuildContext context, Invoice invoice) {
-    final facturasProvider = Provider.of<FacturasProvider>(context, listen: false);
+    final facturasProvider =
+        Provider.of<FacturasProvider>(context, listen: false);
     final index = facturasProvider.facturas.indexOf(invoice);
 
     if (invoice.isCredit == true) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => ProceeeCreditScreen(index: index)),
+        MaterialPageRoute(
+            builder: (context) => ProceeeCreditScreen(index: index)),
       );
     } else if (invoice.isPeddler == true) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => PeddlersAddScreen(index: index)),
+        MaterialPageRoute(
+            builder: (context) => PeddlersAddScreen(index: index)),
       );
     } else if (invoice.isContado == true) {
       Navigator.push(
@@ -259,7 +284,8 @@ class FacturacionPage extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Eliminar'),
-          content: Text('¿Estás seguro de que quieres eliminar ${facturaActual.tipoInvoice}?'),
+          content: Text(
+              '¿Estás seguro de que quieres eliminar ${facturaActual.tipoInvoice}?'),
           actions: <Widget>[
             TextButton(
               style: TextButton.styleFrom(
@@ -292,10 +318,10 @@ class FacturacionPage extends StatelessWidget {
   }
 
   void _mostrarMenu(BuildContext context) {
-
-   
-    final cierreActivo = Provider.of<CierreActivoProvider>(context, listen: false);
-    final nuevaFactura = Invoice.createInitializedInvoice(cierreActivo.cierreFinal, cierreActivo.usuario);
+    final cierreActivo =
+        Provider.of<CierreActivoProvider>(context, listen: false);
+    final nuevaFactura = Invoice.createInitializedInvoice(
+        cierreActivo.cierreFinal, cierreActivo.usuario);
 
     showDialog(
       context: context,
@@ -310,9 +336,12 @@ class FacturacionPage extends StatelessWidget {
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
-                _crearBotonOpcion(context, 'Contado', nuevaFactura, kPrimaryColor),
-                _crearBotonOpcion(context, 'Ticket', nuevaFactura, Colors.green),
-                _crearBotonOpcion(context, 'Credito', nuevaFactura, kBlueColorLogo),
+                _crearBotonOpcion(
+                    context, 'Contado', nuevaFactura, kPrimaryColor),
+                _crearBotonOpcion(
+                    context, 'Ticket', nuevaFactura, Colors.green),
+                _crearBotonOpcion(
+                    context, 'Credito', nuevaFactura, kBlueColorLogo),
                 _crearBotonOpcion(
                   context,
                   'Peddler',
@@ -340,7 +369,8 @@ class FacturacionPage extends StatelessWidget {
           foregroundColor: Colors.white,
           backgroundColor: color,
           elevation: 5,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
         child: Text(
           texto,
@@ -349,29 +379,34 @@ class FacturacionPage extends StatelessWidget {
         onPressed: () {
           Navigator.of(context).pop();
 
-          final facturasProvider = Provider.of<FacturasProvider>(context, listen: false);
+          final facturasProvider =
+              Provider.of<FacturasProvider>(context, listen: false);
 
           final index = facturasProvider.addInvoice(invoice);
 
           if (texto == 'Contado') {
             invoice.isContado = true;
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => CheaOutScreen(index: index)),
+              MaterialPageRoute(
+                  builder: (context) => CheaOutScreen(index: index)),
             );
           } else if (texto == 'Ticket') {
             invoice.isTicket = true;
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => TicketScreen(index: index)),
+              MaterialPageRoute(
+                  builder: (context) => TicketScreen(index: index)),
             );
           } else if (texto == 'Credito') {
             invoice.isCredit = true;
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => ProceeeCreditScreen(index: index)),
+              MaterialPageRoute(
+                  builder: (context) => ProceeeCreditScreen(index: index)),
             );
           } else if (texto == 'Peddler') {
             invoice.isPeddler = true;
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => PeddlersAddScreen(index: index)),
+              MaterialPageRoute(
+                  builder: (context) => PeddlersAddScreen(index: index)),
             );
           }
         },

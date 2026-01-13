@@ -10,7 +10,7 @@ import 'package:tester/Screens/Peddlers/peddlers_add_screen.dart';
 import 'package:tester/Screens/checkout/checkount.dart';
 import 'package:tester/Screens/credito/credit_process_screen.dart';
 import 'package:tester/Screens/tickets/ticket_screen.dart';
-import 'package:tester/ViewModels/dispatch_control.dart';
+import 'package:tester/Providers/dispatch_control.dart';
 import 'package:tester/helpers/api_helper.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
@@ -22,57 +22,70 @@ class DispatchCard extends StatefulWidget {
   State<DispatchCard> createState() => _DispatchCardState();
 }
 
-class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMixin {
+class _DispatchCardState extends State<DispatchCard>
+    with TickerProviderStateMixin {
   // ----------------- helpers visuales -----------------
   Color _statusColor(DispatchControl dc) {
     if (dc.stage == DispatchStage.readyToAuthorize && dc.authorizationExpired) {
-        return Colors.red; // o un ámbar si prefieres
-}
+      return Colors.red; // o un ámbar si prefieres
+    }
     final s = dc.hoseStatus;
     switch (dc.stage) {
-      case DispatchStage.authorizing: return Colors.teal.shade700;
-      case DispatchStage.authorized:  return Colors.green;
-      case DispatchStage.dispatching: return Colors.blue;
-      case DispatchStage.completed:   return Colors.orange;
-      case DispatchStage.unpaid:      return Colors.purple;
-      default: {
-        return switch (s) {
-          HoseStatus.available  => Colors.teal,
-          HoseStatus.authorized => Colors.teal,
-          HoseStatus.fueling    => Colors.blue,
-          HoseStatus.busy       => Colors.grey,
-          HoseStatus.stopped    => Colors.grey,
-          HoseStatus.unpaid     => Colors.orange,
-          HoseStatus.finished   => Colors.purple,
-          _                     => Colors.blueGrey,
-        };
-      }
+      case DispatchStage.authorizing:
+        return Colors.teal.shade700;
+      case DispatchStage.authorized:
+        return Colors.green;
+      case DispatchStage.dispatching:
+        return Colors.blue;
+      case DispatchStage.completed:
+        return Colors.orange;
+      case DispatchStage.unpaid:
+        return Colors.purple;
+      default:
+        {
+          return switch (s) {
+            HoseStatus.available => Colors.teal,
+            HoseStatus.authorized => Colors.teal,
+            HoseStatus.fueling => Colors.blue,
+            HoseStatus.busy => Colors.grey,
+            HoseStatus.stopped => Colors.grey,
+            HoseStatus.unpaid => Colors.orange,
+            HoseStatus.finished => Colors.purple,
+            _ => Colors.blueGrey,
+          };
+        }
     }
   }
 
   String _statusLabel(DispatchControl dc) {
     if (dc.stage == DispatchStage.readyToAuthorize && dc.authorizationExpired) {
-  return 'Expiró';
-}
+      return 'Expiró';
+    }
     final s = dc.hoseStatus;
     switch (dc.stage) {
-      case DispatchStage.authorizing: return 'Autorizando…';
-      case DispatchStage.authorized:  return 'Autorizado';
-      case DispatchStage.dispatching: return 'Despachando';
-      case DispatchStage.completed:   return 'Completado';
-      case DispatchStage.unpaid:      return 'Sin pagar';
-      default: {
-        return switch (s) {
-          HoseStatus.available  => 'Disponible',
-          HoseStatus.authorized => 'Autorizado',
-          HoseStatus.fueling    => 'Despachando',
-          HoseStatus.busy       => 'Cerrando…',
-          HoseStatus.stopped    => 'Detenida',
-          HoseStatus.unpaid     => 'Sin pagar',
-          HoseStatus.finished   => 'Finalizado',
-          _                     => '—',
-        };
-      }
+      case DispatchStage.authorizing:
+        return 'Autorizando…';
+      case DispatchStage.authorized:
+        return 'Autorizado';
+      case DispatchStage.dispatching:
+        return 'Despachando';
+      case DispatchStage.completed:
+        return 'Completado';
+      case DispatchStage.unpaid:
+        return 'Sin pagar';
+      default:
+        {
+          return switch (s) {
+            HoseStatus.available => 'Disponible',
+            HoseStatus.authorized => 'Autorizado',
+            HoseStatus.fueling => 'Despachando',
+            HoseStatus.busy => 'Cerrando…',
+            HoseStatus.stopped => 'Detenida',
+            HoseStatus.unpaid => 'Sin pagar',
+            HoseStatus.finished => 'Finalizado',
+            _ => '—',
+          };
+        }
     }
   }
 
@@ -88,9 +101,9 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
         final label = _statusLabel(widget.d);
 
         return Card(
-         
           color: const Color(0xFF151515),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: AnimatedSize(
@@ -106,7 +119,8 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
                       CircleAvatar(
                         radius: 18,
                         backgroundColor: widget.d.fuel?.color ?? Colors.white24,
-                        child: const Icon(Icons.local_gas_station, color: Colors.white),
+                        child: const Icon(Icons.local_gas_station,
+                            color: Colors.white),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -123,10 +137,13 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(
-                              widget.d.selectedPosition != null && widget.d.selectedHose != null
+                              widget.d.selectedPosition != null &&
+                                      widget.d.selectedHose != null
                                   ? 'POS ${widget.d.selectedPosition!.number} · MANG ${widget.d.selectedHose!.nozzleNumber}'
                                   : '—',
-                              style: const TextStyle(color: Color.fromARGB(227, 255, 255, 255), fontSize: 15),
+                              style: const TextStyle(
+                                  color: Color.fromARGB(227, 255, 255, 255),
+                                  fontSize: 15),
                             ),
                           ],
                         ),
@@ -134,10 +151,12 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 200),
                         child: Chip(
-                          key: ValueKey('${widget.d.stage}-${widget.d.hoseStatus}'),
+                          key: ValueKey(
+                              '${widget.d.stage}-${widget.d.hoseStatus}'),
                           label: Text(
                             label,
-                            style: const TextStyle(color: Colors.white, fontSize: 14),
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 14),
                           ),
                           backgroundColor: color,
                         ),
@@ -149,17 +168,19 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
                   const Divider(height: 1, color: Colors.white12),
                   const SizedBox(height: 8),
 
-                // ───────── RESUMEN PRESET / TANQUE (CONDICIONAL) ─────────
+                  // ───────── RESUMEN PRESET / TANQUE (CONDICIONAL) ─────────
                   if (widget.d.stage == DispatchStage.authorizing ||
-                      widget.d.stage == DispatchStage.authorized  ||
-                       widget.d.stage == DispatchStage.readyToAuthorize  ||
+                      widget.d.stage == DispatchStage.authorized ||
+                      widget.d.stage == DispatchStage.readyToAuthorize ||
                       widget.d.stage == DispatchStage.dispatching) ...[
                     Row(
                       children: [
                         Icon(
                           widget.d.tankFull
                               ? Icons.water_drop
-                              : (widget.d.preset.isVolume ? Icons.local_gas_station : Icons.attach_money),
+                              : (widget.d.preset.isVolume
+                                  ? Icons.local_gas_station
+                                  : Icons.attach_money),
                           size: 24,
                           color: Colors.white70,
                         ),
@@ -171,7 +192,8 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
                                 : (widget.d.preset.isVolume
                                     ? 'Preset: ${(widget.d.preset.volume ?? 0).toStringAsFixed(2)} L'
                                     : 'Preset: ${_fmtMoney((widget.d.preset.amount ?? 0))}'),
-                            style: const TextStyle(color: Colors.white, fontSize: 20),
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 20),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -184,7 +206,8 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
                     _dispatchingIndicator(),
 
                   // ---------- SINCRONIZACIÓN / RESUMEN FINAL ----------
-                  if (widget.d.stage == DispatchStage.unpaid || widget.d.stage == DispatchStage.completed)
+                  if (widget.d.stage == DispatchStage.unpaid ||
+                      widget.d.stage == DispatchStage.completed)
                     Padding(
                       padding: const EdgeInsets.only(top: 10),
                       child: widget.d.loadingLastSale
@@ -206,58 +229,72 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
                       Expanded(child: Container()),
                       // Botones contextuales mínimos
                       if (widget.d.stage == DispatchStage.authorizing)
-                        _miniBtn(context, icon: Icons.close, label: 'Cancelar', onTap: () {
+                        _miniBtn(context, icon: Icons.close, label: 'Cancelar',
+                            onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Cancelar autorización (pendiente de implementar)')),
+                            const SnackBar(
+                                content: Text(
+                                    'Cancelar autorización (pendiente de implementar)')),
                           );
                         }),
                       if (widget.d.stage == DispatchStage.dispatching)
-                        _miniBtn(context, icon: Icons.stop, label: 'Detener', onTap: () {
+                        _miniBtn(context, icon: Icons.stop, label: 'Detener',
+                            onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Detener despacho (pendiente de implementar)')),
+                            const SnackBar(
+                                content: Text(
+                                    'Detener despacho (pendiente de implementar)')),
                           );
                         }),
-                      if (widget.d.stage == DispatchStage.completed || widget.d.stage == DispatchStage.unpaid)
-                        _miniBtn(context, icon: Icons.receipt_long, label: 'Facturar', onTap: () {
-                         _goFacturacion(widget.d);
+                      if (widget.d.stage == DispatchStage.completed ||
+                          widget.d.stage == DispatchStage.unpaid)
+                        _miniBtn(context,
+                            icon: Icons.receipt_long,
+                            label: 'Facturar', onTap: () {
+                          _goFacturacion(widget.d);
                         }),
 
-                        if (widget.d.stage == DispatchStage.completed || widget.d.stage == DispatchStage.unpaid)
-                        _miniBtn(context, icon: Icons.settings, label: 'Procesar', onTap: () {
-                         widget.d.markCompleted();
-                         
+                      if (widget.d.stage == DispatchStage.completed ||
+                          widget.d.stage == DispatchStage.unpaid)
+                        _miniBtn(context,
+                            icon: Icons.settings, label: 'Procesar', onTap: () {
+                          widget.d.markCompleted();
                         }),
 
-                        // _miniBtn(
-                        //   context,
-                        //   icon: Icons.warning_amber_rounded,
-                        //   label: 'Forzar Sin pagar',
-                        //   onTap: () {
-                        //     widget.d.markUnpaid();
-                        //     ScaffoldMessenger.of(context).showSnackBar(
-                        //       const SnackBar(content: Text('markUnpaid() ejecutado')),
-                        //     );
-                        //   },
-                        // ),
+                      // _miniBtn(
+                      //   context,
+                      //   icon: Icons.warning_amber_rounded,
+                      //   label: 'Forzar Sin pagar',
+                      //   onTap: () {
+                      //     widget.d.markUnpaid();
+                      //     ScaffoldMessenger.of(context).showSnackBar(
+                      //       const SnackBar(content: Text('markUnpaid() ejecutado')),
+                      //     );
+                      //   },
+                      // ),
                     ],
                   ),
                   if (widget.d.canRetry)
-                  _miniBtn(
-                    context,
-                    icon: Icons.refresh,
-                    label: 'Reintentar',
-                    onTap: () async {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Reintentando autorización…')),
-                      );
-                      final ok = await widget.d.retryAuthorize();
-                    
-                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(ok ? 'Autorizado nuevamente ✅' : 'No se pudo autorizar ❌')),
-                      );
-                    },
-                  ),
+                    _miniBtn(
+                      context,
+                      icon: Icons.refresh,
+                      label: 'Reintentar',
+                      onTap: () async {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Reintentando autorización…')),
+                        );
+                        final ok = await widget.d.retryAuthorize();
+
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text(ok
+                                  ? 'Autorizado nuevamente ✅'
+                                  : 'No se pudo autorizar ❌')),
+                        );
+                      },
+                    ),
                 ],
               ),
             ),
@@ -268,73 +305,83 @@ class _DispatchCardState extends State<DispatchCard> with TickerProviderStateMix
   }
 
   Widget _finalSummary(DispatchControl d) {
-  // Preferimos la transacción de consola si ya está sincronizada
-  final tx = d.consoleTx;
+    // Preferimos la transacción de consola si ya está sincronizada
+    final tx = d.consoleTx;
 
-  final volume = tx?.totalVolume ?? d.consoleTx?.totalVolume ?? 0;
-  final total  = tx?.totalValue   ?? d.consoleTx?.totalValue ?? 0;
-  final unit   = tx?.unitPrice    ?? d.price           ?? 0;
+    final volume = tx?.totalVolume ?? d.consoleTx?.totalVolume ?? 0;
+    final total = tx?.totalValue ?? d.consoleTx?.totalValue ?? 0;
+    final unit = tx?.unitPrice ?? d.price ?? 0;
 
-  final isSync = tx != null;
+    final isSync = tx != null;
 
-  return Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFF202020),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(
-              isSync ? Icons.check_circle : Icons.sync,
-              color: isSync ? Colors.greenAccent : Colors.orangeAccent,
-              size: 18,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              isSync ? 'Sincronizado con consola' : 'Sincronizando valores…',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-          ],
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF202020),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                isSync ? Icons.check_circle : Icons.sync,
+                color: isSync ? Colors.greenAccent : Colors.orangeAccent,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isSync ? 'Sincronizado con consola' : 'Sincronizando valores…',
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                  child: _metricTile(
+                      title: 'Volumen',
+                      value: '${volume.toStringAsFixed(3)} L')),
+              const SizedBox(width: 8),
+              Expanded(
+                  child: _metricTile(title: 'Total', value: _fmtMoney(total))),
+              const SizedBox(width: 8),
+              Expanded(
+                  child: _metricTile(
+                      title: 'Precio/L', value: unit.toStringAsFixed(0))),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 10,
+            runSpacing: 6,
+            children: [
+              if (tx?.saleNumber != null && tx!.saleNumber != 0)
+                _pill('Venta #${tx.saleNumber}'),
+              if (tx?.nozzleNumber != null) _pill('M${tx!.nozzleNumber}'),
+              if (tx?.duration != null) _pill('Duración ${tx!.duration}s'),
+              if (tx?.fuelCode != null && tx!.fuelCode != 0)
+                _pill('Prod ${tx.fuelCode}'),
+              if (d.tankFull) _pill('Tanque lleno'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _pill(String text) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2A2A2A),
+          borderRadius: BorderRadius.circular(20),
         ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(child: _metricTile(title: 'Volumen', value: '${volume.toStringAsFixed(3)} L')),
-            const SizedBox(width: 8),
-            Expanded(child: _metricTile(title: 'Total',   value: _fmtMoney(total))),
-            const SizedBox(width: 8),
-            Expanded(child: _metricTile(title: 'Precio/L', value: unit.toStringAsFixed(0))),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Wrap(
-          spacing: 10, runSpacing: 6,
-          children: [
-            if (tx?.saleNumber != null && tx!.saleNumber != 0) _pill('Venta #${tx.saleNumber}'),
-            if (tx?.nozzleNumber != null) _pill('M${tx!.nozzleNumber}'),
-            if (tx?.duration != null) _pill('Duración ${tx!.duration}s'),
-            if (tx?.fuelCode != null && tx!.fuelCode != 0) _pill('Prod ${tx.fuelCode}'),
-            if (d.tankFull) _pill('Tanque lleno'),
-           
-          ],
-        ),
-      ],
-    ),
-  );
-}
-
-Widget _pill(String text) => Container(
-  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-  decoration: BoxDecoration(
-    color: const Color(0xFF2A2A2A),
-    borderRadius: BorderRadius.circular(20),
-  ),
-  child: Text(text, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-);
+        child: Text(text,
+            style: const TextStyle(color: Colors.white70, fontSize: 12)),
+      );
 
   Widget _metricTile({required String title, required String value}) {
     return Container(
@@ -346,9 +393,17 @@ Widget _pill(String text) => Container(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(color: Colors.white54, fontSize: 14, fontWeight: FontWeight.w500)),
+          Text(title,
+              style: const TextStyle(
+                  color: Colors.white54,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500)),
           const SizedBox(height: 4),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(value,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -367,7 +422,8 @@ Widget _pill(String text) => Container(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           SizedBox(
-            width: 24, height: 24,
+            width: 24,
+            height: 24,
             child: CircularProgressIndicator(
               strokeWidth: 2.5,
               valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
@@ -398,7 +454,8 @@ Widget _pill(String text) => Container(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const SizedBox(
-            width: 20, height: 20,
+            width: 20,
+            height: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
               valueColor: AlwaysStoppedAnimation<Color>(Colors.orangeAccent),
@@ -417,7 +474,9 @@ Widget _pill(String text) => Container(
     );
   }
 
-  Widget _invoiceTypePill(BuildContext context,) {
+  Widget _invoiceTypePill(
+    BuildContext context,
+  ) {
     final current = widget.d.invoiceType?.name.toUpperCase() ?? 'TIPO';
     return InkWell(
       onTap: () => _pickInvoiceType(context),
@@ -425,16 +484,23 @@ Widget _pill(String text) => Container(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
         decoration: BoxDecoration(
-          color: current == 'TIPO' ? Colors.deepPurple : widget.d.invoiceType!.color,
+          color: current == 'TIPO'
+              ? Colors.deepPurple
+              : widget.d.invoiceType!.color,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: [            
+          children: [
             const SizedBox(width: 6),
-            Text(current, style:  TextStyle(color: current == 'PEDDLER' ? Colors.black : Colors.white, fontWeight: FontWeight.bold)),
+            Text(current,
+                style: TextStyle(
+                    color: current == 'PEDDLER' ? Colors.black : Colors.white,
+                    fontWeight: FontWeight.bold)),
             const SizedBox(width: 6),
-             Icon(Icons.edit, color: current == 'PEDDLER' ? Colors.black : Colors.white, size: 16),
+            Icon(Icons.edit,
+                color: current == 'PEDDLER' ? Colors.black : Colors.white,
+                size: 16),
           ],
         ),
       ),
@@ -445,7 +511,8 @@ Widget _pill(String text) => Container(
     final result = await showModalBottomSheet<InvoiceType>(
       context: context,
       backgroundColor: const Color(0xFF1E1E1E),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (_) {
         const items = InvoiceType.values;
         return SafeArea(
@@ -455,22 +522,22 @@ Widget _pill(String text) => Container(
             separatorBuilder: (_, __) => const Divider(color: Colors.white12),
             itemBuilder: (_, i) {
               final it = items[i];
-             return InkWell(
-                  onTap: () => Navigator.pop(context, it),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Center(
-                      child: Text(
-                        it.name.toUpperCase(),
-                        style: TextStyle(
-                          color: it.color,
-                          fontSize: 25,
-                          fontWeight: FontWeight.bold,
-                        ),
+              return InkWell(
+                onTap: () => Navigator.pop(context, it),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: Text(
+                      it.name.toUpperCase(),
+                      style: TextStyle(
+                        color: it.color,
+                        fontSize: 25,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                );
+                ),
+              );
             },
           ),
         );
@@ -481,7 +548,10 @@ Widget _pill(String text) => Container(
     }
   }
 
-  Widget _miniBtn(BuildContext context, {required IconData icon, required String label, required VoidCallback onTap}) {
+  Widget _miniBtn(BuildContext context,
+      {required IconData icon,
+      required String label,
+      required VoidCallback onTap}) {
     return Padding(
       padding: const EdgeInsets.only(left: 8),
       child: TextButton.icon(
@@ -489,7 +559,8 @@ Widget _pill(String text) => Container(
           foregroundColor: Colors.white,
           backgroundColor: const Color(0xFF2A2A2A),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
         onPressed: onTap,
         icon: Icon(icon, size: 16),
@@ -497,92 +568,91 @@ Widget _pill(String text) => Container(
       ),
     );
   }
-  
+
   void _goFacturacion(DispatchControl control) async {
-   final type = control.invoiceType;
-   final tx   = control.tx;
-   
-  
-   // CASO ESPECIAL: producto exonerado (idproducto == 4)
-  // ==========================================================
-  if (tx?.idproducto == 4) {
-    try {
-      
-      // Actualiza el estado a Exonerado en el backend (si aplica)
-       final cp = Provider.of<CierreActivoProvider>(context, listen: false);
-       
-       //Si la transaccion es de exonerado no se factura se procesa y se marcha completado el despacho
-        
-        tx!.estado ="Exonerado";
+    final type = control.invoiceType;
+    final tx = control.tx;
+
+    // CASO ESPECIAL: producto exonerado (idproducto == 4)
+    // ==========================================================
+    if (tx?.idproducto == 4) {
+      try {
+        // Actualiza el estado a Exonerado en el backend (si aplica)
+        final cp = Provider.of<CierreActivoProvider>(context, listen: false);
+
+        //Si la transaccion es de exonerado no se factura se procesa y se marcha completado el despacho
+
+        tx!.estado = "Exonerado";
         tx.idcierre = cp.cierreFinal!.idcierre!;
-        Response response  = await ApiHelper.put("TransaccionesApi", tx.idtransaccion.toString(), tx.toJson());
+        Response response = await ApiHelper.put(
+            "TransaccionesApi", tx.idtransaccion.toString(), tx.toJson());
 
         if (!response.isSuccess) {
-           if (!mounted) return;
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error al exonerar transacción: ${response.message}')),
+            SnackBar(
+                content:
+                    Text('Error al exonerar transacción: ${response.message}')),
           );
           return;
         } else {
-           if (!mounted) return;
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Transacción exonerada exitosamente')),
           );
           control.markCompleted();
           return;
         }
-            
 
-
-      
-      // Finaliza el proceso visualmente
-    
-    } catch (e) {
-    
+        // Finaliza el proceso visualmente
+      } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al exonerar transacción: $e')),
-      );
+          SnackBar(content: Text('Error al exonerar transacción: $e')),
+        );
+      }
+      return;
     }
-    return;
-  }
 
+    if (type == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Selecciona el tipo de factura para continuar')),
+      );
+      return;
+    }
+    if (tx == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hay transacción para facturar')),
+      );
+      return;
+    }
 
-  if (type == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Selecciona el tipo de factura para continuar')),
-    );
-    return;
-  }
-  if (tx == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('No hay transacción para facturar')),
-    );
-    return;
-  }
+    // 1) Crear factura base (sin agregar aún)
+    final factProv = context.read<FacturasProvider>();
+    final cierreFinal = context.read<CierreActivoProvider>().cierreFinal;
+    final empleado = context.read<CierreActivoProvider>().usuario;
 
-  // 1) Crear factura base (sin agregar aún)
-  final factProv = context.read<FacturasProvider>();
-  final cierreFinal = context.read<CierreActivoProvider>().cierreFinal;
-  final empleado = context.read<CierreActivoProvider>().usuario;
-
-  final invoice  = factProv.newInvoice(type: type, cliente: null, cierre: cierreFinal, empleado: empleado);
+    final invoice = factProv.newInvoice(
+        type: type, cliente: null, cierre: cierreFinal, empleado: empleado);
 
     // Asegura lista mutable
     invoice.detail = (invoice.detail ?? const <Product>[]).toList();
 
-    Response response = await ApiHelper.getTransaccionAsProductById(tx.idtransaccion);
+    Response response =
+        await ApiHelper.getTransaccionAsProductById(tx.idtransaccion);
 
-    if(!mounted) return;
+    if (!mounted) return;
 
     if (!response.isSuccess) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al obtener producto: ${response.message}')),
+        SnackBar(
+            content: Text('Error al obtener producto: ${response.message}')),
       );
       return;
     }
 
     final prod = response.result as Product;
-    
+
     invoice.detail!.add(prod);
 
     // 5) Reaplicar flags por si tu modelo usa booleans
@@ -593,11 +663,11 @@ Widget _pill(String text) => Container(
     widget.d.markCompleted();
     // 7) Navegar pasando índice + control
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => type.screenForWith(index: index, control: control)),
+      MaterialPageRoute(
+          builder: (_) => type.screenForWith(index: index, control: control)),
     );
   }
 }
-
 
 extension InvoiceTypeNav on InvoiceType {
   Widget screenForWith({
@@ -606,24 +676,28 @@ extension InvoiceTypeNav on InvoiceType {
   }) {
     switch (this) {
       case InvoiceType.contado:
-        return CheaOutScreen(index: index,);
+        return CheaOutScreen(
+          index: index,
+        );
       case InvoiceType.ticket:
-        return TicketScreen(index: index, );
+        return TicketScreen(
+          index: index,
+        );
       case InvoiceType.credito:
-        return ProceeeCreditScreen(index: index, );
+        return ProceeeCreditScreen(
+          index: index,
+        );
       case InvoiceType.peddler:
-        return PeddlersAddScreen(index: index, );
+        return PeddlersAddScreen(
+          index: index,
+        );
     }
   }
 
   void applyFlagsTo(dynamic invoice) {
     invoice.isContado = this == InvoiceType.contado;
-    invoice.isTicket  = this == InvoiceType.ticket;
-    invoice.isCredit  = this == InvoiceType.credito;
+    invoice.isTicket = this == InvoiceType.ticket;
+    invoice.isCredit = this == InvoiceType.credito;
     invoice.isPeddler = this == InvoiceType.peddler;
   }
 }
-
-
- 
-

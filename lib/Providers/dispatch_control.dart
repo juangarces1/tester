@@ -5,7 +5,8 @@ import 'package:tester/Models/FuelRed/transaccion.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/helpers/console_api_helper.dart';
 import 'package:tester/helpers/transactions_api_helper.dart';
-import '../ViewModels/new_map.dart' show Fuel, HosePhysical, PositionPhysical;
+import 'package:tester/ViewModels/new_map.dart'
+    show Fuel, HosePhysical, PositionPhysical;
 
 class DispatchControl extends ChangeNotifier {
   final DespachosProvider _provider;
@@ -18,26 +19,24 @@ class DispatchControl extends ChangeNotifier {
     _provider.addListener(_onProviderTick);
   }
 
-
-
-  String?           id;
+  String? id;
   PositionPhysical? selectedPosition;
-  HosePhysical?     selectedHose;
-  InvoiceType?      invoiceType;
-  PresetInfo        preset   = PresetInfo.empty();
-  bool              tankFull = false;
-  Fuel?             fuel;
+  HosePhysical? selectedHose;
+  InvoiceType? invoiceType;
+  PresetInfo preset = PresetInfo.empty();
+  bool tankFull = false;
+  Fuel? fuel;
 
-  int?    type;
-  int?    dispenserId;
-  int?    hoseId;
-  num?    amountRequest;
-  num?    amountDispense;
-  num?    volumenDispense;
-  num?    price;
+  int? type;
+  int? dispenserId;
+  int? hoseId;
+  num? amountRequest;
+  num? amountDispense;
+  num? volumenDispense;
+  num? price;
   String? saleId;
-  int?    productId;
-  int?    saleNumber;
+  int? productId;
+  int? saleNumber;
 
   bool authorizationExpired = false;
   String? _lastUserIdentifier;
@@ -49,22 +48,20 @@ class DispatchControl extends ChangeNotifier {
   bool _loadingLastSale = false;
   bool _persistingTx = false;
   bool _unpaidFlowRunning = false; // candado simple anti-paralelo
-  DateTime? _unpaidEnteredAt; // timestamp para validar que la tx sea del despacho actual
-
-  // Tracking de contadores acumulados del surtidor para obtener progreso relativo
-  double? _dispensedVolume;    // volumen abastecido desde la autorización
-  double? _dispensedAmount;    // monto abastecido desde la autorización
+  DateTime?
+      _unpaidEnteredAt; // timestamp para validar que la tx sea del despacho actual
 
   bool get loadingLastSale => _loadingLastSale;
   bool get persistingTx => _persistingTx;
-  double? get dispensedVolume => _dispensedVolume;
-  double? get dispensedAmount => _dispensedAmount;
 
   DispatchStage stage = DispatchStage.idle;
 
   HoseStatus? _lastObservedHoseStatus;
   Timer? _finishTimer;
-  void _cancelFinishTimer() { _finishTimer?.cancel(); _finishTimer = null; }
+  void _cancelFinishTimer() {
+    _finishTimer?.cancel();
+    _finishTimer = null;
+  }
 
   /// Al terminar la transacción nos desuscribimos automáticamente
   bool autoUnwatchOnTerminal = true;
@@ -77,9 +74,9 @@ class DispatchControl extends ChangeNotifier {
   bool get hasAmountOrTank => tankFull || preset.hasValidValue;
 
   bool get isReadyToAuthorize =>
-      stage == DispatchStage.readyToAuthorize && hoseStatus == HoseStatus.available;
+      stage == DispatchStage.readyToAuthorize &&
+      hoseStatus == HoseStatus.available;
 
- 
   bool get canEditInvoiceType =>
       stage == DispatchStage.authorized ||
       stage == DispatchStage.dispatching ||
@@ -93,15 +90,23 @@ class DispatchControl extends ChangeNotifier {
 
   String? get notReadyReason {
     if (selectedHose == null) return 'Selecciona manguera/posición';
-    if (!hasAmountOrTank)     return 'Indica monto o marca tanque lleno';
-    if (hoseStatus != HoseStatus.available) return 'La manguera no está disponible';
+    if (!hasAmountOrTank) return 'Indica monto o marca tanque lleno';
+    if (hoseStatus != HoseStatus.available) {
+      return 'La manguera no está disponible';
+    }
     return null;
   }
 
   Timer? _authLossTimer;
-  void _cancelAuthLossTimer() { _authLossTimer?.cancel(); _authLossTimer = null; }
+  void _cancelAuthLossTimer() {
+    _authLossTimer?.cancel();
+    _authLossTimer = null;
+  }
 
-  void setFuel(Fuel v) { fuel = v; notifyListeners(); }
+  void setFuel(Fuel v) {
+    fuel = v;
+    notifyListeners();
+  }
 
   void selectPosition(PositionPhysical pos) {
     if (selectedHose != null) {
@@ -115,22 +120,22 @@ class DispatchControl extends ChangeNotifier {
     amountRequest = null;
     authorizationExpired = false;
     _lastObservedHoseStatus = null;
-    _resetTotalsTracking(); // descarta progreso previo al cambiar posición
     _updateStage();
     notifyListeners();
   }
 
-   void setResolver(int? Function(int) r) => _resolveDispenser = r;
+  void setResolver(int? Function(int) r) => _resolveDispenser = r;
 
-  void selectHose({ required PositionPhysical pos, required HosePhysical hose }) {
-    if (selectedHose != null) _provider.removeWatchedHose(selectedHose!.hoseKey);
+  void selectHose({required PositionPhysical pos, required HosePhysical hose}) {
+    if (selectedHose != null) {
+      _provider.removeWatchedHose(selectedHose!.hoseKey);
+    }
     selectedPosition = pos;
-    selectedHose     = hose;
-    fuel             = hose.fuel;
+    selectedHose = hose;
+    fuel = hose.fuel;
     _ensureUnitPriceFromSelection(force: true);
     _provider.addWatchedHose(hose.hoseKey);
     _lastObservedHoseStatus = null;
-    _resetTotalsTracking(); // reinicia el tracking cuando se elige una nueva manguera
     _updateStage();
     _onProviderTick(); // primer sync inmediato
     notifyListeners();
@@ -147,7 +152,6 @@ class DispatchControl extends ChangeNotifier {
     preset = p;
     tankFull = false;
     amountRequest = p.kind == PresetKind.amount ? p.amount : null;
-    _resetTotalsTracking(); // cualquier cambio de preset invalida la medición previa
     _updateStage();
     notifyListeners();
   }
@@ -162,29 +166,26 @@ class DispatchControl extends ChangeNotifier {
 
   void setTankFull(bool value) {
     tankFull = value;
-    if (value) { preset = PresetInfo.empty(); amountRequest = null; }
-    _resetTotalsTracking(); // cambia la estrategia del despacho, reinicia tracking
+    if (value) {
+      preset = PresetInfo.empty();
+      amountRequest = null;
+    }
     _updateStage();
     notifyListeners();
   }
 
   void markReadyToAuthorize() {
-    _stopSimulatedFlowTracking();
-    _resetTotalsTracking(); // asegura que el próximo conteo empiece en cero
     stage = DispatchStage.readyToAuthorize;
     notifyListeners();
   }
 
   void markAuthorizing() {
-    _stopSimulatedFlowTracking();
-    _resetTotalsTracking(); // en authorizing tomamos la primera lectura como baseline
     stage = DispatchStage.authorizing;
     authorizationExpired = false;
     notifyListeners();
   }
 
-  void markAuthorized()  {
-    _stopSimulatedFlowTracking();
+  void markAuthorized() {
     stage = DispatchStage.authorized;
     authorizationExpired = false;
     notifyListeners();
@@ -192,12 +193,10 @@ class DispatchControl extends ChangeNotifier {
 
   void markDispatching() {
     stage = DispatchStage.dispatching;
-    _startSimulatedFlowTracking();
     notifyListeners();
   }
 
   void markCompleted() {
-    _stopSimulatedFlowTracking();
     _cancelFinishTimer();
     stage = DispatchStage.completed;
     if (autoUnwatchOnTerminal) _detachWatcher();
@@ -205,16 +204,13 @@ class DispatchControl extends ChangeNotifier {
     _provider.removeDispatch(this);
   }
 
-  
-
   /// Mock helper to jump into unpaid stage with a sample console transaction.
   void mockUnpaidState({ConsoleTransaction? transaction}) {
     _cancelAuthLossTimer();
     _cancelFinishTimer();
 
     final now = DateTime.now();
-   
-    
+
     final mockTx = transaction ??
         ConsoleTransaction(
           id: 30,
@@ -244,7 +240,6 @@ class DispatchControl extends ChangeNotifier {
           paymentConfirmed: false,
           createdAt: now,
           userEmail: 'operator@example.com',
-          
         );
 
     consoleTx = mockTx;
@@ -255,7 +250,7 @@ class DispatchControl extends ChangeNotifier {
     volumenDispense = mockTx.totalVolume;
     price = mockTx.unitPrice;
     tx = mockTx.toTransaccion(
-      resolveDispenser: _resolveDispenser, 
+      resolveDispenser: _resolveDispenser,
     );
     authorizationExpired = false;
     stage = DispatchStage.unpaid;
@@ -321,8 +316,9 @@ class DispatchControl extends ChangeNotifier {
   Future<void> markUnpaid({Duration? delay}) async {
     if (_unpaidFlowRunning) return;
     _unpaidFlowRunning = true;
-    _stopSimulatedFlowTracking();
-    _unpaidEnteredAt = DateTime.now().toUtc().subtract(const Duration(hours: 6)); // hora Costa Rica (UTC-6)
+    _unpaidEnteredAt = DateTime.now()
+        .toUtc()
+        .subtract(const Duration(hours: 6)); // hora Costa Rica (UTC-6)
 
     try {
       if (stage != DispatchStage.unpaid) {
@@ -351,13 +347,13 @@ class DispatchControl extends ChangeNotifier {
         }
 
         // Guardar datos de consola
-        consoleTx       = fetchedTx;
-        saleId          = fetchedTx.saleId;
-        saleNumber      = fetchedTx.saleNumber;
-        productId       = fetchedTx.fuelCode;
-        amountDispense  = fetchedTx.totalValue;
+        consoleTx = fetchedTx;
+        saleId = fetchedTx.saleId;
+        saleNumber = fetchedTx.saleNumber;
+        productId = fetchedTx.fuelCode;
+        amountDispense = fetchedTx.totalValue;
         volumenDispense = fetchedTx.totalVolume;
-        price           = fetchedTx.unitPrice;
+        price = fetchedTx.unitPrice;
         notifyListeners();
 
         // 2) Bucle BD: esperar que el worker grabe la tx
@@ -405,7 +401,8 @@ class DispatchControl extends ChangeNotifier {
         } else if (s != HoseStatus.authorized) {
           _authLossTimer ??= Timer(const Duration(milliseconds: 600), () {
             final ss = hoseStatus;
-            final sigueAutorizado = (ss == HoseStatus.authorized || ss == HoseStatus.fueling);
+            final sigueAutorizado =
+                (ss == HoseStatus.authorized || ss == HoseStatus.fueling);
             if (stage == DispatchStage.authorized && !sigueAutorizado) {
               authorizationExpired = true;
               markReadyToAuthorize();
@@ -423,7 +420,8 @@ class DispatchControl extends ChangeNotifier {
           markUnpaid();
           break;
         }
-        final leftFueling = s != HoseStatus.fueling && s != HoseStatus.authorized;
+        final leftFueling =
+            s != HoseStatus.fueling && s != HoseStatus.authorized;
         if (leftFueling) {
           _finishTimer ??= Timer(const Duration(milliseconds: 500), () {
             final ss = hoseStatus;
@@ -449,24 +447,29 @@ class DispatchControl extends ChangeNotifier {
 
   void clear() {
     _cancelAuthLossTimer();
-    _stopSimulatedFlowTracking();
     consoleTx = null;
     authorizationExpired = false;
     _lastUserIdentifier = null;
     _unpaidEnteredAt = null;
-    _resetTotalsTracking(); // prepara el control para un uso posterior
     _cancelFinishTimer();
     _detachWatcher();
     selectedPosition = null;
-    selectedHose     = null;
-    invoiceType      = null;
-    preset           = PresetInfo.empty();
-    tankFull         = false;
-    fuel             = null;
-    
-    type = null; dispenserId = null; hoseId = null; amountRequest = null;
-    amountDispense = null; volumenDispense = null; price = null;
-    saleId = null; productId = null; saleNumber = null;
+    selectedHose = null;
+    invoiceType = null;
+    preset = PresetInfo.empty();
+    tankFull = false;
+    fuel = null;
+
+    type = null;
+    dispenserId = null;
+    hoseId = null;
+    amountRequest = null;
+    amountDispense = null;
+    volumenDispense = null;
+    price = null;
+    saleId = null;
+    productId = null;
+    saleNumber = null;
 
     _lastObservedHoseStatus = null;
     stage = DispatchStage.idle;
@@ -482,7 +485,6 @@ class DispatchControl extends ChangeNotifier {
   void dispose() {
     _cancelAuthLossTimer();
     _cancelFinishTimer();
-    _stopSimulatedFlowTracking();
     _detachWatcher();
     _provider.removeListener(_onProviderTick);
     super.dispose();
@@ -490,9 +492,9 @@ class DispatchControl extends ChangeNotifier {
 
   void _updateStage() {
     if (stage == DispatchStage.authorizing ||
-        stage == DispatchStage.authorized  ||
+        stage == DispatchStage.authorized ||
         stage == DispatchStage.dispatching ||
-        stage == DispatchStage.completed   ||
+        stage == DispatchStage.completed ||
         stage == DispatchStage.unpaid) {
       return;
     }
@@ -504,11 +506,6 @@ class DispatchControl extends ChangeNotifier {
     } else {
       stage = DispatchStage.readyToAuthorize;
     }
-  }
-
-  void _resetTotalsTracking() {
-    _dispensedVolume = null;
-    _dispensedAmount = null;
   }
 
   /// Valida que la transacción no sea más vieja que 30 segundos antes de _unpaidEnteredAt.
@@ -534,7 +531,8 @@ class DispatchControl extends ChangeNotifier {
     }
   }
 
-  double? _preferredUnitPriceFor({required HosePhysical hose, InvoiceType? type}) {
+  double? _preferredUnitPriceFor(
+      {required HosePhysical hose, InvoiceType? type}) {
     double? value;
     switch (type) {
       case InvoiceType.credito:
@@ -554,10 +552,6 @@ class DispatchControl extends ChangeNotifier {
     return value;
   }
 
-  // Flujo simulado eliminado - ya no se usa
-  void _startSimulatedFlowTracking() {}
-  void _stopSimulatedFlowTracking() {}
-
   void _onProviderTick() {
     if (selectedHose == null) return;
 
@@ -576,13 +570,25 @@ class DispatchControl extends ChangeNotifier {
 // ====== Enums y modelos de apoyo (igual que antes) ======
 
 enum DispatchStage {
-  idle, hoseSelected, amountOrTankChosen, readyToAuthorize,
-  authorizing, authorized, dispatching, completed, unpaid,
+  idle,
+  hoseSelected,
+  amountOrTankChosen,
+  readyToAuthorize,
+  authorizing,
+  authorized,
+  dispatching,
+  completed,
+  unpaid,
 }
 
 enum InvoiceType {
-  credito(Colors.blue), contado(Colors.red), peddler(Colors.amber), ticket(Colors.green);
-  final Color color; const InvoiceType(this.color);
+  credito(Colors.blue),
+  contado(Colors.red),
+  peddler(Colors.amber),
+  ticket(Colors.green);
+
+  final Color color;
+  const InvoiceType(this.color);
 }
 
 enum PresetKind { amount, volume }
@@ -600,16 +606,27 @@ class PresetInfo {
     required this.volume,
   });
 
-  factory PresetInfo.amount({ required String manguera, required double amount }) {
-    return PresetInfo._(manguera: manguera, kind: PresetKind.amount, amount: amount, volume: null);
+  factory PresetInfo.amount(
+      {required String manguera, required double amount}) {
+    return PresetInfo._(
+        manguera: manguera,
+        kind: PresetKind.amount,
+        amount: amount,
+        volume: null);
   }
 
-  factory PresetInfo.volume({ required String manguera, required double liters }) {
-    return PresetInfo._(manguera: manguera, kind: PresetKind.volume, amount: null, volume: liters);
+  factory PresetInfo.volume(
+      {required String manguera, required double liters}) {
+    return PresetInfo._(
+        manguera: manguera,
+        kind: PresetKind.volume,
+        amount: null,
+        volume: liters);
   }
 
   factory PresetInfo.empty() {
-    return const PresetInfo._(manguera: '', kind: PresetKind.amount, amount: null, volume: null);
+    return const PresetInfo._(
+        manguera: '', kind: PresetKind.amount, amount: null, volume: null);
   }
 
   bool get hasValidValue =>
@@ -621,8 +638,6 @@ class PresetInfo {
 }
 
 extension DispatchControlApi on DispatchControl {
-
-
   /// Reintenta la autorización usando el último usuario que llamó applyPresetAndAuthorize.
   Future<bool> retryAuthorize() async {
     final uid = _lastUserIdentifier;
@@ -646,7 +661,8 @@ extension DispatchControlApi on DispatchControl {
     // --- TANQUE LLENO: PostDispenseV2 solo autoriza la máquina ---
     if (tankFull) {
       try {
-        final ok = await ConsoleApiHelper.postDispenseV2(nozzle, userIdentifier, authorize: true);
+        final ok = await ConsoleApiHelper.postDispenseV2(nozzle, userIdentifier,
+            authorize: true);
         if (ok) {
           markAuthorized();
           return true;
@@ -663,7 +679,6 @@ extension DispatchControlApi on DispatchControl {
     }
     // Truco para probar problema decimales en dispensador
 
-    
     // --- PRESET (monto o volumen): PreDispenseV2 autoriza ---
     final isVolume = preset.isVolume;
     final value = isVolume ? preset.volume! : preset.amount!;
@@ -690,16 +705,14 @@ extension DispatchControlApi on DispatchControl {
       return false;
     }
   }
- 
- 
+
   void _clearConsoleValues() {
-    consoleTx       = null;
-    saleId          = null;
-    saleNumber      = null;
-    productId       = null;
-    amountDispense  = null;
+    consoleTx = null;
+    saleId = null;
+    saleNumber = null;
+    productId = null;
+    amountDispense = null;
     volumenDispense = null;
-    price           = null;
+    price = null;
   }
 }
-  

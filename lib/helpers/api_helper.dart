@@ -859,6 +859,88 @@ class ApiHelper {
     return Response(isSuccess: true, result: clientes);
   }
 
+  static Future<Response> getClienteContadoPaged({
+    int page = 1,
+    int pageSize = 50,
+    int? minId,
+  }) async {
+    try {
+      var queryParams = {
+        'page': page.toString(),
+        'pageSize': pageSize.toString(),
+      };
+
+      if (minId != null && minId > 0) {
+        queryParams['minId'] = minId.toString();
+      }
+
+      var url = Uri.parse('${Constans.getAPIUrl()}/api/Clientes/GetClientsContadoPaged')
+          .replace(queryParameters: queryParams);
+
+      debugPrint('🌐 API Call: $url');
+
+      var response = await http.get(
+        url,
+        headers: {
+          'content-type': 'application/json',
+          'accept': 'application/json',
+        },
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          debugPrint('⏱️ Request timeout after 30 seconds');
+          throw TimeoutException('La petición tardó demasiado tiempo');
+        },
+      );
+
+      debugPrint('📡 Response Status: ${response.statusCode}');
+
+      var body = response.body;
+      if (response.statusCode >= 400) {
+        debugPrint('❌ Error Response: $body');
+        return Response(isSuccess: false, message: body);
+      }
+
+      var decodedJson = jsonDecode(body);
+      if (decodedJson == null) {
+        debugPrint('❌ Response body is null');
+        return Response(isSuccess: false, message: 'Respuesta vacía del servidor');
+      }
+
+      debugPrint('📦 Response structure: ${decodedJson.keys.toList()}');
+
+      // El endpoint devuelve PagedResult<ClienteApi> con estructura:
+      // { "data": [...], "page": 1, "pageSize": 50, "totalRecords": 150, "totalPages": 3 }
+      List<Cliente> clientes = [];
+      var dataList = decodedJson['data'];
+
+      if (dataList != null && dataList is List) {
+        debugPrint('✅ Found ${dataList.length} items in data array');
+        for (var item in dataList) {
+          clientes.add(Cliente.fromJson(item));
+        }
+      } else {
+        debugPrint('⚠️ Data field is null or not a list');
+      }
+
+      var result = {
+        'clientes': clientes,
+        'page': decodedJson['page'] ?? page,
+        'pageSize': decodedJson['pageSize'] ?? pageSize,
+        'totalRecords': decodedJson['totalRecords'] ?? 0,
+        'totalPages': decodedJson['totalPages'] ?? 0,
+      };
+
+      debugPrint('✅ Returning ${clientes.length} clientes, page ${result['page']}/${result['totalPages']}');
+
+      return Response(isSuccess: true, result: result);
+    } catch (e, stackTrace) {
+      debugPrint('💥 Exception in getClienteContadoPaged: $e');
+      debugPrint('Stack trace: $stackTrace');
+      return Response(isSuccess: false, message: 'Exception: ${e.toString()}');
+    }
+  }
+
   static Future<Response> getClientesTransfer() async {
     var url =
         Uri.parse('${Constans.getAPIUrl()}/api/Otros/GetClientesSanGerardo');

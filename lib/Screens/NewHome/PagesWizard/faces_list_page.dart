@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/Providers/despachos_provider.dart';
-import 'package:tester/ViewModels/dispatch_control.dart';
+import 'package:tester/Providers/dispatch_control.dart';
 import 'package:tester/ViewModels/new_map.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/position_hoses_page.dart';
 
@@ -42,7 +41,7 @@ class _FacesListPageState extends State<FacesListPage> {
     if (_loadingInFlight) return;
     _loadingInFlight = true;
     try {
-      await context.read<MapProvider>().loadMap(strictPhysicalOnly: true);
+      await context.read<MapProvider>().loadMapDirect();
     } finally {
       if (mounted) {
         setState(() {
@@ -56,20 +55,47 @@ class _FacesListPageState extends State<FacesListPage> {
   @override
   Widget build(BuildContext context) {
     final mapProv = context.watch<MapProvider>();
-    final despachosProv = context.read<DespachosProvider>();
-    final DispatchControl dispatch = despachosProv.getById(widget.dispatchId)!;
+    final despachosProv = context.watch<DespachosProvider>();
+    final DispatchControl? dispatch = despachosProv.getById(widget.dispatchId);
 
-    if (mapProv.isError && !mapProv.toastShown) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Fluttertoast.showToast(
-          msg: 'No se pudo cargar el mapa',
-          gravity: ToastGravity.CENTER,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-          toastLength: Toast.LENGTH_LONG,
-        );
-      });
-      mapProv.markToastShown();
+    // If dispatch is null, the dispatch was removed or provider was reset
+    if (dispatch == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF121212),
+        appBar: AppBar(
+          title: const Text('Error',
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline,
+                  size: 64, color: Colors.redAccent),
+              const SizedBox(height: 16),
+              const Text(
+                'El despacho ya no existe',
+                style: TextStyle(color: Colors.white70, fontSize: 18),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Por favor, regresa e intenta de nuevo',
+                style: TextStyle(color: Colors.white54, fontSize: 14),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Regresar'),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     final map = mapProv.stationMap;
@@ -140,7 +166,7 @@ class _FacesListPageState extends State<FacesListPage> {
                       ? ListView(
                           physics: const AlwaysScrollableScrollPhysics(),
                           children: const [
-                            SizedBox(height: 120),
+                            SizedBox(height: 110),
                             Icon(Icons.ev_station,
                                 size: 64, color: Colors.white38),
                             SizedBox(height: 12),
@@ -163,9 +189,9 @@ class _FacesListPageState extends State<FacesListPage> {
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 16,
-                            childAspectRatio: 0.85, // Reverted to compact size
+                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 10,
+                            childAspectRatio: 0.95, // Reverted to compact size
                           ),
                           itemCount: positions.length,
                           itemBuilder: (_, index) {
@@ -262,7 +288,7 @@ class _PositionCard extends StatelessWidget {
           children: [
             // Dominant Color Block (65%)
             Expanded(
-              flex: 65,
+              flex: 62,
               child: Container(
                 width: double.infinity,
                 color: enabled ? baseColor : baseColor.withValues(alpha: 0.2),
@@ -279,7 +305,7 @@ class _PositionCard extends StatelessWidget {
                     ),
                     Center(
                       child: Text(
-                        position.number.toString().padLeft(2, '0'),
+                        'D ${position.number.toString().padLeft(2, '0')}',
                         style: TextStyle(
                           color: onBaseColor,
                           fontSize: 50, // Increased by ~15% (from 42)
@@ -293,34 +319,34 @@ class _PositionCard extends StatelessWidget {
             ),
             // Status/Info Footer (35%)
             Expanded(
-              flex: 35,
+              flex: 38,
               child: Container(
                 width: double.infinity,
                 color: Colors.white,
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      'POSICIÓN ${position.number}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
+                    // Text(
+                    //   'POSICIÓN ${position.number}',
+                    //   maxLines: 1,
+                    //   overflow: TextOverflow.ellipsis,
+                    //   style: const TextStyle(
+                    //     color: Colors.black87,
+                    //     fontWeight: FontWeight.bold,
+                    //     fontSize: 13,
+                    //     letterSpacing: 0.5,
+                    //   ),
+                    // ),
+                    // const SizedBox(height: 2),
                     Text(
                       status.toUpperCase(),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: darkStatusColor,
-                        fontSize: 11,
+                        fontSize: 13,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.8,
                       ),
@@ -333,7 +359,7 @@ class _PositionCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: darkStatusColor,
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 0.5,
                         ),

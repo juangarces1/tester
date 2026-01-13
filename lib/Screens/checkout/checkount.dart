@@ -128,9 +128,6 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
     });
 
     SizeConfig().init(context);
-    // final double keyboardInset = MediaQuery.of(context).viewInsets.bottom;
-    // final bool isKeyboardVisible = keyboardInset > 0;
-    // const double bottomOffset = 15;
 
     return SafeArea(
       child: Scaffold(
@@ -157,7 +154,6 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                         CartInlineCompact(
                           index: widget.index,
                           onAddTransactions: () => TransaccionesSheet.open(
-                           
                             context: context,
                             zona: factura.cierre!.idzona!,
                             onItemSelected: (p) {
@@ -182,19 +178,18 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
 
                         const SizedBox(height: 5),
                         // Pasa SIEMPRE la del provider
-                         FormPago(
+                        FormPago(
                           key: formPagoKey,
                           index: widget.index,
                           fontColor: kNewtextPri,
                           ruta: 'Contado',
                           expansibleController: _pagoCtrl, // ðŸ‘ˆ pÃ¡salo
                         ),
-                        
-                       
+
                         const SizedBox(height: 5),
                         signUpForm(factura),
-                       const SizedBox(height: 5),
-                     factura.total > 0 ? showTotal(factura) : Container(),
+                        const SizedBox(height: 5),
+                        factura.total > 0 ? showTotal(factura) : Container(),
                         //  SizedBox(height: 20),
 
                         // Elegibilidad del CTA SIEMPRE con la del provider
@@ -219,18 +214,15 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                   ),
                 ),
               ),
-            
               _showLoader
                   ? const LoaderComponent(loadingText: "Creando Factura...")
                   : Container(),
             ],
           ),
         ),
-      
       ),
     );
   }
-
 
   void onItemSelected(Product product) {
     final prov = context.read<FacturasProvider>();
@@ -279,148 +271,150 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
       inputDecorationTheme: inputTheme,
     );
 
-    return Container(
-      decoration: BoxDecoration(
-        color: kNewsurface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: kNewborder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.22),
-            blurRadius: 20,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: ExpansionTile(
-      
-        backgroundColor: Colors.transparent,
-        collapsedBackgroundColor: Colors.transparent,
-        tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-        title: const Text(
-          'Cliente y Otros Campos',
-          style: TextStyle(
-            color: kNewtextPri,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-        iconColor: kNewtextPri,
-        collapsedIconColor: kNewtextPri,
-        children: [
-          Container(
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF111825), Color(0xFF0B101B)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(18),
-                bottomRight: Radius.circular(18),
-              ),
+    return Theme(
+      data: theme,
+      child: Container(
+        decoration: BoxDecoration(
+          color: kNewsurface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: kNewborder),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 20,
+              offset: const Offset(0, 12),
             ),
-            padding: const EdgeInsets.symmetric(vertical: 18),
-            child: Column(
-              children: [
-               
-              
-                ShowClient(
-                  tipo: ClienteTipo.contado,
-                  factura: factura, // â† provider
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+          ],
+        ),
+        child: ExpansionTile(
+          backgroundColor: Colors.transparent,
+          collapsedBackgroundColor: Colors.transparent,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+          title: const Text(
+            'Cliente y Otros Campos',
+            style: TextStyle(
+              color: kNewtextPri,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+          iconColor: kNewtextPri,
+          collapsedIconColor: kNewtextPri,
+          children: [
+            Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF111825), Color(0xFF0B101B)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-              
-                  
-                if (factura.formPago!.clienteFactura.nombre.isNotEmpty)
-                  Padding(
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(18),
+                  bottomRight: Radius.circular(18),
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              child: Column(
+                children: [
+                  ShowClient(
+                    tipo: ClienteTipo.contado,
+                    factura: factura, // â† provider
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: ShowEmail(
-                      email: factura.formPago!.clienteFactura.email,
-                      backgroundColor: kNewsurfaceHi,
-                    ),
                   ),
-                if (factura.tieneCodigoActividad)                
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: ShowActividadSelect(
-                      actividad: factura
-                          .formPago!.clienteFactura.actividadSeleccionada!,
+
+                  if (factura.formPago!.clienteFactura.nombre.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: ShowEmail(
+                        email: factura.formPago!.clienteFactura.email,
+                        backgroundColor: kNewsurfaceHi,
+                      ),
                     ),
-                  ),
-                    const SizedBox(height: 10),
+                  if (factura.tieneCodigoActividad)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: ShowActividadSelect(
+                        actividad: factura
+                            .formPago!.clienteFactura.actividadSeleccionada!,
+                      ),
+                    ),
+                  const SizedBox(height: 10),
                   //  Padding(
                   //   padding:const EdgeInsets.symmetric(horizontal: 20),
                   //   child: ClientPoints(factura: factura, ruta: 'Contado'),
                   // ),
-                   const SizedBox(height: 10),
-                OutlinedButton.icon(       
-                   icon: const Icon(Icons.more_horiz, color: kNewtextPri), 
-                   label: const Text('Otros Campos  ', style: TextStyle(color: kNewtextPri, fontWeight: FontWeight.w700)),                     
-                   style: OutlinedButton.styleFrom(                      
-                     side: const BorderSide(color: kNewborder),                      
-                      backgroundColor: kNewsurfaceHi,                       
-                      padding: const EdgeInsets.symmetric(vertical: 12),                       
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),                     
-                      ),                     
-                    onPressed: () => _openOtrosCamposModal(factura),                   
-                    ),  
-               
-               
-               
-               // _otrosCamposSummary(factura),
-                                  
-              ],
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.more_horiz, color: kNewtextPri),
+                    label: const Text('Otros Campos  ',
+                        style: TextStyle(
+                            color: kNewtextPri, fontWeight: FontWeight.w700)),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: kNewborder),
+                      backgroundColor: kNewsurfaceHi,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () => _openOtrosCamposModal(factura),
+                  ),
+
+                  // _otrosCamposSummary(factura),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-   Widget showTotal(Invoice factura) {
- return SafeArea(
-  child: Padding(
-    padding:
-        EdgeInsets.symmetric(horizontal: getProportionateScreenWidth(20)),
-    child:
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text.rich(           
-            
-            TextSpan(
-              
-              text: "Total:\n",
-                style: const TextStyle(fontSize: 22, color: kNewtextPri, fontWeight: FontWeight.bold ),
-              children: [
-                TextSpan(
-                  text: " ${VariosHelpers.formattedToCurrencyValue(factura.total.toString())}",
-                  style: const TextStyle(fontSize: 22, color: kNewtextPri, fontWeight: FontWeight.bold ),
-                ),
-              ],
+  Widget showTotal(Invoice factura) {
+    return SafeArea(
+      child: Padding(
+        padding:
+            EdgeInsets.symmetric(horizontal: getProportionateScreenWidth(20)),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text.rich(
+              TextSpan(
+                text: "Total:\n",
+                style: const TextStyle(
+                    fontSize: 22,
+                    color: kNewtextPri,
+                    fontWeight: FontWeight.bold),
+                children: [
+                  TextSpan(
+                    text:
+                        " ${VariosHelpers.formattedToCurrencyValue(factura.total.toString())}",
+                    style: const TextStyle(
+                        fontSize: 22,
+                        color: kNewtextPri,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
-          ),
-        
-            factura.detail!.isNotEmpty && 
-             factura.formPago!.clienteFactura.nombre.isNotEmpty  && 
-             factura.saldo == 0 ? 
-                        SizedBox(
-                           width: getProportionateScreenWidth(150),
-                          child: DefaultButton(
-                          text: "Facturar",
-                          press: () => goFact(factura), 
-                          gradient: kPrimaryGradientColor,  
-                          color: kPrimaryColor,           
-                          ),
-                        )                
-                        : Container(),
-        ],
+            factura.detail!.isNotEmpty &&
+                    factura.formPago!.clienteFactura.nombre.isNotEmpty &&
+                    factura.saldo == 0
+                ? SizedBox(
+                    width: getProportionateScreenWidth(150),
+                    child: DefaultButton(
+                      text: "Facturar",
+                      press: () => goFact(factura),
+                      gradient: kPrimaryGradientColor,
+                      color: kPrimaryColor,
+                    ),
+                  )
+                : Container(),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   // Campos: mutan SIEMPRE la del provider (vÃ­a servicio)
   Widget showkms(Invoice factura) {
@@ -555,14 +549,14 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
             //     ),
             //   ),
             // ),
-               const Text(
-                'Contado',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: kNewtextPri,
-                ),
+            const Text(
+              'Contado',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: kNewtextPri,
               ),
+            ),
             const Spacer(),
             Container(
               padding: const EdgeInsets.only(top: 8, right: 5),
@@ -572,7 +566,6 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                
                   Text(
                     "Saldo: ${VariosHelpers.formattedToCurrencyValue(facturaApp.saldo.toString())}",
                     style: const TextStyle(
@@ -672,26 +665,24 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
     final Factura resdocFactura = Factura.fromJson(decodedJson);
     resdocFactura.usuario = facturaApp.empleado?.nombreCompleto;
 
-    if(facturaApp.acumulaPuntos){
+    if (facturaApp.acumulaPuntos) {
       await _handleAcumulaPuntosPrint(
-        facturaApp, 
+        facturaApp,
         facturaApp.empleado?.nombreCompleto ?? '',
-        );
+      );
     }
 
-    if(facturaApp.tieneTransferencia){
+    if (facturaApp.tieneTransferencia) {
       await _handleTransferenciaPrint(facturaApp);
     }
 
-    if(facturaApp.canjeaPuntos){
+    if (facturaApp.canjeaPuntos) {
       await _handleCanjeaPuntosPrint(facturaApp);
     }
 
-    if(facturaApp.tieneSinpe){
+    if (facturaApp.tieneSinpe) {
       await _handleSinpePrint(facturaApp);
     }
-
-
 
     if (!mounted) return;
 
@@ -699,8 +690,6 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
     if (shouldPrint) {
       await _handleFacturaPrint(resdocFactura);
     }
-
-    
 
     await _goHomeSuccess(facturaApp);
   }
@@ -731,7 +720,6 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
 
   Future<void> _handleFacturaPrint(Factura factura) async {
     const String tipoDocumento = 'CONTADO';
-   
 
     const String tipoCliente = 'CONTADO';
 
@@ -739,54 +727,57 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
       final tp = TestPrint(totalChars: 32);
       Fluttertoast.showToast(msg: 'Factura enviada a impresion');
       await tp.printFactura(factura, tipoDocumento, tipoCliente);
-    
     } catch (err, st) {
       debugPrint('handleFacturaPrint error: $err\n$st');
       Fluttertoast.showToast(msg: 'Error al imprimir la factura');
     }
   }
 
-   Future<void> _handleAcumulaPuntosPrint(Invoice facturaC, String pistero,) async {
+  Future<void> _handleAcumulaPuntosPrint(
+    Invoice facturaC,
+    String pistero,
+  ) async {
     try {
-      final tp = TestPrint(totalChars: 32);     
+      final tp = TestPrint(totalChars: 32);
       await tp.printPuntosAcumulados(
         facturaC.formPago!.clientePuntos.nombre,
         pistero,
         facturaC.formPago!.clientePuntos.documento,
-        facturaC.detail!,       
-       );
-    
+        facturaC.detail!,
+      );
     } catch (err, st) {
       debugPrint('handleAcumulaPuntosPrint error: $err\n$st');
       Fluttertoast.showToast(msg: 'Error al imprimir los puntos acumulados');
     }
   }
 
-   Future<void> _handleCanjeaPuntosPrint(Invoice facturaC,) async {
+  Future<void> _handleCanjeaPuntosPrint(
+    Invoice facturaC,
+  ) async {
     try {
-      final tp = TestPrint(totalChars: 32);     
+      final tp = TestPrint(totalChars: 32);
       await tp.printPuntosCanje(
         facturaC.formPago!.clientePuntos.nombre,
         facturaC.empleado!.nombreCompleto,
         facturaC.formPago!.clientePuntos.puntos,
         facturaC.formPago!.clientePuntos.documento,
         facturaC.formPago!.totalPuntos,
-       );
-    
+      );
     } catch (err, st) {
       debugPrint('handleCanjeaPuntosPrint error: $err\n$st');
       Fluttertoast.showToast(msg: 'Error al imprimir los puntos canjeados');
     }
   }
 
-   Future<void> _handleSinpePrint(Invoice facturaC,) async {
+  Future<void> _handleSinpePrint(
+    Invoice facturaC,
+  ) async {
     try {
-      final tp = TestPrint(totalChars: 32);     
+      final tp = TestPrint(totalChars: 32);
       await tp.printSinpe(
         facturaC.formPago!.sinpe,
-        facturaC.empleado!.nombreCompleto,      
-       );
-    
+        facturaC.empleado!.nombreCompleto,
+      );
     } catch (err, st) {
       debugPrint('handleSinpePrint error: $err\n$st');
       Fluttertoast.showToast(msg: 'Error al imprimir el SINPE');
@@ -798,9 +789,8 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
       final tp = TestPrint(totalChars: 32);
       await tp.printTransferencia(
         facturaC.formPago!.transfer,
-        facturaC.empleado!.nombreCompleto,    
-       );
-    
+        facturaC.empleado!.nombreCompleto,
+      );
     } catch (err, st) {
       debugPrint('handleTransferenciaPrint error: $err\n$st');
       Fluttertoast.showToast(msg: 'Error al imprimir la transferencia');
@@ -814,7 +804,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
   }
 
   void _openOtrosCamposModal(Invoice factura) async {
-     final inputTheme = InputDecorationTheme(
+    final inputTheme = InputDecorationTheme(
       filled: true,
       fillColor: kNewsurfaceHi,
       labelStyle: const TextStyle(
@@ -847,197 +837,210 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
       inputDecorationTheme: inputTheme,
     );
 
+    FocusScope.of(context).unfocus(); // cierra teclado en la pantalla base
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final bottom = MediaQuery.of(ctx).viewInsets.bottom;
 
-  FocusScope.of(context).unfocus(); // cierra teclado en la pantalla base
-  await showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (ctx) {
-      final bottom = MediaQuery.of(ctx).viewInsets.bottom;
-    
-
-      return Padding(
-        padding: EdgeInsets.only(bottom: bottom),
-        child: Container(
-          decoration: BoxDecoration(
-            color: kNewsurface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-            border: Border.all(color: kNewborder),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.22),
-                blurRadius: 20,
-                offset: const Offset(0, 12),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Handle
-                Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 14),
-                  decoration: BoxDecoration(
-                    color: kNewborder,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const Text(
-                  'Otros campos de la factura',
-                  style: TextStyle(
-                    color: kNewtextPri,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // KMS
-                Theme(
-                  data: theme,
-                  child: TextField(
-                    style: const TextStyle(color: kNewtextPri, fontWeight: FontWeight.w600),
-                    cursorColor: kNewgreen,
-                    controller: kms,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9]'))],
-                    decoration: const InputDecoration(
-                      hintText: 'Ingrese los kms',
-                      labelText: 'Kms',
-                      suffixIcon: Icon(Icons.car_repair_rounded),
-                      
-                    ),
-                   
-                    onChanged: (value) {
-                      final inv = context.read<FacturasProvider>().getInvoiceByIndex(widget.index);
-                      inv.kms = (value.isEmpty) ? 0 : int.parse(value);
-                      FacturaService.updateFactura(context, inv);
-                    },
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                // PLACA
-                Theme(
-                  data: theme,
-                  child: TextField(
-                    style: const TextStyle(color: kNewtextPri, fontWeight: FontWeight.w600),
-                    cursorColor: kNewgreen,
-                    controller: placa,
-                    textCapitalization: TextCapitalization.characters,
-                    decoration: const InputDecoration(
-                      labelText: 'Placa',
-                      hintText: 'Ingrese la Placa',
-                      suffixIcon: Icon(Icons.local_shipping_outlined),
-                    ),
-                    onChanged: (value) {
-                      final inv = context.read<FacturasProvider>().getInvoiceByIndex(widget.index);
-                      inv.placa = value;
-                      FacturaService.updateFactura(context, inv);
-                    },
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                // OBSERVACIONES
-                Theme(
-                  data: theme,
-                  child: TextField(
-                    style: const TextStyle(color: kNewtextPri, fontWeight: FontWeight.w600),
-                    cursorColor: kNewgreen,
-                    controller: obser,
-                    minLines: 2,
-                    maxLines: 4,
-                    decoration: const InputDecoration(
-                      labelText: 'Observaciones',
-                      hintText: 'Ingrese las Observaciones',
-                      suffixIcon: Icon(Icons.notes_outlined),
-                    ),
-                    onChanged: (value) {
-                      final inv = context.read<FacturasProvider>().getInvoiceByIndex(widget.index);
-                      inv.observaciones = value;
-                      FacturaService.updateFactura(context, inv);
-                    },
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: kNewborder),
-                          foregroundColor: kNewtextPri,
-                        ),
-                        onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Cancelar'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: kPrimaryColor,
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: () {
-                          // Asegura última sincronía con Provider
-                          final inv = context.read<FacturasProvider>().getInvoiceByIndex(widget.index);
-                          inv.kms = (kms.text.isEmpty) ? 0 : int.parse(kms.text);
-                          inv.placa = placa.text;
-                          inv.observaciones = obser.text;
-                          FacturaService.updateFactura(context, inv);
-                          Navigator.pop(ctx);
-                        },
-                        child: const Text('Guardar'),
-                      ),
-                    ),
-                  ],
+        return Padding(
+          padding: EdgeInsets.only(bottom: bottom),
+          child: Container(
+            decoration: BoxDecoration(
+              color: kNewsurface,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(18)),
+              border: Border.all(color: kNewborder),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.22),
+                  blurRadius: 20,
+                  offset: const Offset(0, 12),
                 ),
               ],
             ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Handle
+                  Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 14),
+                    decoration: BoxDecoration(
+                      color: kNewborder,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const Text(
+                    'Otros campos de la factura',
+                    style: TextStyle(
+                      color: kNewtextPri,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // KMS
+                  Theme(
+                    data: theme,
+                    child: TextField(
+                      style: const TextStyle(
+                          color: kNewtextPri, fontWeight: FontWeight.w600),
+                      cursorColor: kNewgreen,
+                      controller: kms,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9]'))
+                      ],
+                      decoration: const InputDecoration(
+                        hintText: 'Ingrese los kms',
+                        labelText: 'Kms',
+                        suffixIcon: Icon(Icons.car_repair_rounded),
+                      ),
+                      onChanged: (value) {
+                        final inv = context
+                            .read<FacturasProvider>()
+                            .getInvoiceByIndex(widget.index);
+                        inv.kms = (value.isEmpty) ? 0 : int.parse(value);
+                        FacturaService.updateFactura(context, inv);
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // PLACA
+                  Theme(
+                    data: theme,
+                    child: TextField(
+                      style: const TextStyle(
+                          color: kNewtextPri, fontWeight: FontWeight.w600),
+                      cursorColor: kNewgreen,
+                      controller: placa,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: const InputDecoration(
+                        labelText: 'Placa',
+                        hintText: 'Ingrese la Placa',
+                        suffixIcon: Icon(Icons.local_shipping_outlined),
+                      ),
+                      onChanged: (value) {
+                        final inv = context
+                            .read<FacturasProvider>()
+                            .getInvoiceByIndex(widget.index);
+                        inv.placa = value;
+                        FacturaService.updateFactura(context, inv);
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // OBSERVACIONES
+                  Theme(
+                    data: theme,
+                    child: TextField(
+                      style: const TextStyle(
+                          color: kNewtextPri, fontWeight: FontWeight.w600),
+                      cursorColor: kNewgreen,
+                      controller: obser,
+                      minLines: 2,
+                      maxLines: 4,
+                      decoration: const InputDecoration(
+                        labelText: 'Observaciones',
+                        hintText: 'Ingrese las Observaciones',
+                        suffixIcon: Icon(Icons.notes_outlined),
+                      ),
+                      onChanged: (value) {
+                        final inv = context
+                            .read<FacturasProvider>()
+                            .getInvoiceByIndex(widget.index);
+                        inv.observaciones = value;
+                        FacturaService.updateFactura(context, inv);
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: kNewborder),
+                            foregroundColor: kNewtextPri,
+                          ),
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Cancelar'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: kPrimaryColor,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () {
+                            // Asegura última sincronía con Provider
+                            final inv = context
+                                .read<FacturasProvider>()
+                                .getInvoiceByIndex(widget.index);
+                            inv.kms =
+                                (kms.text.isEmpty) ? 0 : int.parse(kms.text);
+                            inv.placa = placa.text;
+                            inv.observaciones = obser.text;
+                            FacturaService.updateFactura(context, inv);
+                            Navigator.pop(ctx);
+                          },
+                          child: const Text('Guardar'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
-Widget _otrosCamposSummary(Invoice f) {
-  final chips = <Widget>[];
-  if ((f.kms ?? 0) > 0) {
-    chips.add(_miniChip('Kms: ${f.kms}'));
+  Widget _otrosCamposSummary(Invoice f) {
+    final chips = <Widget>[];
+    if ((f.kms ?? 0) > 0) {
+      chips.add(_miniChip('Kms: ${f.kms}'));
+    }
+    if ((f.placa ?? '').trim().isNotEmpty) {
+      chips.add(_miniChip('Placa: ${f.placa!.toUpperCase()}'));
+    }
+    if ((f.observaciones ?? '').trim().isNotEmpty) {
+      chips.add(_miniChip('Obs.'));
+    }
+    if (chips.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Wrap(spacing: 8, runSpacing: 6, children: chips),
+    );
   }
-  if ((f.placa ?? '').trim().isNotEmpty) {
-    chips.add(_miniChip('Placa: ${f.placa!.toUpperCase()}'));
-  }
-  if ((f.observaciones ?? '').trim().isNotEmpty) {
-    chips.add(_miniChip('Obs.'));
-  }
-  if (chips.isEmpty) {
-    return const SizedBox.shrink();
-  }
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 20),
-    child: Wrap(spacing: 8, runSpacing: 6, children: chips),
-  );
-}
 
-Widget _miniChip(String text) {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-    decoration: BoxDecoration(
-      color: kNewsurfaceHi,
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: kNewborder),
-    ),
-    child: Text(text, style: const TextStyle(color: kNewtextSec, fontWeight: FontWeight.w600)),
-  );
-}
+  Widget _miniChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: kNewsurfaceHi,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: kNewborder),
+      ),
+      child: Text(text,
+          style:
+              const TextStyle(color: kNewtextSec, fontWeight: FontWeight.w600)),
+    );
+  }
 }

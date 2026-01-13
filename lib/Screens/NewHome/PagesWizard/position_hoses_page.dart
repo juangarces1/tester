@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/ViewModels/new_map.dart';
 import 'package:tester/Providers/despachos_provider.dart';
-import 'package:tester/ViewModels/dispatch_control.dart';
+import 'package:tester/Providers/dispatch_control.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/preset_kind_page.dart';
 
@@ -30,14 +30,13 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshMap());
   }
 
   Future<void> _refreshMap() async {
     if (_loadingInFlight) return;
     setState(() => _loadingInFlight = true);
     try {
-      await context.read<MapProvider>().loadMap(strictPhysicalOnly: true);
+      await context.read<MapProvider>().loadMapDirect();
     } finally {
       if (mounted) {
         setState(() => _loadingInFlight = false);

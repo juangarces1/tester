@@ -2,7 +2,6 @@
 import 'dart:collection';
 import 'package:flutter/material.dart';
 
-
 import 'package:tester/Models/Facturaccion/invoice.dart';
 import 'package:tester/Models/FuelRed/cierrefinal.dart';
 import 'package:tester/Models/FuelRed/cliente.dart';
@@ -13,14 +12,13 @@ import 'package:tester/Models/FuelRed/sinpe.dart';
 import 'package:tester/Models/FuelRed/transferencia.dart';
 
 // Si quieres usar el enum para setear flags:
-import 'package:tester/ViewModels/dispatch_control.dart' show InvoiceType;
+import 'package:tester/Providers/dispatch_control.dart' show InvoiceType;
 
 class FacturasProvider with ChangeNotifier {
   final List<Invoice> _facturas = <Invoice>[];
 
   /// Lista de solo lectura para la UI
-  UnmodifiableListView<Invoice> get facturas =>
-      UnmodifiableListView(_facturas);
+  UnmodifiableListView<Invoice> get facturas => UnmodifiableListView(_facturas);
 
   int get count => _facturas.length;
 
@@ -56,8 +54,13 @@ class FacturasProvider with ChangeNotifier {
   /// Crea una nueva factura **sin** agregarla a la lista.
   /// Puedes pasar el [type] (InvoiceType de DispatchControl) para setear los flags,
   /// y/o un [cliente] inicial si ya lo tienes.
-  Invoice newInvoice({InvoiceType? type, Cliente? cliente, CierreFinal? cierre, Empleado? empleado}) {
-    final inv = _buildEmptyInvoice(cliente: cliente, cierre: cierre, empleado: empleado);
+  Invoice newInvoice(
+      {InvoiceType? type,
+      Cliente? cliente,
+      CierreFinal? cierre,
+      Empleado? empleado}) {
+    final inv = _buildEmptyInvoice(
+        cliente: cliente, cierre: cierre, empleado: empleado);
     _applyInvoiceTypeFlags(inv, type);
     return inv;
   }
@@ -72,16 +75,15 @@ class FacturasProvider with ChangeNotifier {
   // Helpers internos
   // ---------------------------------------------------------------------------
 
-  Invoice _buildEmptyInvoice({Cliente? cliente, CierreFinal? cierre, Empleado? empleado}) {
+  Invoice _buildEmptyInvoice(
+      {Cliente? cliente, CierreFinal? cierre, Empleado? empleado}) {
     final clienteVacio = cliente ?? _emptyCliente();
-
-    
 
     return Invoice(
       kms: 0,
       observaciones: '',
       placa: '',
-      detail: const [],      // ajusta si necesitas lista mutable
+      detail: const [], // ajusta si necesitas lista mutable
       empleado: empleado,
       cierre: cierre,
       formPago: Paid(
@@ -124,7 +126,8 @@ class FacturasProvider with ChangeNotifier {
       isTicket: false,
       isContado: false,
       isPromo: false,
-      peddler: Peddler(placa: '', km: '', chofer: '', observaciones: '', orden: ''),
+      peddler:
+          Peddler(placa: '', km: '', chofer: '', observaciones: '', orden: ''),
     );
   }
 
@@ -142,15 +145,15 @@ class FacturasProvider with ChangeNotifier {
   void _applyInvoiceTypeFlags(Invoice invoice, InvoiceType? type) {
     if (type == null) return;
     invoice.isContado = type == InvoiceType.contado;
-    invoice.isTicket  = type == InvoiceType.ticket;
-    invoice.isCredit  = type == InvoiceType.credito;
+    invoice.isTicket = type == InvoiceType.ticket;
+    invoice.isCredit = type == InvoiceType.credito;
     invoice.isPeddler = type == InvoiceType.peddler;
     // Si tu modelo Invoice tiene un campo enum propio, mejor guarda también:
     // invoice.invoiceType = type;
   }
 
   void reset() {
-    _facturas.clear();      // limpia todas las facturas cargadas o creadas
-    notifyListeners();      // fuerza reconstrucción de widgets dependientes
+    _facturas.clear(); // limpia todas las facturas cargadas o creadas
+    notifyListeners(); // fuerza reconstrucción de widgets dependientes
   }
 }

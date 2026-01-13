@@ -4,14 +4,14 @@ import 'package:tester/Providers/despachos_provider.dart'; // nuevo provider
 import 'package:tester/Screens/NewHome/Components/dispatch_card.dart';
 
 import 'package:tester/Screens/NewHome/PagesWizard/faces_list_page.dart';
-import 'package:tester/ViewModels/dispatch_control.dart';
+import 'package:tester/Providers/dispatch_control.dart';
 
 class MenuPage extends StatelessWidget {
   const MenuPage({super.key});
 
- bool _canDelete(DispatchControl d) {
-  return d.hoseStatus != HoseStatus.authorized;
-}
+  bool _canDelete(DispatchControl d) {
+    return d.hoseStatus != HoseStatus.authorized;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +24,8 @@ class MenuPage extends StatelessWidget {
         appBar: AppBar(
           title: const Text(
             'Despachos Activos',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+            style: TextStyle(
+                fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
           ),
           backgroundColor: Colors.black,
           actions: [
@@ -75,7 +76,9 @@ class MenuPage extends StatelessWidget {
                     confirmDismiss: (direction) async {
                       if (!_canDelete(d)) {
                         ScaffoldMessenger.of(ctx).showSnackBar(
-                          const SnackBar(content: Text('No se puede eliminar un despacho autorizado')),
+                          const SnackBar(
+                              content: Text(
+                                  'No se puede eliminar un despacho autorizado')),
                         );
                         return false;
                       }
@@ -83,7 +86,8 @@ class MenuPage extends StatelessWidget {
                         context: ctx,
                         builder: (_) => AlertDialog(
                           title: const Text('Eliminar despacho'),
-                          content: const Text('¿Seguro que deseas eliminar este despacho?'),
+                          content: const Text(
+                              '¿Seguro que deseas eliminar este despacho?'),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(ctx, false),

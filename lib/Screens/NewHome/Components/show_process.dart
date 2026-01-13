@@ -22,7 +22,7 @@ import 'package:tester/sizeconfig.dart';
 
 extension LegacyTxToProduct on Transaccion {
   Product toInvoiceProduct({
-    required String codigoArticulo,      // SKU inventario
+    required String codigoArticulo, // SKU inventario
     String tipoArticulo = 'Combustible',
     String unidad = 'L',
     String? detalle,
@@ -45,16 +45,14 @@ extension LegacyTxToProduct on Transaccion {
 
     return Product(
       cantidad: volumen,
-   
       codigoArticulo: codigoArticulo,
-   
       detalle: desc,
-      precioUnit: preciounitario.toDouble(),    
+      precioUnit: preciounitario.toDouble(),
       subtotal: total.toDouble() - impMonto,
       tasaImp: tasaImp,
       impMonto: impMonto,
-      total: total.toDouble(),    
-      transaccion: idtransaccion,        
+      total: total.toDouble(),
+      transaccion: idtransaccion,
       dispensador: dispensador,
       imageUrl: imageUrl,
       inventario: inventario,
@@ -65,10 +63,8 @@ extension LegacyTxToProduct on Transaccion {
 }
 
 class ShowProcessMenu extends StatefulWidget {
-  
-
   const ShowProcessMenu({
-    super.key,    
+    super.key,
   });
 
   @override
@@ -77,6 +73,7 @@ class ShowProcessMenu extends StatefulWidget {
 
 class _ShowProcessMenuState extends State<ShowProcessMenu> {
   bool _showLoader = false;
+  bool _isLoadingTransactions = false;
   List<Product> transacciones = [];
   final List<Product> cart = [];
 
@@ -85,21 +82,37 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
 
   // ⚠️ Mantengo exactamente tus etiquetas y valores
   final List<String> buttonNames = const [
-    'Efectivo', 'Tar BAC','Tar BN','Tar DAV',
-    'Tar SCO', 'Cheque','Calibracion', 
-    'Exonerado', 'Cupones',  'Dollar', 'Procesar',
+    'Efectivo',
+    'Tar BAC',
+    'Tar BN',
+    'Tar DAV',
+    'Tar SCO',
+    'Cheque',
+    'Calibracion',
+    'Exonerado',
+    'Cupones',
+    'Dollar',
+    'Procesar',
   ];
 
   final List<String> estados = const [
-    'Efectivo', 'Tarjeta_Bac','Tarjeta_Bn','Tarjeta_Dav',
-    'Tarjeta_Scotia','Cheque',
-    'Calibracion', 'Exonerado', 'Cupones',
-    'Dollar', 'Procesar',
+    'Efectivo',
+    'Tarjeta_Bac',
+    'Tarjeta_Bn',
+    'Tarjeta_Dav',
+    'Tarjeta_Scotia',
+    'Cheque',
+    'Calibracion',
+    'Exonerado',
+    'Cupones',
+    'Dollar',
+    'Procesar',
   ];
 
   static const int _cols = 4;
-  static const double _tileExtent = 74;      // alto fijo de cada tile del grid de pagos
-  static const double _gridMainSpacing = 8;  // separación vertical entre filas
+  static const double _tileExtent =
+      74; // alto fijo de cada tile del grid de pagos
+  static const double _gridMainSpacing = 8; // separación vertical entre filas
   static const double _gridPadTop = 8;
   static const double _gridPadBottom = 12;
 
@@ -156,33 +169,40 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
                   children: <Widget>[
                     // ---- Transacciones (ocupa todo lo disponible) ----
                     Expanded(
-                      child: transacciones.isNotEmpty
-                          ? Padding(
-                              padding: const EdgeInsets.only(left: 10, right: 10, top: 20),
-                              child: RefreshIndicator(
-                                onRefresh: () async => _updateTransactions(),
-                                child: GridView.builder(
-                                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 2,
-                                    crossAxisSpacing: 10,
-                                    mainAxisSpacing: 10,
+                      child: _isLoadingTransactions
+                          ? const Center(
+                              child: LoaderComponent(
+                                  loadingText: 'Cargando transacciones...'))
+                          : transacciones.isNotEmpty
+                              ? Padding(
+                                  padding: const EdgeInsets.only(
+                                      left: 10, right: 10, top: 20),
+                                  child: RefreshIndicator(
+                                    onRefresh: () async =>
+                                        _updateTransactions(),
+                                    child: GridView.builder(
+                                      gridDelegate:
+                                          const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 2,
+                                        crossAxisSpacing: 10,
+                                        mainAxisSpacing: 10,
+                                      ),
+                                      itemCount: transacciones.length,
+                                      itemBuilder: (context, indice) {
+                                        final p = transacciones[indice];
+                                        return CardTrPistero(
+                                          showPrintIcon: true,
+                                          product: p,
+                                          lista: 'Tr',
+                                          onItemSelected: onItemSelected,
+                                          onPrint: () => _handlePrint(p),
+                                          selected: p.isFavourite,
+                                        );
+                                      },
+                                    ),
                                   ),
-                                  itemCount: transacciones.length,
-                                  itemBuilder: (context, indice) {
-                                    final p = transacciones[indice];
-                                    return CardTrPistero(
-                                      showPrintIcon: true,
-                                      product: p,
-                                      lista: 'Tr',
-                                      onItemSelected: onItemSelected,
-                                      onPrint: () => _handlePrint(p),
-                                      selected: p.isFavourite,
-                                    );
-                                  },
-                                ),
-                              ),
-                            )
-                          : _noTr(),
+                                )
+                              : _noTr(),
                     ),
 
                     const SizedBox(height: 10),
@@ -203,16 +223,19 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
                   color: kNewsurface,
                   elevation: 8,
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(8, _gridPadTop, 8, _gridPadBottom),
+                    padding: const EdgeInsets.fromLTRB(
+                        8, _gridPadTop, 8, _gridPadBottom),
                     child: GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: buttonNames.length,
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: _cols,
                         crossAxisSpacing: 8,
                         mainAxisSpacing: _gridMainSpacing,
-                        mainAxisExtent: _tileExtent,   // asegura altura exacta por fila
+                        mainAxisExtent:
+                            _tileExtent, // asegura altura exacta por fila
                       ),
                       itemBuilder: (BuildContext context, int index) {
                         final isProcess = index == lastIndex;
@@ -241,7 +264,8 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
               ),
             ),
 
-            if (_showLoader) const LoaderComponent(loadingText: 'Procesando...'),
+            if (_showLoader)
+              const LoaderComponent(loadingText: 'Procesando...'),
           ],
         ),
       ),
@@ -273,7 +297,6 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
                 padding: EdgeInsets.all(getProportionateScreenWidth(5)),
                 height: 100,
                 width: 100,
-              
                 child: const AspectRatio(
                   aspectRatio: 1,
                   child: Image(
@@ -324,6 +347,7 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
   // ---------- Cargar desde TransaccionesProvider.unpaid ----------
   Future<void> _updateTransactions() async {
     debugPrint('[_updateTransactions] >>> INICIO');
+    setState(() => _isLoadingTransactions = true);
     try {
       final cierre = context.read<CierreActivoProvider>().cierreFinal;
       debugPrint('[_updateTransactions] cierre: $cierre');
@@ -338,9 +362,11 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
         return;
       }
 
-      debugPrint('[_updateTransactions] Llamando API con idzona: ${cierre.idzona}');
+      debugPrint(
+          '[_updateTransactions] Llamando API con idzona: ${cierre.idzona}');
       final rs = await ApiHelper.getTransaccionesAsProduct(cierre.idzona);
-      debugPrint('[_updateTransactions] API response isSuccess: ${rs.isSuccess}');
+      debugPrint(
+          '[_updateTransactions] API response isSuccess: ${rs.isSuccess}');
 
       List<Invoice> facturas = [];
       if (mounted) {
@@ -351,7 +377,8 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
         final List<Product> items = rs.result;
         debugPrint('[_updateTransactions] Items recibidos: ${items.length}');
         final filtrados = filtrarProductosNoEnFacturas(items, facturas);
-        debugPrint('[_updateTransactions] Items filtrados: ${filtrados.length}');
+        debugPrint(
+            '[_updateTransactions] Items filtrados: ${filtrados.length}');
         if (mounted) {
           setState(() => transacciones = filtrados);
         }
@@ -359,7 +386,10 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
         debugPrint('[_updateTransactions] API error: ${rs.message}');
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(rs.message.isNotEmpty == true ? rs.message : 'No se pudieron cargar transacciones')),
+          SnackBar(
+              content: Text(rs.message.isNotEmpty == true
+                  ? rs.message
+                  : 'No se pudieron cargar transacciones')),
         );
       }
     } catch (e, st) {
@@ -371,12 +401,17 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
         );
       }
     } finally {
+      if (mounted) {
+        setState(() => _isLoadingTransactions = false);
+      }
       debugPrint('[_updateTransactions] <<< FIN');
     }
   }
 
-  List<Product> filtrarProductosNoEnFacturas(List<Product> productosABuscar, List<Invoice> facturas) {
-    final List<Product> productosFiltrados = List<Product>.from(productosABuscar);
+  List<Product> filtrarProductosNoEnFacturas(
+      List<Product> productosABuscar, List<Invoice> facturas) {
+    final List<Product> productosFiltrados =
+        List<Product>.from(productosABuscar);
     for (final factura in facturas) {
       if (factura.detail != null) {
         for (final productoFactura in factura.detail!) {
@@ -465,7 +500,8 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
       'estado': state,
     };
 
-    final Response response = await ApiHelper.post("Api/Facturacion/ProcessTransactions", request);
+    final Response response =
+        await ApiHelper.post("Api/Facturacion/ProcessTransactions", request);
 
     setState(() => _showLoader = false);
 
@@ -508,7 +544,8 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
     if (l.contains('cupon')) return Icons.local_offer_rounded;
     if (l.contains('calibr')) return Icons.build_circle_rounded;
     if (l.contains('dollar')) return Icons.attach_money_rounded;
-    if (l.contains('tar')) return Icons.credit_card_rounded; // Tar BAC/DAV/SCO/BN
+    if (l.contains('tar'))
+      return Icons.credit_card_rounded; // Tar BAC/DAV/SCO/BN
     if (l.contains('exo')) return Icons.verified_user_rounded;
     return Icons.payment_rounded;
   }
@@ -527,7 +564,7 @@ class _PaymentTile extends StatelessWidget {
     required this.icon,
     required this.selected,
     required this.onTap,
-  })  : isProcess = false;
+  }) : isProcess = false;
 
   const _PaymentTile.process({
     required this.label,
@@ -551,7 +588,8 @@ class _PaymentTile extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(14),
             boxShadow: const [
-              BoxShadow(color: Colors.black45, blurRadius: 8, offset: Offset(0, 2)),
+              BoxShadow(
+                  color: Colors.black45, blurRadius: 8, offset: Offset(0, 2)),
             ],
           ),
           child: Center(
@@ -585,7 +623,8 @@ class _PaymentTile extends StatelessWidget {
             width: selected ? 2 : 1,
           ),
           boxShadow: const [
-            BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2)),
+            BoxShadow(
+                color: Colors.black26, blurRadius: 6, offset: Offset(0, 2)),
           ],
         ),
         child: Center(

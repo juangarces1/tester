@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/preset_kind_page.dart';
-import 'package:tester/ViewModels/dispatch_control.dart';
+import 'package:tester/Providers/dispatch_control.dart';
 import 'package:tester/ViewModels/new_map.dart';
 
 class HoseStepPage extends StatefulWidget {
@@ -40,7 +40,7 @@ class _HoseStepPageState extends State<HoseStepPage> {
   Widget build(BuildContext context) {
     final mapProv = context.watch<MapProvider>();
     final despachosProv = context.read<DespachosProvider>();
-    final DispatchControl dispatch =  despachosProv.getById(widget.dispatchId)!;
+    final DispatchControl dispatch = despachosProv.getById(widget.dispatchId)!;
 
     final selectedNumber = dispatch.selectedPosition?.number;
     final map = mapProv.stationMap;
@@ -114,84 +114,86 @@ class _HoseStepPageState extends State<HoseStepPage> {
           ? const Center(child: CircularProgressIndicator())
           : map == null
               ? _NoPositionSelected(
-                  message: 'No pudimos cargar las posiciones. Intenta actualizar.',
+                  message:
+                      'No pudimos cargar las posiciones. Intenta actualizar.',
                   onRetry: _refreshMap,
                 )
               : selectedNumber == null
                   ? const _NoPositionSelected()
                   : position == null
                       ? _NoPositionSelected(
-                      message:
-                          'No encontramos la posición seleccionada. Intenta recargar.',
-                      onRetry: _refreshMap,
-                    )
-                  : hoses.isEmpty
-                      ? _NoAvailableHoses(onRetry: _refreshMap)
-                      : RefreshIndicator(
-                          onRefresh: _refreshMap,
-                          color: Colors.white,
-                          backgroundColor: Colors.black87,
-                          child: CustomScrollView(
-                            physics: const BouncingScrollPhysics(
-                              parent: AlwaysScrollableScrollPhysics(),
-                            ),
-                            slivers: [
-                              SliverPadding(
-                                padding:
-                                    const EdgeInsets.fromLTRB(20, 24, 20, 12),
-                                sliver: SliverToBoxAdapter(
-                                  child: _HoseSummary(
-                                    total: hoses.length,
-                                    available: availableCount,
-                                  ),
+                          message:
+                              'No encontramos la posición seleccionada. Intenta recargar.',
+                          onRetry: _refreshMap,
+                        )
+                      : hoses.isEmpty
+                          ? _NoAvailableHoses(onRetry: _refreshMap)
+                          : RefreshIndicator(
+                              onRefresh: _refreshMap,
+                              color: Colors.white,
+                              backgroundColor: Colors.black87,
+                              child: CustomScrollView(
+                                physics: const BouncingScrollPhysics(
+                                  parent: AlwaysScrollableScrollPhysics(),
                                 ),
-                              ),
-                              SliverPadding(
-                                padding:
-                                    const EdgeInsets.fromLTRB(20, 0, 20, 40),
-                                sliver: SliverGrid(
-                                  delegate: SliverChildBuilderDelegate(
-                                    (context, index) {
-                                      final hose = hoses[index];
-                                      final isAvailable =
-                                          hose.status.toLowerCase() ==
-                                              'available';
-                                      return _HoseCard(
-                                        hose: hose,
-                                        enabled: isAvailable,
-                                        onTap: () {
-                                          if (!isAvailable) return;
-                                          dispatch.selectHose(
-                                            pos: position,
+                                slivers: [
+                                  SliverPadding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        20, 24, 20, 12),
+                                    sliver: SliverToBoxAdapter(
+                                      child: _HoseSummary(
+                                        total: hoses.length,
+                                        available: availableCount,
+                                      ),
+                                    ),
+                                  ),
+                                  SliverPadding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        20, 0, 20, 40),
+                                    sliver: SliverGrid(
+                                      delegate: SliverChildBuilderDelegate(
+                                        (context, index) {
+                                          final hose = hoses[index];
+                                          final isAvailable =
+                                              hose.status.toLowerCase() ==
+                                                  'available';
+                                          return _HoseCard(
                                             hose: hose,
-                                          );
-                                          despachosProv.refresh();
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) => PresetStepPage(
-                                                dispatchId:
-                                                    widget.dispatchId,
-                                              ),
-                                            ),
+                                            enabled: isAvailable,
+                                            onTap: () {
+                                              if (!isAvailable) return;
+                                              dispatch.selectHose(
+                                                pos: position,
+                                                hose: hose,
+                                              );
+                                              despachosProv.refresh();
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      PresetStepPage(
+                                                    dispatchId:
+                                                        widget.dispatchId,
+                                                  ),
+                                                ),
+                                              );
+                                            },
                                           );
                                         },
-                                      );
-                                    },
-                                    childCount: hoses.length,
+                                        childCount: hoses.length,
+                                      ),
+                                      gridDelegate:
+                                          const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 2,
+                                        mainAxisSpacing: 16,
+                                        crossAxisSpacing: 16,
+                                        childAspectRatio: 3 / 3.6,
+                                      ),
+                                    ),
                                   ),
-                                  gridDelegate:
-                                      const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 2,
-                                    mainAxisSpacing: 16,
-                                    crossAxisSpacing: 16,
-                                    childAspectRatio: 3 / 3.6,
-                                  ),
-                                ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
+                            ),
     );
   }
 }

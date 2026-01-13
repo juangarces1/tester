@@ -10,6 +10,8 @@ class MapProvider extends ChangeNotifier {
   bool _loading = true;
   String? _error;
   bool _toastShown = false;
+  List<NozzleMapping>?
+      _cachedMappings; // 👈 NUEVO: Caché de la configuración física
 
   Map<int, PositionPhysical>? get stationMap => _stationMap;
   bool get isLoading => _loading;
@@ -69,12 +71,58 @@ class MapProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// NUEVO MÉTODO SIMPLIFICADO: Carga mapa usando solo estados y mappings cacheados.
+  Future<void> loadMapDirect() async {
+    _loading = true;
+    _error = null;
+    _toastShown = false;
+    notifyListeners();
+
+    try {
+      // 1. Cargar mappings solo si no están en caché
+      if (_cachedMappings == null) {
+        final mappingResp = await ApiHelper.getMapHoseDispenser();
+        if (!mappingResp.isSuccess) {
+          throw Exception('Error al cargar mappings: ${mappingResp.message}');
+        }
+        _cachedMappings = (mappingResp.result as List<NozzleMapping>? ??
+            const <NozzleMapping>[]);
+      }
+
+      // 2. Cargar estados (siempre necesario para tiempo real)
+      final statuses = await ConsoleApiHelper.getDispensersStatus();
+
+      // OPT: Si la lista de estados está vacía (aunque sea 200 OK),
+      // es probable que sea un estado transitorio del backend o error de comunicación.
+      // No actualizamos para mantener la última vista válida.
+      if (statuses.isEmpty) {
+        debugPrint(
+            '[MapProvider] Statuses empty, skipping update to preserve last state.');
+        return;
+      }
+
+      // 3. Reconstruir mapa usando la lógica directa (sin PumpData)
+      _stationMap = PositionBuilder.buildDirect(
+        statuses: statuses,
+        mappings: _cachedMappings!,
+      );
+    } catch (e) {
+      _error = e.toString();
+      // IMPORTANTE: Al no limpiar _stationMap aquí, la UI conserva
+      // lo último que se cargó correctamente (resiliencia).
+    }
+
+    _loading = false;
+    notifyListeners();
+  }
+
   // Dentro de MapProvider
   void reset() {
     _stationMap = null; // Limpia el mapa cargado
     _loading = true; // Marca como pendiente de carga
     _error = null; // Borra mensajes de error
     _toastShown = false; // Permite que vuelva a mostrarse el toast inicial
+    _cachedMappings = null; // 👈 También limpiamos caché si se resetea todo
     notifyListeners(); // Notifica a la UI
   }
 }

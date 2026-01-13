@@ -1,23 +1,13 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
-
 import 'package:tester/Components/loader_component.dart';
-import 'package:tester/ConsoleModels/console_user.dart';
-import 'package:tester/Models/LogIn/estado_login.dart';
 import 'package:tester/Models/FuelRed/all_fact.dart';
-
+import 'package:tester/Models/LogIn/estado_login.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/clientes_provider.dart';
-import 'package:tester/Providers/map_provider.dart';
-import 'package:tester/Providers/usuario_provider.dart';
-
 import 'package:tester/Screens/NewHome/new_home_screen.dart';
 import 'package:tester/Screens/logIn/invent_screen.dart';
-import 'package:tester/Screens/logIn/nfc_test.dart';
-
 import 'package:tester/helpers/api_helper.dart';
 import 'package:tester/sizeconfig.dart';
 
@@ -31,7 +21,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   // ---------------- NUEVO: email ----------------
   final TextEditingController _emailCtrl = TextEditingController();
-  String _emailError = '';
+  // final String _emailError = '';
 
   // ---------------- Actual (cédula como "password") ----------------
   String _password = '';
@@ -117,18 +107,18 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   /* ================= NUEVO: EMAIL ================= */
-  Widget _buildEmail() {
-    return _glassTextField(
-      controller: _emailCtrl,
-      hint: 'Correo electrónico',
-      icon: Icons.alternate_email,
-      keyboardType: TextInputType.emailAddress,
-      errorText: _emailError.isEmpty ? null : _emailError,
-      onChanged: (_) {
-        if (_emailError.isNotEmpty) setState(() => _emailError = '');
-      },
-    );
-  }
+  // Widget _buildEmail() {
+  //   return _glassTextField(
+  //     controller: _emailCtrl,
+  //     hint: 'Correo electrónico',
+  //     icon: Icons.alternate_email,
+  //     keyboardType: TextInputType.emailAddress,
+  //     errorText: _emailError.isEmpty ? null : _emailError,
+  //     onChanged: (_) {
+  //       if (_emailError.isNotEmpty) setState(() => _emailError = '');
+  //     },
+  //   );
+  // }
 
   /* ================= PASSWORD (Cédula) ================= */
   Widget _buildPassword() {
@@ -216,14 +206,14 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Future<void> _goNNfc() async {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const NfcTestPage(),
-      ),
-    );
-  }
+  // Future<void> _goNNfc() async {
+  //   Navigator.push(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (_) => const NfcTestPage(),
+  //     ),
+  //   );
+  // }
 
   /* ================= LOGIN ================= */
   Future<void> _login() async {
@@ -270,28 +260,6 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // Login en UsuarioProvider (mock por ahora)
-    final usuarioProv = context.read<UsuarioProvider>();
-    const ConsoleUser user = ConsoleUser(
-      identifier: 'B32809EE018B2811',
-      email: 'sebastian.garces23@gmail.com',
-      rol: UserRole.operador,
-      verificado: true,
-    );
-    await usuarioProv.signIn(user);
-
-    // Precarga mapa
-    final mapProv = context.read<MapProvider>();
-    try {
-      await mapProv.loadMap();
-    } catch (e) {
-      setState(() => _showLoader = false);
-      Fluttertoast.showToast(
-        msg: 'No se pudo cargar la configuración de la estación: $e',
-      );
-      return;
-    }
-
     // Manejo de factura
     final AllFact factura = response.result;
 
@@ -300,6 +268,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return goInvent(factura.cierreActivo!.cajero.cedulaEmpleado);
     }
 
+    if (!mounted) return;
     final clienteProv = context.read<ClienteProvider>();
     clienteProv.loadClientesBy(ClienteTipo.contado);
     clienteProv.loadClientesBy(ClienteTipo.credito);

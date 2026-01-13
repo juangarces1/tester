@@ -1,0 +1,7 @@
+Analyzing 2 items...                                            
+
+   info - Invalid regular expression syntax - lib\providers\despachos_provider.dart:283:41 - valid_regexps
+   info - Statements in an if should be enclosed in a block - lib\viewmodels\dispatch_control.dart:95:7 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\viewmodels\dispatch_control.dart:130:7 - curly_braces_in_flow_control_structures
+  error - The argument type 'DispatchControl (where DispatchControl is defined in d:\flutter\tester\lib\viewmodels\dispatch_control.dart)' can't be assigned to the parameter type 'DispatchControl (where DispatchControl is defined in d:\flutter\tester\lib\ViewModels\dispatch_control.dart)'.  - lib\viewmodels\dispatch_control.dart:202:30 - argument_type_not_assignable
+

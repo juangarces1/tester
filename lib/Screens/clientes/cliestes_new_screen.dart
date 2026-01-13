@@ -94,8 +94,20 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
     _clienteProvider = context.read<ClienteProvider>();
     _clienteProvider?.addListener(_syncCachedData);
 
+    // Carga inicial de datos si es tipo CONTADO y cache vacío
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialDataIfNeeded();
+    });
+
     // Precarga inicial
     _syncCachedData();
+  }
+
+  Future<void> _loadInitialDataIfNeeded() async {
+    if (widget.tipo == ClienteTipo.contado && _clienteProvider != null) {
+      // SIEMPRE llamar - el provider decide si necesita cargar o no
+      await _clienteProvider!.loadClientesContadoSmart();
+    }
   }
 
   void _syncCachedData() {
@@ -435,7 +447,7 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
         Timer(const Duration(milliseconds: 1000), () => _performSearch());
   }
 
-  void _performSearch({bool force = false}) {
+  Future<void> _performSearch({bool force = false}) async {
     final q = _queryCtrl.text.trim();
 
     // reglas mínimas
@@ -463,8 +475,11 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
       }
     }
 
-    // lee la lista según el tipo
-    final clientes = context.read<ClienteProvider>().clientesBy(widget.tipo);
+    final prov = context.read<ClienteProvider>();
+
+    // Busca en la lista cacheada según el tipo
+    // (La carga inicial ya se hizo en _loadInitialDataIfNeeded)
+    final clientes = prov.clientesBy(widget.tipo);
 
     // 👇 Comparación case-insensitive
     final qn = _norm(q);
@@ -478,7 +493,7 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
         ..clear()
         ..addAll(result);
       _resultsListKey =
-          UniqueKey(); // fuerza lista “limpia” (sin reuso peligroso)
+          UniqueKey(); // fuerza lista "limpia" (sin reuso peligroso)
     });
 
     if (_filterUsers.isNotEmpty) {

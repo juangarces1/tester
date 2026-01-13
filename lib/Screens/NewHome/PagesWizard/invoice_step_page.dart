@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/Screens/NewHome/Components/menu_page.dart';
-import 'package:tester/ViewModels/dispatch_control.dart';
+import 'package:tester/Providers/dispatch_control.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/position_hoses_page.dart';
 
 class InvoiceStepPage extends StatelessWidget {
@@ -12,7 +12,8 @@ class InvoiceStepPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final despachosProv = Provider.of<DespachosProvider>(context, listen: false);
+    final despachosProv =
+        Provider.of<DespachosProvider>(context, listen: false);
     final dispatch = despachosProv.getById(dispatchId)!;
 
     return Scaffold(
@@ -20,9 +21,10 @@ class InvoiceStepPage extends StatelessWidget {
       appBar: AppBar(
         foregroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('2. Tipo de Factura', style: TextStyle(color: Colors.white)),
+        title: const Text('2. Tipo de Factura',
+            style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.black,
-         actions: [
+        actions: [
           IconButton(
             icon: const Icon(Icons.home),
             tooltip: 'Ir al menú',
@@ -61,7 +63,7 @@ class InvoiceStepPage extends StatelessWidget {
                   foreground = Colors.white;
                   break;
               }
-        
+
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: ElevatedButton(
@@ -72,13 +74,14 @@ class InvoiceStepPage extends StatelessWidget {
                   ),
                   onPressed: () {
                     dispatch.invoiceType = type;
-                     despachosProv.refresh();
+                    despachosProv.refresh();
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => PositionHosesPage(
                           dispatchId: dispatchId,
-                          positionNumber: dispatch.selectedPosition?.number ?? 1,
+                          positionNumber:
+                              dispatch.selectedPosition?.number ?? 1,
                           pumpId: dispatch.selectedPosition?.pumpId ?? 0,
                           faceIndex: dispatch.selectedPosition?.faceIndex ?? 0,
                         ),

@@ -17,9 +17,9 @@ import 'package:tester/helpers/constans.dart';
 class CartInlineCompact extends StatelessWidget {
   final int index;
   final VoidCallback onAddTransactions; // abre el modal de transacciones
-  final VoidCallback onAddProducts;     // abre el selector de productos/aceites
+  final VoidCallback onAddProducts; // abre el selector de productos/aceites
   final bool? showProductsPage; // si true, abre Products
-  
+
   const CartInlineCompact({
     super.key,
     required this.index,
@@ -67,21 +67,20 @@ class CartInlineCompact extends StatelessWidget {
               const SizedBox(width: 6),
               _pill('${items.length} ítem${items.length == 1 ? '' : 's'}'),
               const Spacer(),
-              _squareImageButton(
-                asset: 'assets/AddTr.png',
-                size: 34,
+              _squareIconButton(
+                icon: Icons.ev_station,
+                size: 38,
                 onTap: onAddTransactions,
               ),
               const SizedBox(width: 8),
               (showProductsPage ?? true)
-                ? _squareImageButton(
-                    asset: 'assets/AceiteNoFondo.png',
-                    size: 34,
-                    onTap: onAddProducts,
-                    fit: BoxFit.contain,
-                  )
-                : const SizedBox.shrink(),
-             
+                  ? _squareImageButton(
+                      asset: 'assets/AceiteNoFondo.png',
+                      size: 34,
+                      onTap: onAddProducts,
+                      fit: BoxFit.contain,
+                    )
+                  : const SizedBox.shrink(),
             ],
           ),
           const SizedBox(height: 8),
@@ -124,6 +123,47 @@ class CartInlineCompact extends StatelessWidget {
           color: kNewtextPri,
           fontWeight: FontWeight.w700,
           fontSize: 11,
+        ),
+      ),
+    );
+  }
+
+  // Botón cuadrado con icono (para transacciones)
+  Widget _squareIconButton({
+    required IconData icon,
+    required double size,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      height: size,
+      width: size,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          splashColor: Colors.white.withValues(alpha: 0.12),
+          highlightColor: Colors.white.withValues(alpha: 0.06),
+          child: Icon(
+            icon,
+            color: Colors.white,
+            size: size * 0.6,
+          ),
         ),
       ),
     );
@@ -236,8 +276,7 @@ class _CartLineCompact extends StatelessWidget {
                       Text(
                         product.transaccion != 0
                             ? 'Cant: ${product.cantidad}L  Total: ${_fmtMoney(product.total.toDouble())}'
-                            :
-                       'P/U ${_fmtMoney(product.precioUnit.toDouble())}  Sub-Total: ${_fmtMoney(product.totalProducto.toDouble())} ',
+                            : 'P/U ${_fmtMoney(product.precioUnit.toDouble())}  Sub-Total: ${_fmtMoney(product.totalProducto.toDouble())} ',
                         style: const TextStyle(
                           color: kNewtextPri,
                           fontWeight: FontWeight.bold,
@@ -279,7 +318,8 @@ class _CartLineCompact extends StatelessWidget {
                 const SizedBox(width: 10),
                 // Cantidad entre - y +
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: .25),
                     borderRadius: BorderRadius.circular(8),
@@ -309,7 +349,6 @@ class _CartLineCompact extends StatelessWidget {
               ],
             ),
           ],
-
         ],
       ),
     );
@@ -323,9 +362,8 @@ class _CartLineCompact extends StatelessWidget {
     if (product.transaccion == 0) {
       // NO combustible → usa imagen remota
       final String rel = product.imageUrl;
-      final String? url = (rel.trim().isNotEmpty)
-          ? '${Constans.getImagenesUrl()}/$rel'
-          : null;
+      final String? url =
+          (rel.trim().isNotEmpty) ? '${Constans.getImagenesUrl()}/$rel' : null;
 
       thumb = (url == null)
           ? const Image(
@@ -379,24 +417,23 @@ class _CartLineCompact extends StatelessWidget {
 
   // Botón circular pequeño con color de fondo
   Widget _roundIcon({
-  required IconData icon,
-  required Color bg,
-  required VoidCallback onTap,
-}) {
-  return Material(
-    color: bg,
-    shape: const CircleBorder(),
-    child: InkWell(
-      customBorder: const CircleBorder(),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Icon(icon, size: 18, color: Colors.white),
+    required IconData icon,
+    required Color bg,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: bg,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Icon(icon, size: 18, color: Colors.white),
+        ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 
   static String _fmtMoney(double v) {
     final s = v.toStringAsFixed(0);
