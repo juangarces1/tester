@@ -544,8 +544,9 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
     if (l.contains('cupon')) return Icons.local_offer_rounded;
     if (l.contains('calibr')) return Icons.build_circle_rounded;
     if (l.contains('dollar')) return Icons.attach_money_rounded;
-    if (l.contains('tar'))
+    if (l.contains('tar')) {
       return Icons.credit_card_rounded; // Tar BAC/DAV/SCO/BN
+    }
     if (l.contains('exo')) return Icons.verified_user_rounded;
     return Icons.payment_rounded;
   }

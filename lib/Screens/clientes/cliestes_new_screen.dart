@@ -560,9 +560,10 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
       key: _resultsListKey,
       itemCount: items.length,
       itemBuilder: (context, indice) {
-        if (indice >= items.length)
+        if (indice >= items.length) {
           return const SizedBox
               .shrink(); // guard por si el scheduler llega tarde
+        }
 
         final c = items[indice];
         final id = _idOf(c);
