@@ -175,11 +175,20 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
                                       dispatch.selectHose(
                                           pos: position, hose: hose);
                                       despachosProv.refresh();
+
+                                      final fuelName =
+                                          hose.fuel.name.toLowerCase();
+                                      final isExonerado =
+                                          fuelName.contains('exo');
+
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (_) => PresetStepPage(
+                                          builder: (_) => UnifiedPresetPage(
                                             dispatchId: widget.dispatchId,
+                                            initialMode: isExonerado
+                                                ? PresetMode.volume
+                                                : PresetMode.amount,
                                           ),
                                         ),
                                       );

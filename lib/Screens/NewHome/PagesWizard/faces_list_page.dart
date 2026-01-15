@@ -240,7 +240,16 @@ class _PositionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final status = _statusLabel(position);
     final isFueling = status == 'Despachando';
-    final baseColor = _statusColor(status);
+
+    // Si está despachando, buscamos la manguera activa para usar su color
+    Color baseColor = _statusColor(status);
+    if (isFueling) {
+      final fuelingHose = position.hoses.firstWhere(
+        (h) => h.status.toLowerCase().contains('fuel'),
+        orElse: () => position.hoses.first,
+      );
+      baseColor = fuelingHose.fuel.color;
+    }
 
     // Dynamic contrast for text on baseColor
     final onBaseColor =
@@ -249,8 +258,8 @@ class _PositionCard extends StatelessWidget {
             : Colors.white;
 
     // Darker version for text on white background
-    final darkStatusColor = status == 'Despachando'
-        ? const Color.fromARGB(252, 207, 118, 2) // Deep Orange
+    final darkStatusColor = isFueling
+        ? baseColor.withValues(alpha: 0.9)
         : status == 'Disponible'
             ? const Color(0xFF1B5E20) // Deep Green
             : const Color(0xFF1A237E); // Deep Blue
@@ -291,7 +300,7 @@ class _PositionCard extends StatelessWidget {
               flex: 62,
               child: Container(
                 width: double.infinity,
-                color: enabled ? baseColor : baseColor.withValues(alpha: 0.2),
+                color: baseColor,
                 child: Stack(
                   children: [
                     Positioned(
@@ -328,18 +337,6 @@ class _PositionCard extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Text(
-                    //   'POSICIÓN ${position.number}',
-                    //   maxLines: 1,
-                    //   overflow: TextOverflow.ellipsis,
-                    //   style: const TextStyle(
-                    //     color: Colors.black87,
-                    //     fontWeight: FontWeight.bold,
-                    //     fontSize: 13,
-                    //     letterSpacing: 0.5,
-                    //   ),
-                    // ),
-                    // const SizedBox(height: 2),
                     Text(
                       status.toUpperCase(),
                       maxLines: 1,
@@ -437,9 +434,9 @@ Color _statusColor(String status) {
     case 'disponible':
       return Colors.greenAccent;
     case 'autorizada':
-      return Colors.lightBlueAccent;
+      return Colors.cyanAccent;
     case 'despachando':
-      return Colors.orangeAccent;
+      return Colors.blueAccent;
     case 'ocupada':
       return Colors.redAccent;
     case 'detenida':

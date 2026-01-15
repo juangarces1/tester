@@ -6,6 +6,8 @@ import 'package:tester/Providers/despachos_provider.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/dispatch_summary_page.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
+enum PresetMode { amount, volume, full }
+
 class PresetStepPage extends StatelessWidget {
   final String dispatchId;
   const PresetStepPage({super.key, required this.dispatchId});
@@ -39,36 +41,17 @@ class PresetStepPage extends StatelessWidget {
               icon: Icons.tune,
               color: Colors.blueAccent,
               onTap: () {
+                final fuelName =
+                    dispatch.selectedHose?.fuel.name.toLowerCase() ?? '';
+                final isExonerado = fuelName.contains('exo');
+
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => PresetKindPage(
-                      onAmountChosen: (amount) {
-                        final nozzle =
-                            dispatch.selectedHose!.nozzleNumber.toString();
-                        dispatch.setPresetByAmount(
-                            manguera: nozzle, amount: amount);
-                        despachosProv.refresh();
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) =>
-                                  DispatchSummaryPage(dispatchId: dispatchId)),
-                        );
-                      },
-                      onVolumeChosen: (liters) {
-                        final nozzle =
-                            dispatch.selectedHose!.nozzleNumber.toString();
-                        dispatch.setPresetByVolume(
-                            manguera: nozzle, liters: liters);
-                        despachosProv.refresh();
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) =>
-                                  DispatchSummaryPage(dispatchId: dispatchId)),
-                        );
-                      },
+                    builder: (_) => UnifiedPresetPage(
+                      dispatchId: dispatchId,
+                      initialMode:
+                          isExonerado ? PresetMode.volume : PresetMode.amount,
                     ),
                   ),
                 );
@@ -97,6 +80,246 @@ class PresetStepPage extends StatelessWidget {
   }
 }
 
+class UnifiedPresetPage extends StatefulWidget {
+  final String dispatchId;
+  final PresetMode initialMode;
+  const UnifiedPresetPage({
+    required this.dispatchId,
+    required this.initialMode,
+    super.key,
+  });
+
+  @override
+  State<UnifiedPresetPage> createState() => _UnifiedPresetPageState();
+}
+
+class _UnifiedPresetPageState extends State<UnifiedPresetPage> {
+  late PresetMode _currentMode;
+  final _ctrl = TextEditingController();
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentMode = widget.initialMode;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title = _currentMode == PresetMode.amount
+        ? 'Preset por Monto'
+        : _currentMode == PresetMode.volume
+            ? 'Preset por Volumen'
+            : 'Tanque Lleno';
+
+    final accentColor = _currentMode == PresetMode.amount
+        ? Colors.blueAccent
+        : _currentMode == PresetMode.volume
+            ? Colors.tealAccent
+            : Colors.greenAccent;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF121212),
+      appBar: AppBar(
+        title: Text(title,
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold)),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            // Mode Selector
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: SegmentedButton<PresetMode>(
+                segments: const [
+                  ButtonSegment(
+                      value: PresetMode.amount,
+                      label: Text('Monto (₡)'),
+                      icon: Icon(Icons.money)),
+                  ButtonSegment(
+                      value: PresetMode.volume,
+                      label: Text('Litros (L)'),
+                      icon: Icon(Icons.local_gas_station)),
+                  ButtonSegment(
+                      value: PresetMode.full,
+                      label: Text('Lleno'),
+                      icon: Icon(Icons.water_drop)),
+                ],
+                selected: {_currentMode},
+                onSelectionChanged: (Set<PresetMode> newSelection) {
+                  setState(() {
+                    _currentMode = newSelection.first;
+                    _ctrl.clear();
+                    _error = null;
+                  });
+                },
+                style: SegmentedButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.05),
+                  selectedBackgroundColor: accentColor.withValues(alpha: 0.2),
+                  selectedForegroundColor: accentColor,
+                  foregroundColor: Colors.white60,
+                  side: BorderSide(color: accentColor.withValues(alpha: 0.5)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            if (_currentMode != PresetMode.full) ...[
+              // Quick Chips
+              _buildQuickChips(accentColor),
+              const SizedBox(height: 48),
+              // Input Field
+              _LabeledField(
+                label: _currentMode == PresetMode.amount
+                    ? 'Monto a Despachar'
+                    : 'Litros a Despachar',
+                controller: _ctrl,
+                hint: '0.00',
+                prefix: _currentMode == PresetMode.amount
+                    ? Icons.money
+                    : Icons.local_gas_station,
+                accentColor: accentColor,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))
+                ],
+              ),
+            ] else ...[
+              const SizedBox(height: 60),
+              Icon(Icons.ev_station,
+                  size: 100, color: accentColor.withValues(alpha: 0.3)),
+              const SizedBox(height: 24),
+              const Text(
+                'MODO TANQUE LLENO',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'El despacho se detendrá automáticamente\ncuando el tanque esté completo.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white60, fontSize: 14),
+              ),
+              const SizedBox(height: 60),
+            ],
+
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(_error!,
+                    style: const TextStyle(
+                        color: Colors.redAccent, fontWeight: FontWeight.bold)),
+              ),
+            ],
+
+            const SizedBox(height: 40),
+            _HeroButton(
+              color: accentColor,
+              label: 'CONFIRMAR AUTORIZACIÓN',
+              icon: Icons.check_circle_outline,
+              onTap: _confirmOrder,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickChips(Color accentColor) {
+    if (_currentMode == PresetMode.amount) {
+      return Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        alignment: WrapAlignment.center,
+        children: [1000, 2000, 3000, 4000, 5000, 10000, 20000, 50000]
+            .map((v) => _quickChip(
+                VariosHelpers.formattedToCurrencyValue(v.toString()),
+                () => _setQuickValue(v.toDouble()),
+                accentColor))
+            .toList(),
+      );
+    } else {
+      return Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        alignment: WrapAlignment.center,
+        children: [10, 20, 30, 50, 60, 80, 90, 100, 200, 300, 400, 500]
+            .map((v) => _quickChip(
+                '$v L', () => _setQuickValue(v.toDouble()), accentColor))
+            .toList(),
+      );
+    }
+  }
+
+  Widget _quickChip(String label, VoidCallback onSelected, Color color) {
+    return ActionChip(
+      backgroundColor: Colors.white.withValues(alpha: 0.05),
+      side: BorderSide(color: color, width: 1.5),
+      label: Text(label,
+          style: const TextStyle(
+              color: Colors.black, fontWeight: FontWeight.w900, fontSize: 13)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      onPressed: onSelected,
+    );
+  }
+
+  void _setQuickValue(double v) {
+    final s = _currentMode == PresetMode.amount
+        ? v.toStringAsFixed(0)
+        : v.toStringAsFixed(2);
+    _ctrl.text = s;
+    _ctrl.selection = TextSelection.collapsed(offset: s.length);
+    setState(() => _error = null);
+  }
+
+  void _confirmOrder() {
+    final despachosProv =
+        Provider.of<DespachosProvider>(context, listen: false);
+    final dispatch = despachosProv.getById(widget.dispatchId);
+    if (dispatch == null || dispatch.selectedHose == null) return;
+
+    final nozzle = dispatch.selectedHose!.nozzleNumber.toString();
+
+    if (_currentMode == PresetMode.full) {
+      dispatch.setTankFull(true);
+    } else {
+      final v = double.tryParse(_ctrl.text.replaceAll(',', '.'));
+      if (v == null || v <= 0) {
+        setState(() => _error = 'Ingresa un valor válido');
+        return;
+      }
+      if (_currentMode == PresetMode.amount) {
+        dispatch.setPresetByAmount(manguera: nozzle, amount: v);
+      } else {
+        dispatch.setPresetByVolume(manguera: nozzle, liters: v);
+      }
+    }
+
+    despachosProv.refresh();
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+          builder: (_) => DispatchSummaryPage(dispatchId: widget.dispatchId)),
+    );
+  }
+}
+
 class _HeroActionCard extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -114,13 +337,11 @@ class _HeroActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Dynamic contrast for icons/text on color block
     final onColor =
         ThemeData.estimateBrightnessForColor(color) == Brightness.light
             ? Colors.black87
             : Colors.white;
 
-    // Deep shade for footer text
     final darkColor = color.computeLuminance() > 0.5
         ? color.withValues(
             red: (color.red * 0.5).toDouble(),
@@ -140,7 +361,6 @@ class _HeroActionCard extends StatelessWidget {
         onTap: onTap,
         child: Column(
           children: [
-            // Dominant Color Block (65%)
             Expanded(
               flex: 65,
               child: Container(
@@ -151,20 +371,14 @@ class _HeroActionCard extends StatelessWidget {
                     Positioned(
                       right: -15,
                       bottom: -15,
-                      child: Icon(
-                        icon,
-                        size: 90,
-                        color: onColor.withValues(alpha: 0.12),
-                      ),
+                      child: Icon(icon,
+                          size: 90, color: onColor.withValues(alpha: 0.12)),
                     ),
-                    Center(
-                      child: Icon(icon, size: 52, color: onColor),
-                    ),
+                    Center(child: Icon(icon, size: 52, color: onColor)),
                   ],
                 ),
               ),
             ),
-            // White Info Footer (35%)
             Expanded(
               flex: 35,
               child: Container(
@@ -174,27 +388,21 @@ class _HeroActionCard extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 14,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
+                    Text(title,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                            letterSpacing: 0.5)),
                     const SizedBox(height: 2),
-                    Text(
-                      subtitle.toUpperCase(),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: darkColor,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
+                    Text(subtitle.toUpperCase(),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: darkColor,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8)),
                   ],
                 ),
               ),
@@ -202,288 +410,6 @@ class _HeroActionCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class PresetKindPage extends StatelessWidget {
-  final void Function(double amount) onAmountChosen;
-  final void Function(double liters) onVolumeChosen;
-  const PresetKindPage(
-      {super.key, required this.onAmountChosen, required this.onVolumeChosen});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      appBar: AppBar(
-        title: const Text('Tipo de Preset',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-        child: GridView.count(
-          crossAxisCount: 2,
-          mainAxisSpacing: 20,
-          crossAxisSpacing: 20,
-          childAspectRatio: 0.75,
-          children: [
-            _HeroActionCard(
-              title: 'PRESET MONTO',
-              subtitle: 'Autoriza dinero (₡)',
-              icon: Icons.money,
-              color: Colors.blueAccent,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PreDispenseAmountFormPage(
-                        onPresetAmountChosen: (v) => onAmountChosen(v)),
-                  ),
-                );
-              },
-            ),
-            _HeroActionCard(
-              title: 'PRESET VOLUMEN',
-              subtitle: 'Autoriza litros (L)',
-              icon: Icons.local_gas_station,
-              color: Colors.tealAccent,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PreDispenseVolumeFormPage(
-                        onPresetVolumeChosen: (v) => onVolumeChosen(v)),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class PreDispenseAmountFormPage extends StatefulWidget {
-  final void Function(double amount) onPresetAmountChosen;
-  const PreDispenseAmountFormPage(
-      {required this.onPresetAmountChosen, super.key});
-
-  @override
-  State<PreDispenseAmountFormPage> createState() =>
-      _PreDispenseAmountFormPageState();
-}
-
-class _PreDispenseAmountFormPageState extends State<PreDispenseAmountFormPage> {
-  final _ctrl = TextEditingController();
-  String? _error;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      appBar: AppBar(
-        title: const Text('Monto de Preset',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              alignment: WrapAlignment.start,
-              children: [
-                 _quickAmountChip(1000),
-                _quickAmountChip(2000),
-                _quickAmountChip(5000),
-                _quickAmountChip(10000),
-                _quickAmountChip(20000),
-                _quickAmountChip(50000),
-              ],
-            ),
-            const Spacer(),
-            _LabeledField(
-              label: 'Monto a Despachar',
-              controller: _ctrl,
-              hint: '0.00',
-              prefix: Icons.money,
-              accentColor: Colors.blueAccent,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))
-              ],
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.redAccent.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(_error!,
-                    style: const TextStyle(
-                        color: Colors.redAccent, fontWeight: FontWeight.bold)),
-              ),
-            ],
-            const Spacer(),
-            _HeroButton(
-              color: Colors.blueAccent,
-              label: 'CONFIRMAR MONTO',
-              icon: Icons.check_circle_outline,
-              onTap: () {
-                final v = double.tryParse(_ctrl.text.replaceAll(',', '.'));
-                if (v == null || v <= 0) {
-                  setState(() => _error = 'Ingresa un monto válido');
-                  return;
-                }
-                widget.onPresetAmountChosen(v);
-              },
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _setQuickAmount(double v) {
-    final s = v.toStringAsFixed(0);
-    _ctrl.text = s;
-    _ctrl.selection = TextSelection.collapsed(offset: s.length);
-    setState(() => _error = null);
-  }
-
-  Widget _quickAmountChip(double v) {
-    return ActionChip(
-      backgroundColor: Colors.white.withValues(alpha: 0.05),
-      side: const BorderSide(color: Colors.blueAccent, width: 1.5),
-    
-      label: Text(VariosHelpers.formattedToCurrencyValue(v.toString()),
-          style: const TextStyle(
-              color: Colors.black, fontWeight: FontWeight.w900, fontSize: 13)),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      onPressed: () => _setQuickAmount(v),
-    );
-  }
-}
-
-class PreDispenseVolumeFormPage extends StatefulWidget {
-  final void Function(double liters) onPresetVolumeChosen;
-  const PreDispenseVolumeFormPage(
-      {required this.onPresetVolumeChosen, super.key});
-
-  @override
-  State<PreDispenseVolumeFormPage> createState() =>
-      _PreDispenseVolumeFormPageState();
-}
-
-class _PreDispenseVolumeFormPageState extends State<PreDispenseVolumeFormPage> {
-  final _ctrl = TextEditingController();
-  String? _error;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      appBar: AppBar(
-        title: const Text('Volumen de Preset',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              alignment: WrapAlignment.center,
-              children: [
-                _quickVolumeChip(10),
-                _quickVolumeChip(20),
-                _quickVolumeChip(50),
-                _quickVolumeChip(100),
-                _quickVolumeChip(200),
-              ],
-            ),
-            const Spacer(),
-            _LabeledField(
-              label: 'Litros a Despachar',
-              controller: _ctrl,
-              hint: '0.00',
-              prefix: Icons.local_gas_station,
-              accentColor: Colors.tealAccent,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))
-              ],
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.redAccent.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(_error!,
-                    style: const TextStyle(
-                        color: Colors.redAccent, fontWeight: FontWeight.bold)),
-              ),
-            ],
-            const Spacer(),
-            _HeroButton(
-              color: Colors.tealAccent,
-              label: 'CONFIRMAR VOLUMEN',
-              icon: Icons.check_circle_outline,
-              onTap: () {
-                final v = double.tryParse(_ctrl.text.replaceAll(',', '.'));
-                if (v == null || v <= 0) {
-                  setState(() => _error = 'Ingresa un volumen válido');
-                  return;
-                }
-                widget.onPresetVolumeChosen(v);
-              },
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _setQuickLiters(double v) {
-    final s = v.toStringAsFixed(2);
-    _ctrl.text = s;
-    _ctrl.selection = TextSelection.collapsed(offset: s.length);
-    setState(() => _error = null);
-  }
-
-  Widget _quickVolumeChip(double v) {
-    return ActionChip(
-      backgroundColor: Colors.white.withValues(alpha: 0.05),
-      side: const BorderSide(color: Colors.tealAccent, width: 1.5),
-      avatar: const Icon(Icons.gas_meter_outlined,
-          size: 18, color: Colors.tealAccent),
-      label: Text('${v.toStringAsFixed(0)} L',
-          style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13)),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      onPressed: () => _setQuickLiters(v),
     );
   }
 }
@@ -512,15 +438,12 @@ class _LabeledField extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            label.toUpperCase(),
-            style: TextStyle(
-              color: accentColor.withValues(alpha: 0.8),
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.2,
-            ),
-          ),
+          child: Text(label.toUpperCase(),
+              style: TextStyle(
+                  color: accentColor.withValues(alpha: 0.8),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2)),
         ),
         TextField(
           controller: controller,
@@ -536,13 +459,12 @@ class _LabeledField extends StatelessWidget {
             filled: true,
             fillColor: Colors.white.withValues(alpha: 0.03),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: BorderSide(color: accentColor, width: 2),
-            ),
+                borderRadius: BorderRadius.circular(20),
+                borderSide: BorderSide(color: accentColor, width: 2)),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: const BorderSide(color: Colors.white12, width: 1.5),
-            ),
+                borderRadius: BorderRadius.circular(20),
+                borderSide:
+                    const BorderSide(color: Colors.white12, width: 1.5)),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           ),
@@ -574,16 +496,15 @@ class _HeroButton extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      height: 70, // Tall and heroic
+      height: 70,
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: 0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
+              color: color.withValues(alpha: 0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 8))
         ],
       ),
       child: Material(
@@ -597,15 +518,12 @@ class _HeroButton extends StatelessWidget {
               children: [
                 Icon(icon, color: onColor, size: 24),
                 const SizedBox(width: 12),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: onColor,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
-                  ),
-                ),
+                Text(label,
+                    style: TextStyle(
+                        color: onColor,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.5)),
               ],
             ),
           ),

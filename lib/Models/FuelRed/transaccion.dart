@@ -3,21 +3,21 @@ import 'package:tester/Models/FuelRed/product.dart';
 
 class Transaccion {
   int idtransaccion = 0;
-  int numero =0;
+  int numero = 0;
   String fechatransaccion = "";
   int dispensador = 0;
   int idproducto = 0;
-  String nombreproducto="";
-  int total = 0 ;
+  String nombreproducto = "";
+  int total = 0;
   double volumen = 0;
-  int preciounitario = 0 ;
-  int idcierre = 0 ;
-  String estado ="";
-  String? entregatarjeta ="";
-  String? canjetarjeta ="";
-  String? pan="";
-  String? nombrecliente ="";
-  String facturada ="";
+  int preciounitario = 0;
+  int idcierre = 0;
+  String estado = "";
+  String? entregatarjeta = "";
+  String? canjetarjeta = "";
+  String? pan = "";
+  String? nombrecliente = "";
+  String facturada = "";
   String? creacion;
   String? subir;
   int? initialTotalizer;
@@ -39,33 +39,30 @@ class Transaccion {
       required this.estado,
       this.entregatarjeta,
       this.canjetarjeta,
-       this.pan,
-       this.nombrecliente,
+      this.pan,
+      this.nombrecliente,
       required this.facturada,
       this.creacion,
       this.subir,
       this.initialTotalizer,
       this.finalTotalizer,
       this.attendantId,
-      this.pistero
-      });
+      this.pistero});
 
   Transaccion.fromJson(Map<String, dynamic> json) {
     idtransaccion = json['idtransaccion'];
     numero = json['numero'];
-    fechatransaccion =  json['fechatransaccion'];
+    fechatransaccion = json['fechatransaccion'];
     dispensador = json['dispensador'];
     idproducto = json['idproducto'];
     nombreproducto = json['nombreproducto'];
     total = json['total'];
     var x = json['volumen'];
-    if (x.runtimeType==int)
-    {
-       volumen = (x).toDouble();
+    if (x.runtimeType == int) {
+      volumen = (x).toDouble();
+    } else {
+      volumen = json['volumen'];
     }
-    else{
-        volumen = json['volumen'];
-    }    
     preciounitario = json['preciounitario'];
     idcierre = json['idcierre'];
     estado = json['estado'];
@@ -95,7 +92,8 @@ class Transaccion {
     //   dt = DateFormat('dd/MM/yyyy HH:mm').parse(raw, true); // 'true' => UTC
     // }
 
-    if (dt == null) return raw; // último recurso: manda como venía (evitar null)
+    if (dt == null)
+      return raw; // último recurso: manda como venía (evitar null)
 
     // si no tiene zona, asume que es hora local del dispositivo
     if (!dt.isUtc) dt = dt.toUtc();
@@ -105,7 +103,7 @@ class Transaccion {
     final zIndex = iso.indexOf('Z');
     final dot = iso.indexOf('.');
     return (dot > 0 && zIndex > dot)
-        ? '${iso.substring(0, dot)}Z'     // 2025-10-06T20:15:00Z
+        ? '${iso.substring(0, dot)}Z' // 2025-10-06T20:15:00Z
         : (iso.endsWith('Z') ? iso : '${iso}Z');
   }
 
@@ -134,10 +132,9 @@ class Transaccion {
     data['attendantId'] = attendantId;
     return data;
   }
-  bool get isUnpaid =>
-      estado.toLowerCase() == 'copiado';
-  bool get isFacturada =>
-      facturada.trim().toUpperCase() == 'SI';
+
+  bool get isUnpaid => estado.toLowerCase() == 'copiado';
+  bool get isFacturada => facturada.trim().toUpperCase() == 'SI';
 }
 
 extension TransaccionToProduct on Transaccion {
@@ -164,7 +161,8 @@ extension TransaccionToProduct on Transaccion {
     int taxId = 0,
     String? codigoTipoTrans,
     String? tipoCodigoPS,
-    String servicio = '0', // "0" servicio no-tributario según tu regla -> productType "1"
+    String servicio =
+        '0', // "0" servicio no-tributario según tu regla -> productType "1"
 
     // Inventario / UI
     String imageUrl = 'NoImage.jpg',
@@ -179,13 +177,13 @@ extension TransaccionToProduct on Transaccion {
     final sku = codigoArticulo ?? idproducto.toString();
 
     final precioUnitD = preciounitario.toDouble();
-    final totalD      = total.toDouble();
-    final cant        = volumen; // litros
+    final totalD = total.toDouble();
+    final cant = volumen; // litros
 
     final desc = detalle ??
         '${nombreproducto.isNotEmpty ? nombreproducto : 'Combustible $idproducto'} · '
-        'M-$dispensador · ${precioUnitD.toStringAsFixed(2)}/$unidad · '
-        '${cant.toStringAsFixed(3)} $unidad';
+            'M-$dispensador · ${precioUnitD.toStringAsFixed(2)}/$unidad · '
+            '${cant.toStringAsFixed(3)} $unidad';
 
     // Subtotal “neto” si ya tienes `impMonto`; si no manejas impuestos en this, queda = total
     final subtotalCalc = (totalD - impMonto);
@@ -201,7 +199,7 @@ extension TransaccionToProduct on Transaccion {
       detalle: desc,
 
       precioUnit: precioUnitD,
-      montoTotal: totalD,          // si tu API lo usa distinto al `total`, ajústalo
+      montoTotal: totalD, // si tu API lo usa distinto al `total`, ajústalo
       descuento: descuento,
       nDescuento: nDescuento,
       subtotal: subtotalCalc < 0 ? 0 : subtotalCalc,
@@ -214,8 +212,8 @@ extension TransaccionToProduct on Transaccion {
       precioCompra: precioCompra ?? 0,
       codigoCabys: codigoCabys,
 
-      transaccion: idtransaccion,  // vínculo duro a la transacción
-      factor: 0,                   // por si calculas equivalencias (galón→litro)
+      transaccion: idtransaccion, // vínculo duro a la transacción
+      factor: 0, // por si calculas equivalencias (galón→litro)
       dispensador: dispensador,
 
       imageUrl: imageUrl,
@@ -223,7 +221,7 @@ extension TransaccionToProduct on Transaccion {
 
       codigoTipoTrans: codigoTipoTrans,
       tipoCodigoPS: tipoCodigoPS,
-      servicio: "1",          // mantiene la lógica de Product.productType
+      servicio: "1", // mantiene la lógica de Product.productType
 
       // === App-only ===
       images: images,

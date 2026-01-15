@@ -354,7 +354,7 @@ class PositionBuilder {
         cleanName = cleanName.split(' ').sublist(2).join(' ');
       }
 
-      return Fuel(name: cleanName, color: hose.fuelColor ?? Colors.grey);
+      return Fuel(name: cleanName, color: hose.fuelColor);
     }
 
     return const Fuel(name: 'Desconocido', color: Colors.grey);
@@ -489,25 +489,4 @@ String _normalizeLabel(String? value) {
   final trimmed = value.trim();
   if (trimmed.isEmpty) return '';
   return trimmed.toUpperCase();
-}
-
-int? _indexFromPosition(String? value) {
-  final normalized = _normalizeLabel(value);
-  if (normalized.isEmpty) return null;
-  final code = normalized.codeUnitAt(0);
-  if (code >= 65 && code <= 90) return code - 64; // A=1, B=2
-  return int.tryParse(normalized);
-}
-
-// Nota: Esta función se usa menos ahora que agrupamos por dispense ID directo,
-// pero es útil si el dispense ID viniera nulo.
-int? _pumpIdFromAddress(String? address) {
-  if (address == null || address.isEmpty) return null;
-  final segment = address.split('-').firstWhere(
-        (element) => element.trim().isNotEmpty,
-        orElse: () => '',
-      );
-  final match = RegExp(r'\d+').firstMatch(segment);
-  if (match == null) return null;
-  return int.tryParse(match.group(0)!);
 }
