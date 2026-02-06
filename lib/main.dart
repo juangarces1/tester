@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/despachos_provider.dart';
+import 'package:tester/Providers/experimental/alt_despachos_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/Providers/printer_provider.dart';
@@ -22,7 +23,13 @@ void main() {
         ChangeNotifierProvider(create: (_) => FacturasProvider()),
         ChangeNotifierProvider(create: (_) => PrinterProvider()),
         ChangeNotifierProvider(create: (_) => MapProvider()),
-        ChangeNotifierProvider(create: (_) => DespachosProvider()),
+        //  ChangeNotifierProvider(create: (_) => DespachosProvider()),
+        ChangeNotifierProxyProvider<MapProvider, AltDespachosProvider>(
+          create: (context) => AltDespachosProvider(
+            mapProvider: context.read<MapProvider>(),
+          ),
+          update: (context, map, previous) => previous!,
+        ),
       ],
       child: const MyApp(),
     ),

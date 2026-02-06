@@ -5,8 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
-import 'package:tester/Providers/despachos_provider.dart';
-import 'package:tester/Providers/dispatch_control.dart';
+import 'package:tester/Providers/dispatch_control.dart' show DispatchStage;
+import 'package:tester/Providers/experimental/alt_despachos_provider.dart';
+import 'package:tester/Providers/experimental/alt_dispatch_control.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
 class DispatchSummaryPage extends StatelessWidget {
@@ -18,8 +19,8 @@ class DispatchSummaryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final despachosProv = Provider.of<DespachosProvider>(context);
-    final DispatchControl? d = despachosProv.getById(dispatchId);
+    final despachosProv = Provider.of<AltDespachosProvider>(context);
+    final AltDispatchControl? d = despachosProv.getById(dispatchId);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -147,7 +148,7 @@ class DispatchSummaryPage extends StatelessWidget {
 
   Future<void> _handleAuthorize(BuildContext context) async {
     final despachosProv =
-        Provider.of<DespachosProvider>(context, listen: false);
+        Provider.of<AltDespachosProvider>(context, listen: false);
     final dispatch = despachosProv.getById(dispatchId);
 
     if (dispatch == null) {
@@ -262,7 +263,7 @@ class DispatchSummaryPage extends StatelessWidget {
 
   Future<void> _confirmDelete(BuildContext context) async {
     final despachosProv =
-        Provider.of<DespachosProvider>(context, listen: false);
+        Provider.of<AltDespachosProvider>(context, listen: false);
     final d = despachosProv.getById(dispatchId);
 
     if (d == null) {
@@ -329,7 +330,7 @@ class DispatchSummaryPage extends StatelessWidget {
 
   Future<void> _handleDelete(BuildContext context) async {
     final despachosProv =
-        Provider.of<DespachosProvider>(context, listen: false);
+        Provider.of<AltDespachosProvider>(context, listen: false);
     final d = despachosProv.getById(dispatchId);
 
     if (d == null) {

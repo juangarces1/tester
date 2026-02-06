@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
 import 'package:tester/Models/FuelRed/product.dart';
@@ -10,13 +11,17 @@ import 'package:tester/Screens/Peddlers/peddlers_add_screen.dart';
 import 'package:tester/Screens/checkout/checkount.dart';
 import 'package:tester/Screens/credito/credit_process_screen.dart';
 import 'package:tester/Screens/tickets/ticket_screen.dart';
-import 'package:tester/Providers/dispatch_control.dart';
+import 'package:tester/Providers/experimental/alt_dispatch_control.dart';
+import 'package:tester/Providers/dispatch_control.dart'
+    show DispatchStage, InvoiceType;
+import 'package:tester/Providers/despachos_provider.dart' show HoseStatus;
 import 'package:tester/helpers/api_helper.dart';
+import 'package:tester/helpers/console_api_helper.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
 class DispatchCard extends StatefulWidget {
   const DispatchCard({super.key, required this.d});
-  final DispatchControl d;
+  final AltDispatchControl d;
 
   @override
   State<DispatchCard> createState() => _DispatchCardState();
@@ -25,11 +30,11 @@ class DispatchCard extends StatefulWidget {
 class _DispatchCardState extends State<DispatchCard>
     with TickerProviderStateMixin {
   // ----------------- helpers visuales -----------------
-  Color _statusColor(DispatchControl dc) {
+  Color _statusColor(AltDispatchControl dc) {
     if (dc.stage == DispatchStage.readyToAuthorize && dc.authorizationExpired) {
       return Colors.red; // o un ámbar si prefieres
     }
-    final s = dc.hoseStatus;
+    final s = dc.hoseStatusEnum;
     switch (dc.stage) {
       case DispatchStage.authorizing:
         return Colors.teal.shade700;
@@ -57,11 +62,11 @@ class _DispatchCardState extends State<DispatchCard>
     }
   }
 
-  String _statusLabel(DispatchControl dc) {
+  String _statusLabel(AltDispatchControl dc) {
     if (dc.stage == DispatchStage.readyToAuthorize && dc.authorizationExpired) {
       return 'Expiró';
     }
-    final s = dc.hoseStatus;
+    final s = dc.hoseStatusEnum;
     switch (dc.stage) {
       case DispatchStage.authorizing:
         return 'Autorizando…';
@@ -226,6 +231,19 @@ class _DispatchCardState extends State<DispatchCard>
                         _invoiceTypePill(context),
                         const SizedBox(width: 12),
                       ],
+                      // Botón de finalizar despacho (solo visible antes de despachar)
+                      if (widget.d.stage == DispatchStage.readyToAuthorize ||
+                          widget.d.stage == DispatchStage.authorizing ||
+                          widget.d.stage == DispatchStage.authorized)
+                        IconButton(
+                          onPressed: () => _confirmEndDispatch(context),
+                          icon: const Icon(Icons.delete_outline),
+                          color: Colors.redAccent,
+                          tooltip: 'Finalizar despacho',
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.red.withOpacity(0.15),
+                          ),
+                        ),
                       Expanded(child: Container()),
                       // Botones contextuales mínimos
                       if (widget.d.stage == DispatchStage.authorizing)
@@ -304,7 +322,7 @@ class _DispatchCardState extends State<DispatchCard>
     );
   }
 
-  Widget _finalSummary(DispatchControl d) {
+  Widget _finalSummary(AltDispatchControl d) {
     // Preferimos la transacción de consola si ya está sincronizada
     final tx = d.consoleTx;
 
@@ -569,7 +587,64 @@ class _DispatchCardState extends State<DispatchCard>
     );
   }
 
-  void _goFacturacion(DispatchControl control) async {
+  /// Muestra un diálogo de confirmación para finalizar el despacho
+  Future<void> _confirmEndDispatch(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Finalizar despacho',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          '¿Estás seguro de que deseas cancelar este despacho?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('No', style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.red.withValues(alpha: 0.2),
+            ),
+            child: const Text('Sí, finalizar',
+                style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    if (!mounted) return;
+
+    final dispenserId = widget.d.selectedPosition?.number;
+    if (dispenserId == null) {
+      Fluttertoast.showToast(msg: 'No hay dispensador seleccionado');
+      return;
+    }
+
+    // Mostrar loading
+    Fluttertoast.showToast(msg: 'Finalizando despacho...');
+
+    // Llamar al API para finalizar el despacho en la consola
+    final success = await ConsoleApiHelper.endDispenseByDispenser(dispenserId);
+
+    if (!mounted) return;
+
+    if (success) {
+      widget.d.markCompleted();
+      Fluttertoast.showToast(msg: 'Despacho finalizado ✅');
+    } else {
+      Fluttertoast.showToast(msg: 'Error al finalizar en consola ❌');
+    }
+  }
+
+  void _goFacturacion(AltDispatchControl control) async {
     final type = control.invoiceType;
     final tx = control.tx;
 
@@ -672,7 +747,7 @@ class _DispatchCardState extends State<DispatchCard>
 extension InvoiceTypeNav on InvoiceType {
   Widget screenForWith({
     required int index,
-    required DispatchControl control,
+    required AltDispatchControl control,
   }) {
     switch (this) {
       case InvoiceType.contado:

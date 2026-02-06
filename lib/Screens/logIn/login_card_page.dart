@@ -4,12 +4,10 @@ import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
-
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/ConsoleModels/console_user.dart';
 
 import 'package:tester/Models/FuelRed/all_fact.dart';
-
 
 import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/clientes_provider.dart';
@@ -60,7 +58,6 @@ class _LoginNfcScreenState extends State<LoginNfcScreen> {
       _showLoader = true;
     });
 
-    
     try {
       // 2) Leer NFC
       final ava = await FlutterNfcKit.nfcAvailability;
@@ -80,7 +77,9 @@ class _LoginNfcScreenState extends State<LoginNfcScreen> {
       );
       final uid = _fmtUid(tag.id);
       _lastUid = uid;
-      try { await HapticFeedback.selectionClick(); } catch (_) {}
+      try {
+        await HapticFeedback.selectionClick();
+      } catch (_) {}
       await FlutterNfcKit.finish();
 
       if (uid.isEmpty) {
@@ -97,13 +96,13 @@ class _LoginNfcScreenState extends State<LoginNfcScreen> {
 
       // Si tu CardAuthApi.loginByCard devuelve Map { empleado: {...} }
       final userfuelRed = await api.loginByCard(uid: uid);
-      
+
       final int cedula = userfuelRed.cedulaEmpleado;
 
       // (opcional) Guardar el empleado “Fuel” en tu provider
       // Si tu UsuarioProvider ya tiene signInFuel(Empleado):
 
-      if(mounted == false) return;
+      if (mounted == false) return;
 
       final usuarioProv = context.read<UsuarioProvider>();
       // Descomenta si tienes ese método:
@@ -184,9 +183,10 @@ class _LoginNfcScreenState extends State<LoginNfcScreen> {
       });
 
       goHome();
-
     } catch (e) {
-      try { await FlutterNfcKit.finish(); } catch (_) {}
+      try {
+        await FlutterNfcKit.finish();
+      } catch (_) {}
       setState(() {
         _scanning = false;
         _showLoader = false;
@@ -226,7 +226,6 @@ class _LoginNfcScreenState extends State<LoginNfcScreen> {
           Positioned.fill(
             child: Image.asset('assets/BgLogin.png', fit: BoxFit.cover),
           ),
-
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -303,9 +302,7 @@ class _LoginNfcScreenState extends State<LoginNfcScreen> {
               },
             ),
           ),
-
-          if (_showLoader)
-            const LoaderComponent(loadingText: 'Cargando...'),
+          if (_showLoader) const LoaderComponent(loadingText: 'Cargando...'),
         ],
       ),
     );

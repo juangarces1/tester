@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:tester/Providers/despachos_provider.dart'; // nuevo provider
+import 'package:tester/Providers/experimental/alt_despachos_provider.dart';
+import 'package:tester/Providers/experimental/alt_dispatch_control.dart';
+import 'package:tester/Providers/dispatch_control.dart' show DispatchStage;
+import 'package:tester/Providers/despachos_provider.dart' show HoseStatus;
 import 'package:tester/Screens/NewHome/Components/dispatch_card.dart';
-
 import 'package:tester/Screens/NewHome/PagesWizard/faces_list_page.dart';
-import 'package:tester/Providers/dispatch_control.dart';
 
 class MenuPage extends StatelessWidget {
   const MenuPage({super.key});
 
-  bool _canDelete(DispatchControl d) {
-    return d.hoseStatus != HoseStatus.authorized;
+  bool _canDelete(AltDispatchControl d) {
+    return d.hoseStatusEnum != HoseStatus.authorized;
   }
 
   @override
   Widget build(BuildContext context) {
-    final despachosProv = Provider.of<DespachosProvider>(context);
+    final despachosProv = Provider.of<AltDespachosProvider>(context);
     final despachos = despachosProv.despachos;
 
     return SafeArea(
@@ -131,14 +132,21 @@ class MenuPage extends StatelessWidget {
   }
 
   Future<void> _startNewFlow(BuildContext ctx) async {
-    final despachosProv = Provider.of<DespachosProvider>(ctx, listen: false);
-    final dispatch = DispatchControl(despachosProv)
-      ..id = DateTime.now().millisecondsSinceEpoch.toString();
+    final despachosProv = Provider.of<AltDespachosProvider>(ctx, listen: false);
+    final dispatchId = DateTime.now().millisecondsSinceEpoch.toString();
+
+    final dispatch = AltDispatchControl(
+      id: dispatchId,
+      onComplete: () {
+        // Remover el despacho cuando se marque como completado
+        despachosProv.removeById(dispatchId);
+      },
+    );
     despachosProv.addDispatch(dispatch);
     Navigator.push(
       ctx,
       MaterialPageRoute(
-        builder: (_) => FacesListPage(dispatchId: dispatch.id!),
+        builder: (_) => FacesListPage(dispatchId: dispatch.id),
       ),
     );
   }

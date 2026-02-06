@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/ViewModels/new_map.dart';
-import 'package:tester/Providers/despachos_provider.dart';
-import 'package:tester/Providers/dispatch_control.dart';
+import 'package:tester/Providers/experimental/alt_despachos_provider.dart';
+import 'package:tester/Providers/experimental/alt_dispatch_control.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/preset_kind_page.dart';
 
@@ -47,8 +47,33 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
   @override
   Widget build(BuildContext context) {
     final mapProv = context.watch<MapProvider>();
-    final despachosProv = context.read<DespachosProvider>();
-    final DispatchControl dispatch = despachosProv.getById(widget.dispatchId)!;
+    final despachosProv = context.watch<AltDespachosProvider>();
+    final AltDispatchControl? dispatch =
+        despachosProv.getById(widget.dispatchId);
+
+    // Si el despacho fue eliminado, mostramos pantalla de error
+    if (dispatch == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF121212),
+        appBar: AppBar(
+          title: const Text('Error', style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: const Center(
+          child: Text(
+            'El despacho ya no existe.\nPudo haber sido eliminado.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white70, fontSize: 16),
+          ),
+        ),
+      );
+    }
+
     final map = mapProv.stationMap;
     PositionPhysical? position;
     List<HosePhysical> hoses = <HosePhysical>[];

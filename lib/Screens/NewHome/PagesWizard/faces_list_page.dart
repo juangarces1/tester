@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Providers/map_provider.dart';
-import 'package:tester/Providers/despachos_provider.dart';
-import 'package:tester/Providers/dispatch_control.dart';
+import 'package:tester/Providers/experimental/alt_despachos_provider.dart';
+import 'package:tester/Providers/experimental/alt_dispatch_control.dart';
 import 'package:tester/ViewModels/new_map.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/position_hoses_page.dart';
 
@@ -19,21 +19,14 @@ class FacesListPage extends StatefulWidget {
 class _FacesListPageState extends State<FacesListPage> {
   bool _loadingInFlight = false;
   bool _isFirstEntry = true;
-  Timer? _refreshTimer;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _refreshMap());
-    // Polling cada 5 segundos para mantener estados vivos
-    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (mounted) _refreshMap();
-    });
   }
 
   @override
   void dispose() {
-    _refreshTimer?.cancel();
     super.dispose();
   }
 
@@ -55,8 +48,9 @@ class _FacesListPageState extends State<FacesListPage> {
   @override
   Widget build(BuildContext context) {
     final mapProv = context.watch<MapProvider>();
-    final despachosProv = context.watch<DespachosProvider>();
-    final DispatchControl? dispatch = despachosProv.getById(widget.dispatchId);
+    final despachosProv = context.watch<AltDespachosProvider>();
+    final AltDispatchControl? dispatch =
+        despachosProv.getById(widget.dispatchId);
 
     // If dispatch is null, the dispatch was removed or provider was reset
     if (dispatch == null) {

@@ -1,16 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:tester/Providers/despachos_provider.dart';
-import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/Screens/NewHome/Components/dispatch_card.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/faces_list_page.dart';
-import 'package:tester/Providers/dispatch_control.dart';
+import 'package:tester/Providers/experimental/alt_despachos_provider.dart';
+import 'package:tester/Providers/experimental/alt_dispatch_control.dart';
+import 'package:tester/Providers/dispatch_control.dart' show DispatchStage;
 import 'package:tester/constans.dart';
 
-class FirstPage extends StatelessWidget {
+class FirstPage extends StatefulWidget {
   const FirstPage({super.key});
 
-  bool _isVisible(DispatchControl d) {
+  @override
+  State<FirstPage> createState() => _FirstPageState();
+}
+
+class _FirstPageState extends State<FirstPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Al iniciar FirstPage, ya no forzamos un intervalo aquí.
+    // AltDespachosProvider gestionará si arranca (1.5s) o se apaga según haya despachos.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Simplemente nos aseguramos de que el motor esté en el estado correcto
+      // context.read<AltDespachosProvider>().refresh(); // Podríamos disparar un refresh si quisiéramos
+    });
+  }
+
+  @override
+  void dispose() {
+    // Es buena práctica detenerlo si salimos totalmente de esta vista,
+    // aunque en este caso FirstPage suele ser persistente.
+    // context.read<MapProvider>().stopGlobalPolling();
+    super.dispose();
+  }
+
+  bool _isVisible(AltDispatchControl d) {
     // El card se muestra desde authorizing en adelante.
     return d.stage == DispatchStage.authorizing ||
         d.stage == DispatchStage.authorized ||
@@ -19,18 +43,17 @@ class FirstPage extends StatelessWidget {
         d.canRetry;
   }
 
-  bool _canDelete(DispatchControl d) {
+  bool _canDelete(AltDispatchControl d) {
     // Permitir swipe solo cuando ya no interfiere con la operación
     return d.stage == DispatchStage.readyToAuthorize || d.canRetry;
   }
 
   @override
   Widget build(BuildContext context) {
-    final despachosProv = Provider.of<DespachosProvider>(context);
+    final despachosProv = Provider.of<AltDespachosProvider>(context);
     final all = despachosProv.despachos;
     final despachos = all.where(_isVisible).toList();
 
-    // FAB normal = 56px alto. Le sumamos margen y el safe area inferior.
     const fabHeight = 56.0;
     const fabMargin = 24.0;
     final bottomInset = MediaQuery.of(context).padding.bottom;
@@ -48,7 +71,6 @@ class FirstPage extends StatelessWidget {
                           style: TextStyle(color: Colors.white, fontSize: 18)),
                     )
                   : ListView.separated(
-                      // ← aquí reservamos espacio para el FAB
                       padding: EdgeInsets.fromLTRB(8, 20, 8, extraBottom),
                       itemCount: despachos.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 20),
@@ -99,14 +121,9 @@ class FirstPage extends StatelessWidget {
                                 false;
                           },
                           onDismissed: (_) {
-                            final despachosProv =
-                                Provider.of<DespachosProvider>(ctx,
-                                    listen: false);
-                            despachosProv.removeDispatch(d);
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Despacho eliminado')),
-                            );
+                            final prov = Provider.of<AltDespachosProvider>(ctx,
+                                listen: false);
+                            prov.removeDispatch(d);
                           },
                           child: GestureDetector(
                             onTap: () {},
@@ -125,7 +142,7 @@ class FirstPage extends StatelessWidget {
         ),
         floatingActionButton: FloatingActionButton(
           backgroundColor: kBlueColorLogo,
-          onPressed: () => _startNewFlow(context), // _startNewFlow(context),
+          onPressed: () => _startNewFlow(context),
           child: const Icon(Icons.add, color: Colors.white, size: 35),
         ),
       ),
@@ -148,44 +165,45 @@ class FirstPage extends StatelessWidget {
   }
 
   Future<void> _startNewFlow(BuildContext ctx) async {
-    final map = ctx.read<MapProvider>();
-    final despachosProv = Provider.of<DespachosProvider>(ctx, listen: false);
-    final dispatch = DispatchControl(despachosProv,
-        resolveDispenser: map.positionIndexForNozzle)
-      ..id = DateTime.now().millisecondsSinceEpoch.toString();
+    final despachosProv = Provider.of<AltDespachosProvider>(ctx, listen: false);
+    final dispatchId = DateTime.now().millisecondsSinceEpoch.toString();
+
+    final dispatch = AltDispatchControl(
+      id: dispatchId,
+      onComplete: () {
+        // Remover el despacho cuando se marque como completado
+        despachosProv.removeById(dispatchId);
+      },
+    );
 
     despachosProv.addDispatch(dispatch);
 
     await Navigator.push(
       ctx,
       MaterialPageRoute(
-        builder: (_) => FacesListPage(dispatchId: dispatch.id!),
+        builder: (_) => FacesListPage(dispatchId: dispatch.id),
       ),
     );
 
-    if (dispatch.id != null) {
-      final keepStages = {
-        DispatchStage.authorizing,
-        DispatchStage.authorized,
-        DispatchStage.dispatching,
-        DispatchStage.completed,
-        DispatchStage.unpaid,
-      };
+    // Stages que mantienen el despacho vivo al volver del wizard
+    final keepStages = {
+      DispatchStage
+          .readyToAuthorize, // ← El usuario configuró todo pero aún no autorizó
+      DispatchStage.authorizing,
+      DispatchStage.authorized,
+      DispatchStage.dispatching,
+      DispatchStage.completed,
+      DispatchStage.unpaid,
+    };
 
-      if (!keepStages.contains(dispatch.stage)) {
-        despachosProv.removeById(dispatch.id!);
-      }
+    debugPrint(
+        '[FirstPage] Wizard returned. Dispatch stage: ${dispatch.stage}');
+    debugPrint('[FirstPage] Keep stages: $keepStages');
+    debugPrint('[FirstPage] Will keep: ${keepStages.contains(dispatch.stage)}');
+
+    if (!keepStages.contains(dispatch.stage)) {
+      debugPrint('[FirstPage] REMOVING dispatch ${dispatch.id}');
+      despachosProv.removeById(dispatch.id);
     }
-  }
-
-  Future<void> _startMockFlow(BuildContext ctx) async {
-    final map = ctx.read<MapProvider>();
-    final despachosProv = Provider.of<DespachosProvider>(ctx, listen: false);
-    final dispatch = DispatchControl(despachosProv,
-        resolveDispenser: map.positionIndexForNozzle)
-      ..id = DateTime.now().millisecondsSinceEpoch.toString();
-
-    despachosProv.addDispatch(dispatch);
-    dispatch.mockUnpaidState();
   }
 }

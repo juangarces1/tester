@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:http/http.dart' as http;
 import 'package:tester/ConsoleModels/console_transaction.dart';
 import 'package:tester/ConsoleModels/dispenser_last_info_response.dart';
@@ -55,7 +57,7 @@ class ConsoleApiHelper {
     return false;
   }
 
-  // 10. Finalizar despacho
+  // 10. Finalizar despacho por dispenserId
   static Future<bool> endDispense(int dispenserId) async {
     final uri = Uri.parse(
         '${Constans.baseUrlCoreWeb}Dispense/EndDispense?dispenserId=$dispenserId');
@@ -64,6 +66,32 @@ class ConsoleApiHelper {
       return SuccessResponse.fromJson(jsonDecode(res.body)).success;
     }
     return false;
+  }
+
+  /// Finaliza/cancela un despacho por ID de dispensador.
+  /// Utiliza el endpoint api/Dispense/EndDispense de Horus.
+  static Future<bool> endDispenseByDispenser(int dispenserId) async {
+    final uri = Uri.parse(
+      '${Constans.baseUrlHorustec}Dispense/EndDispense?dispenserId=$dispenserId',
+    );
+    debugPrint(
+        '🛑 [API] CALLING endDispenseByDispenser: dispenserId=$dispenserId');
+
+    try {
+      final res = await http.post(uri);
+      if (res.statusCode == 200) {
+        final success = SuccessResponse.fromJson(jsonDecode(res.body)).success;
+        debugPrint('✅ [API] endDispenseByDispenser SUCCESS: $success');
+        return success;
+      } else {
+        debugPrint('❌ [API] endDispenseByDispenser FAILED: ${res.statusCode}');
+        debugPrint('RESPONSE BODY: ${res.body}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('❌ [API] endDispenseByDispenser EXCEPTION: $e');
+      return false;
+    }
   }
 
   // 11. Obtener información del último despacho de un dispensador
@@ -88,6 +116,25 @@ class ConsoleApiHelper {
     }
     throw Exception(
         'Error al obtener estado de dispensadores: HTTP ${res.statusCode}');
+  }
+
+  /// Endpoint alternativo más simple: /api/Connector/Statuses
+  /// Devuelve un array de strings donde cada 3 elementos corresponden a un dispensador.
+  /// Ej: [0-2] = Dispensador 1, [3-5] = Dispensador 2, etc.
+  static Future<List<String>> getConnectorStatuses() async {
+    final url = Uri.parse('${Constans.baseUrlHorustec}Connector/Statuses');
+    final res = await http.get(url);
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      final statuses = json['statuses'];
+      if (statuses is List) {
+        return statuses.cast<String>();
+      }
+      throw Exception(
+          'Formato de respuesta inválido: statuses no es una lista');
+    }
+    throw Exception(
+        'Error al obtener Connector/Statuses: HTTP ${res.statusCode}');
   }
 
   // 14. Obtener último despacho por manguera (nozzle)
@@ -155,7 +202,16 @@ class ConsoleApiHelper {
       '&userIdentifier=$userIdentifier'
       '&authorize=$authorize',
     );
+    debugPrint(
+        '🚀 [API] CALLING postDispenseV2: nozzle=$nozzleNumber, user=$userIdentifier');
     final res = await http.post(uri);
+    if (res.statusCode == 200) {
+      debugPrint('✅ [API] postDispenseV2 SUCCESS');
+    } else {
+      debugPrint('❌ [API] postDispenseV2 FAILED: URI=$uri');
+      debugPrint('STATUS CODE: ${res.statusCode}');
+      debugPrint('RESPONSE BODY: ${res.body}');
+    }
     return res.statusCode == 200;
   }
 
@@ -164,7 +220,7 @@ class ConsoleApiHelper {
     int nozzleNumber,
     num amount,
     String userIdentifier, {
-    required bool volumeDispatch, // 👈 nuevo parámetro
+    required bool volumeDispatch,
     bool authorize = true,
   }) async {
     final uri = Uri.parse(
@@ -173,10 +229,18 @@ class ConsoleApiHelper {
       '&amount=$amount'
       '&userIdentifier=$userIdentifier'
       '&authorize=$authorize'
-      '&volumeDispatch=$volumeDispatch', // 👈 se agrega aquí
+      '&volumeDispatch=$volumeDispatch',
     );
-
+    debugPrint(
+        '🚀 [API] CALLING preDispenseV2: nozzle=$nozzleNumber, amount=$amount, user=$userIdentifier');
     final res = await http.post(uri);
+    if (res.statusCode == 200) {
+      debugPrint('✅ [API] preDispenseV2 SUCCESS');
+    } else {
+      debugPrint('❌ [API] preDispenseV2 FAILED: URI=$uri');
+      debugPrint('STATUS CODE: ${res.statusCode}');
+      debugPrint('RESPONSE BODY: ${res.body}');
+    }
     return res.statusCode == 200;
   }
 
