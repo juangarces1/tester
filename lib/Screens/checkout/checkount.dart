@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 
 import 'package:tester/Components/cart_inline_section.dart';
 import 'package:tester/Components/default_button.dart';
-import 'package:tester/Components/form_pago.dart';
+import 'package:tester/Components/form_pago_v2.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Components/show_actividad_select.dart';
 import 'package:tester/Components/show_client.dart';
@@ -51,7 +51,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
   late TextEditingController obser;
   late TextEditingController placa;
 
-  final GlobalKey<FormPagoState> formPagoKey = GlobalKey();
+  final GlobalKey<FormPagoV2State> formPagoKey = GlobalKey();
   final ScrollController _scrollController = ScrollController();
   double? _lastInvoiceTotal;
   bool _refreshScheduled = false;
@@ -129,96 +129,301 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
 
     SizeConfig().init(context);
 
+    // Color para Contado (igual que en FacturacionPageV2)
+    const contadoColor = Color(0xFFF97316); // Orange
+
     return SafeArea(
       child: Scaffold(
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(50),
-          child: appBar1(factura),
-        ),
-        body: Container(
-          color: kNewborder,
-          child: Stack(
-            children: <Widget>[
-              RefreshIndicator(
-                onRefresh: () async {
-                  callGoRefresh(); // refresco visual de FormPago si lo necesitas
-                },
-                child: SingleChildScrollView(
-                  controller: _scrollController,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        const SizedBox(height: 5),
-                        CartInlineCompact(
-                          index: widget.index,
-                          onAddTransactions: () => TransaccionesSheet.open(
-                            context: context,
-                            zona: factura.cierre!.idzona!,
-                            onItemSelected: (p) {
-                              final prov = context.read<FacturasProvider>();
-                              final inv = prov.getInvoiceByIndex(widget.index);
-                              inv.detail ??= [];
-                              inv.detail!.add(p);
-                              FacturaService.updateFactura(context, inv);
-                            },
-                            // opcionales:
-                            showPrintIcon: true,
-                            onPrintTap: (p) {/* ... */},
-                          ),
-                          onAddProducts: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) =>
-                                        ProductsPage(index: widget.index)));
-                          },
+        backgroundColor: const Color(0xFF12151A),
+        body: Stack(
+          children: [
+            CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                // ═══════════════════════════════════════════════════════════════
+                // SLIVER APP BAR - Moderno con floating + snap
+                // ═══════════════════════════════════════════════════════════════
+                SliverAppBar(
+                  floating: true,
+                  snap: true,
+                  elevation: 0,
+                  backgroundColor: Colors.transparent,
+                  expandedHeight: 80,
+                  collapsedHeight: 80,
+                  toolbarHeight: 80,
+                  automaticallyImplyLeading: false,
+                  flexibleSpace: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          contadoColor.withOpacity(0.9),
+                          contadoColor.withOpacity(0.6),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(24),
+                        bottomRight: Radius.circular(24),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: contadoColor.withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
                         ),
-
-                        const SizedBox(height: 5),
-                        // Pasa SIEMPRE la del provider
-                        FormPago(
-                          key: formPagoKey,
-                          index: widget.index,
-                          fontColor: kNewtextPri,
-                          ruta: 'Contado',
-                          expansibleController: _pagoCtrl, // ðŸ‘ˆ pÃ¡salo
-                        ),
-
-                        const SizedBox(height: 5),
-                        signUpForm(factura),
-                        const SizedBox(height: 5),
-                        factura.total > 0 ? showTotal(factura) : Container(),
-                        //  SizedBox(height: 20),
-
-                        // Elegibilidad del CTA SIEMPRE con la del provider
-                        // (factura.detail?.isNotEmpty == true) &&
-                        //         factura.saldo == 0 &&
-                        //         factura
-                        //             .formPago!.clienteFactura.nombre.isNotEmpty
-                        //     ? Padding(
-                        //         padding: const EdgeInsets.only(
-                        //             left: 50.0, right: 50, bottom: 15),
-                        //         child: DefaultButton(
-                        //           text: "Facturar",
-                        //           press: () => goFact(factura),
-                        //           gradient: kPrimaryGradientColor,
-                        //           color: kPrimaryColor,
-                        //         ),
-                        //       )
-                        //     : Container(),
-                        // const SizedBox(height: 80),
                       ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          // Botón Back
+                          GestureDetector(
+                            onTap: () {
+                              FacturaService.updateFactura(context, factura);
+                              Navigator.pop(context);
+                            },
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+
+                          // Título y badge productos
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Contado',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        '${factura.numeroProductos} items',
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Saldo - solo mostrar si hay productos
+                          if (factura.total > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: factura.saldo == 0
+                                    ? Colors.green.withOpacity(0.3)
+                                    : Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: factura.saldo == 0
+                                      ? Colors.greenAccent.withOpacity(0.5)
+                                      : Colors.white.withOpacity(0.2),
+                                ),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    factura.saldo == 0 ? '✓ Pagado' : 'Saldo',
+                                    style: TextStyle(
+                                      color: factura.saldo == 0
+                                          ? Colors.greenAccent
+                                          : Colors.white70,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  Text(
+                                    VariosHelpers.formattedToCurrencyValue(
+                                      factura.saldo.toString(),
+                                    ),
+                                    style: TextStyle(
+                                      color: factura.saldo == 0
+                                          ? Colors.greenAccent
+                                          : Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // ═══════════════════════════════════════════════════════════════
+                // CONTENIDO PRINCIPAL
+                // ═══════════════════════════════════════════════════════════════
+                SliverToBoxAdapter(
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      callGoRefresh();
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          const SizedBox(height: 12),
+                          CartInlineCompact(
+                            index: widget.index,
+                            onAddTransactions: () => TransaccionesSheet.open(
+                              context: context,
+                              zona: factura.cierre!.idzona!,
+                              onItemSelected: (p) {
+                                final prov = context.read<FacturasProvider>();
+                                final inv =
+                                    prov.getInvoiceByIndex(widget.index);
+                                inv.detail ??= [];
+                                inv.detail!.add(p);
+                                FacturaService.updateFactura(context, inv);
+                              },
+                              showPrintIcon: true,
+                              onPrintTap: (p) {/* ... */},
+                            ),
+                            onAddProducts: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          ProductsPage(index: widget.index)));
+                            },
+                          ),
+
+                          const SizedBox(height: 8),
+                          FormPagoV2(
+                            key: formPagoKey,
+                            index: widget.index,
+                            fontColor: kNewtextPri,
+                            ruta: 'Contado',
+                            expansibleController: _pagoCtrl,
+                          ),
+
+                          const SizedBox(height: 8),
+                          signUpForm(factura),
+                          const SizedBox(height: 8),
+                          factura.total > 0 ? showTotal(factura) : Container(),
+
+                          // Espacio para el botón flotante
+                          const SizedBox(height: 100),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // ═══════════════════════════════════════════════════════════════
+            // BOTÓN FACTURAR (flotante, aparece cuando saldo == 0)
+            // ═══════════════════════════════════════════════════════════════
+            if (factura.saldo == 0 && (factura.detail?.isNotEmpty == true))
+              Positioned(
+                bottom: 20,
+                left: 20,
+                right: 20,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFFF97316),
+                          Color(0xFFEA580C)
+                        ], // Orange
+                      ),
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFF97316).withOpacity(0.4),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => goFact(factura),
+                        borderRadius: BorderRadius.circular(18),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 18),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.check_circle_outline_rounded,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                              SizedBox(width: 12),
+                              Text(
+                                'Facturar',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-              _showLoader
-                  ? const LoaderComponent(loadingText: "Creando Factura...")
-                  : Container(),
-            ],
-          ),
+
+            // Loader
+            if (_showLoader)
+              const LoaderComponent(loadingText: "Creando Factura..."),
+          ],
         ),
       ),
     );
@@ -371,47 +576,36 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
   }
 
   Widget showTotal(Invoice factura) {
-    return SafeArea(
-      child: Padding(
-        padding:
-            EdgeInsets.symmetric(horizontal: getProportionateScreenWidth(20)),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text.rich(
-              TextSpan(
-                text: "Total:\n",
-                style: const TextStyle(
-                    fontSize: 22,
-                    color: kNewtextPri,
-                    fontWeight: FontWeight.bold),
-                children: [
-                  TextSpan(
-                    text:
-                        " ${VariosHelpers.formattedToCurrencyValue(factura.total.toString())}",
-                    style: const TextStyle(
-                        fontSize: 22,
-                        color: kNewtextPri,
-                        fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-            factura.detail!.isNotEmpty &&
-                    factura.formPago!.clienteFactura.nombre.isNotEmpty &&
-                    factura.saldo == 0
-                ? SizedBox(
-                    width: getProportionateScreenWidth(150),
-                    child: DefaultButton(
-                      text: "Facturar",
-                      press: () => goFact(factura),
-                      gradient: kPrimaryGradientColor,
-                      color: kPrimaryColor,
-                    ),
-                  )
-                : Container(),
-          ],
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E2128),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFF97316).withOpacity(0.3),
         ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            'Total',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.white70,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Text(
+            VariosHelpers.formattedToCurrencyValue(factura.total.toString()),
+            style: const TextStyle(
+              fontSize: 24,
+              color: Color(0xFFF97316), // Orange
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }

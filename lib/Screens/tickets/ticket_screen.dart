@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 
 import 'package:tester/Components/cart_inline_section.dart';
 import 'package:tester/Components/default_button.dart';
-import 'package:tester/Components/form_pago.dart';
+import 'package:tester/Components/form_pago_v2.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Components/transacciones_sheet.dart';
 import 'package:tester/Models/Facturaccion/factura_service.dart';
@@ -35,7 +35,7 @@ class TicketScreen extends StatefulWidget {
 class _TicketScreenState extends State<TicketScreen> {
   // UI state
   late final ExpansibleController _pagoCtrl;
-  final GlobalKey<FormPagoState> formPagoKey = GlobalKey<FormPagoState>();
+  final GlobalKey<FormPagoV2State> formPagoKey = GlobalKey<FormPagoV2State>();
   final ScrollController _scrollController = ScrollController();
   late final TextEditingController _obserCtrl;
 
@@ -56,8 +56,8 @@ class _TicketScreenState extends State<TicketScreen> {
     super.initState();
     _pagoCtrl = ExpansibleController();
     // Observaciones iniciales desde provider (solo para pintar/capturar texto)
-    final inv =
-        Provider.of<FacturasProvider>(context, listen: false).getInvoiceByIndex(widget.index);
+    final inv = Provider.of<FacturasProvider>(context, listen: false)
+        .getInvoiceByIndex(widget.index);
     _obserCtrl = TextEditingController(text: inv.observaciones ?? '');
     _lastInvoiceTotal = inv.total;
   }
@@ -76,7 +76,11 @@ class _TicketScreenState extends State<TicketScreen> {
     SizeConfig().init(context);
 
     // Factura reactiva SIEMPRE desde el provider
-    final factura = context.watch<FacturasProvider>().getInvoiceByIndex(widget.index);
+    final factura =
+        context.watch<FacturasProvider>().getInvoiceByIndex(widget.index);
+
+    // Color para Ticket (Green)
+    const ticketColor = Color(0xFF22C55E); // Green-500
 
     final double currentTotal = factura.total;
     if (_lastInvoiceTotal == null) {
@@ -108,176 +112,329 @@ class _TicketScreenState extends State<TicketScreen> {
 
     return SafeArea(
       child: Scaffold(
-        backgroundColor: kNewbg,
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(50),
-          child: _appBar(factura),
-        ),
+        backgroundColor: const Color(0xFF12151A),
         body: Stack(
           children: <Widget>[
             RefreshIndicator(
               onRefresh: () async => callGoRefresh(),
-              child: SingleChildScrollView(
+              child: CustomScrollView(
                 controller: _scrollController,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Column(
-                    children: <Widget>[
-                      const SizedBox(height: 10),
-                     
-                     CartInlineCompact(
-                          index: widget.index,
-                          onAddTransactions: () => TransaccionesSheet.open(
-                            
+                slivers: [
+                  // ═══════════════════════════════════════════════════════════════
+                  // SLIVER APP BAR - Moderno con floating + snap
+                  // ═══════════════════════════════════════════════════════════════
+                  SliverAppBar(
+                    floating: true,
+                    snap: true,
+                    elevation: 0,
+                    backgroundColor: Colors.transparent,
+                    expandedHeight: 80,
+                    collapsedHeight: 80,
+                    toolbarHeight: 80,
+                    automaticallyImplyLeading: false,
+                    flexibleSpace: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            ticketColor.withOpacity(0.9),
+                            ticketColor.withOpacity(0.6),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(24),
+                          bottomRight: Radius.circular(24),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: ticketColor.withOpacity(0.4),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        child: Row(
+                          children: [
+                            // Botón Back
+                            GestureDetector(
+                              onTap: () {
+                                FacturaService.updateFactura(context, factura);
+                                Navigator.pop(context);
+                              },
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: const Icon(
+                                  Icons.arrow_back_ios_new_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+
+                            // Título y badge productos
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Ticket',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.2),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          '${factura.numeroProductos} items',
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Saldo
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: factura.saldo == 0
+                                    ? Colors.white.withOpacity(0.25)
+                                    : Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.2),
+                                ),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    factura.saldo == 0 ? '✓ Pagado' : 'Saldo',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  Text(
+                                    VariosHelpers.formattedToCurrencyValue(
+                                      factura.saldo.toString(),
+                                    ),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // ═══════════════════════════════════════════════════════════════
+                  // CONTENIDO PRINCIPAL
+                  // ═══════════════════════════════════════════════════════════════
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Column(
+                        children: <Widget>[
+                          const SizedBox(height: 10),
+
+                          CartInlineCompact(
+                            index: widget.index,
+                            onAddTransactions: () => TransaccionesSheet.open(
                               context: context,
                               zona: factura.cierre!.idzona!,
                               onItemSelected: (p) {
                                 final prov = context.read<FacturasProvider>();
-                                final inv  = prov.getInvoiceByIndex(widget.index);
+                                final inv =
+                                    prov.getInvoiceByIndex(widget.index);
                                 inv.detail ??= [];
                                 inv.detail!.add(p);
                                 FacturaService.updateFactura(context, inv);
                               },
-                              // opcionales:
                               showPrintIcon: true,
                               onPrintTap: null,
                             ),
-                          onAddProducts: () {
-                            Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => ProductsPage(index: widget.index)));
-                          },
-                        ),
-                      const SizedBox(height: 10),
-                        FormPago(
-                        key: formPagoKey,
-                        index: widget.index,
-                        fontColor: kNewtextPri,
-                        ruta: 'Ticket',
-                        expansibleController: _pagoCtrl,
-                      ),
-        
-                   //   const SizedBox(height: 10),
-                     // ClientPoints(factura: factura, ruta: 'Contado'),
-                      const SizedBox(height: 10),
-        
-                      // FormPago con controller externo
-                    
-                      _infoTicketSection(factura),
-                      const SizedBox(height: 10),
+                            onAddProducts: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          ProductsPage(index: widget.index)));
+                            },
+                          ),
+                          const SizedBox(height: 10),
+                          FormPagoV2(
+                            key: formPagoKey,
+                            index: widget.index,
+                            fontColor: kNewtextPri,
+                            ruta: 'Ticket',
+                            expansibleController: _pagoCtrl,
+                          ),
+                          const SizedBox(height: 10),
+                          _infoTicketSection(factura),
+                          const SizedBox(height: 10),
 
-                    factura.total > 0 ? showTotal(factura) : Container(),
-                  
-        
-                      // CTA facturar solo si hay items y saldo 0
-                      // if ((factura.detail?.isNotEmpty ?? false) && factura.saldo == 0)
-                      //   Padding(
-                      //     padding:
-                      //         const EdgeInsets.only(left: 50.0, right: 50, bottom: 15),
-                      //     child: DefaultButton(
-                      //       text: "Facturar",
-                      //       press: () => _goTicket(factura),
-                      //       color: const Color.fromARGB(255, 17, 50, 19),
-                      //       gradient: kGreenGradient,
-                      //     ),
-                      //   ),
-        
-                      const SizedBox(height: 80),
+                          // Total de la factura
+                          if (factura.total > 0) showTotal(factura),
+
+                          // Espacio para el botón flotante
+                          const SizedBox(height: 100),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // ═══════════════════════════════════════════════════════════════
+            // BOTÓN FACTURAR (flotante, aparece cuando saldo = 0 y hay items)
+            // ═══════════════════════════════════════════════════════════════
+            if ((factura.detail?.isNotEmpty ?? false) && factura.saldo == 0)
+              Positioned(
+                bottom: 20,
+                left: 20,
+                right: 20,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF22C55E).withOpacity(0.4),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
                     ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _goTicket(factura),
+                      borderRadius: BorderRadius.circular(18),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 18),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.receipt_long_rounded,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                            SizedBox(width: 12),
+                            Text(
+                              'Crear Ticket',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-        
-            // Atajos flotantes
-            // Positioned(
-            //   bottom: 15,
-            //   left: 80,
-            //   child: GestureDetector(
-            //     onTap: () => Navigator.push(
-            //       context,
-            //       MaterialPageRoute(
-            //         builder: (context) => ProductsPage(index: widget.index),
-            //       ),
-            //     ),
-            //     child: ClipRRect(
-            //       borderRadius: BorderRadius.circular(10),
-            //       child:  SizedBox(
-            //         height: 56,
-            //         width: 56,
-            //         child: Image.asset('assets/Aceite1.png'),
-            //       ),
-            //     ),
-            //   ),
-            // ),
-            // Positioned(
-            //   bottom: 15,
-            //   left: 10,
-            //   child: BotonTransacciones(
-            //     imagePath: 'assets/AddTr.png',
-            //     zona: factura.cierre!.idzona!,
-            //     onItemSelected: _onItemSelected,
-            //   ),
-            // ),
-        
+
             if (_showLoader)
               const LoaderComponent(loadingText: "Creando Ticket..."),
           ],
         ),
-       // floatingActionButton: const FloatingButtonWithModal(index: 0),
       ),
     );
   }
 
-   Widget showTotal(Invoice factura) {
- return SafeArea(
-  child: Padding(
-    padding:
-        EdgeInsets.symmetric(horizontal: getProportionateScreenWidth(20)),
-    child:
-      Row(
+  Widget showTotal(Invoice factura) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E2128),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF22C55E).withOpacity(0.3),
+        ),
+      ),
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text.rich(           
-            
-            TextSpan(
-              
-              text: "Total:\n",
-                style: const TextStyle(fontSize: 22, color: kNewtextPri, fontWeight: FontWeight.bold ),
-              children: [
-                TextSpan(
-                  text: " ${VariosHelpers.formattedToCurrencyValue(factura.total.toString())}",
-                  style: const TextStyle(fontSize: 22, color: kNewtextPri, fontWeight: FontWeight.bold ),
-                ),
-              ],
+          const Text(
+            'Total',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.white70,
+              fontWeight: FontWeight.w500,
             ),
           ),
-
-            factura.detail!.isNotEmpty && factura.saldo == 0 ? 
-                        SizedBox(
-                           width: getProportionateScreenWidth(150),
-                          child: DefaultButton(
-                          text: "Facturar",
-                          press: () => _goTicket(factura), 
-                          gradient:  kGreenGradient,  
-                          color:  const Color.fromARGB(255, 17, 50, 19),         
-                          ),
-                        )                
-                        : Container(),
+          Text(
+            VariosHelpers.formattedToCurrencyValue(factura.total.toString()),
+            style: const TextStyle(
+              fontSize: 24,
+              color: Color(0xFF22C55E),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
-    ),
-  );
-}
+    );
+  }
 
- 
-  // ------- UI parts -------
-
+  // Método _appBar ya no se usa pero lo dejamos por compatibilidad
   Widget _appBar(Invoice factura) {
     return SafeArea(
       child: Container(
         color: const Color.fromARGB(255, 53, 130, 55),
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: getProportionateScreenWidth(20)),
+          padding:
+              EdgeInsets.symmetric(horizontal: getProportionateScreenWidth(20)),
           child: Row(
             children: [
               SizedBox(
@@ -285,12 +442,12 @@ class _TicketScreenState extends State<TicketScreen> {
                 width: getProportionateScreenWidth(38),
                 child: TextButton(
                   style: TextButton.styleFrom(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(60)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(60)),
                     backgroundColor: Colors.white,
                     padding: EdgeInsets.zero,
                   ),
                   onPressed: () {
-                    // Persistimos por las dudas antes de salir
                     FacturaService.updateFactura(context, factura);
                     Navigator.pop(context);
                   },
@@ -319,7 +476,6 @@ class _TicketScreenState extends State<TicketScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                   
                     Text(
                       "Saldo: ${VariosHelpers.formattedToCurrencyValue(factura.saldo.toString())}",
                       style: const TextStyle(
@@ -338,47 +494,51 @@ class _TicketScreenState extends State<TicketScreen> {
     );
   }
 
-   Future<void> _handleAcumulaPuntosPrint(Invoice facturaC, String pistero,) async {
+  Future<void> _handleAcumulaPuntosPrint(
+    Invoice facturaC,
+    String pistero,
+  ) async {
     try {
-      final tp = TestPrint(totalChars: 32);     
+      final tp = TestPrint(totalChars: 32);
       await tp.printPuntosAcumulados(
         facturaC.formPago!.clientePuntos.nombre,
         pistero,
         facturaC.formPago!.clientePuntos.documento,
-        facturaC.detail!,       
-       );
-    
+        facturaC.detail!,
+      );
     } catch (err, st) {
       debugPrint('handleAcumulaPuntosPrint error: $err\n$st');
       Fluttertoast.showToast(msg: 'Error al imprimir los puntos acumulados');
     }
   }
 
-   Future<void> _handleCanjeaPuntosPrint(Invoice facturaC,) async {
+  Future<void> _handleCanjeaPuntosPrint(
+    Invoice facturaC,
+  ) async {
     try {
-      final tp = TestPrint(totalChars: 32);     
+      final tp = TestPrint(totalChars: 32);
       await tp.printPuntosCanje(
         facturaC.formPago!.clientePuntos.nombre,
         facturaC.empleado!.nombreCompleto,
         facturaC.formPago!.clientePuntos.puntos,
         facturaC.formPago!.clientePuntos.documento,
         facturaC.formPago!.totalPuntos,
-       );
-    
+      );
     } catch (err, st) {
       debugPrint('handleCanjeaPuntosPrint error: $err\n$st');
       Fluttertoast.showToast(msg: 'Error al imprimir los puntos canjeados');
     }
   }
 
-   Future<void> _handleSinpePrint(Invoice facturaC,) async {
+  Future<void> _handleSinpePrint(
+    Invoice facturaC,
+  ) async {
     try {
-      final tp = TestPrint(totalChars: 32);     
+      final tp = TestPrint(totalChars: 32);
       await tp.printSinpe(
         facturaC.formPago!.sinpe,
-        facturaC.empleado!.nombreCompleto,      
-       );
-    
+        facturaC.empleado!.nombreCompleto,
+      );
     } catch (err, st) {
       debugPrint('handleSinpePrint error: $err\n$st');
       Fluttertoast.showToast(msg: 'Error al imprimir el SINPE');
@@ -390,19 +550,16 @@ class _TicketScreenState extends State<TicketScreen> {
       final tp = TestPrint(totalChars: 32);
       await tp.printTransferencia(
         facturaC.formPago!.transfer,
-        facturaC.empleado!.nombreCompleto,    
-       );
-    
+        facturaC.empleado!.nombreCompleto,
+      );
     } catch (err, st) {
       debugPrint('handleTransferenciaPrint error: $err\n$st');
       Fluttertoast.showToast(msg: 'Error al imprimir la transferencia');
     }
   }
 
-
-   Future<void> _handleTicketPrint(Factura ticket) async {
-  const String tipoDocumento = 'TICKET';
-   
+  Future<void> _handleTicketPrint(Factura ticket) async {
+    const String tipoDocumento = 'TICKET';
 
     const String tipoCliente = 'CONTADO';
 
@@ -410,14 +567,13 @@ class _TicketScreenState extends State<TicketScreen> {
       final tp = TestPrint(totalChars: 32);
       Fluttertoast.showToast(msg: 'Ticket enviada a impresion');
       await tp.printFactura(ticket, tipoDocumento, tipoCliente);
-
     } catch (err, st) {
       debugPrint('handleTicketPrint error: $err\n$st');
       Fluttertoast.showToast(msg: 'Error al imprimir el ticket');
     }
   }
 
-   Future<bool> _confirmPrintTicket() async {
+  Future<bool> _confirmPrintTicket() async {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -492,7 +648,8 @@ class _TicketScreenState extends State<TicketScreen> {
           suffixIcon: const Icon(Icons.sms_outlined, color: kNewtextSec),
         ),
         onChanged: (v) {
-          final inv = context.read<FacturasProvider>().getInvoiceByIndex(widget.index);
+          final inv =
+              context.read<FacturasProvider>().getInvoiceByIndex(widget.index);
           inv.observaciones = v;
           FacturaService.updateFactura(context, inv);
         },
@@ -504,7 +661,7 @@ class _TicketScreenState extends State<TicketScreen> {
 
   Future<void> _goTicket(Invoice factura) async {
     // Usa SIEMPRE la del provider (no variables locales)
-    
+
     if (factura.saldo != 0) {
       Fluttertoast.showToast(
         msg: "La factura aun tiene saldo.",
@@ -538,7 +695,7 @@ class _TicketScreenState extends State<TicketScreen> {
       'saldo': factura.saldo,
       'clientePuntos': factura.formPago!.clientePuntos.toJson(),
       'Transferencia': factura.formPago!.transfer.toJson(),
-      'observaciones': factura.observaciones ?? '',      
+      'observaciones': factura.observaciones ?? '',
       'placa': '',
       'isTicket': true,
       'isContado': false,
@@ -572,22 +729,22 @@ class _TicketScreenState extends State<TicketScreen> {
     final Factura resdocFactura = Factura.fromJson(decodedJson)
       ..usuario = factura.empleado!.nombreCompleto;
 
-       if(factura.acumulaPuntos){
+    if (factura.acumulaPuntos) {
       await _handleAcumulaPuntosPrint(
-        factura, 
+        factura,
         factura.empleado?.nombreCompleto ?? '',
-        );
+      );
     }
 
-    if(factura.tieneTransferencia){
+    if (factura.tieneTransferencia) {
       await _handleTransferenciaPrint(factura);
     }
 
-    if(factura.canjeaPuntos){
+    if (factura.canjeaPuntos) {
       await _handleCanjeaPuntosPrint(factura);
     }
 
-    if(factura.tieneSinpe){
+    if (factura.tieneSinpe) {
       await _handleSinpePrint(factura);
     }
 
@@ -601,7 +758,8 @@ class _TicketScreenState extends State<TicketScreen> {
   }
 
   Future<void> _goHomeSuccess() async {
-    final factura = context.read<FacturasProvider>().getInvoiceByIndex(widget.index);
+    final factura =
+        context.read<FacturasProvider>().getInvoiceByIndex(widget.index);
     FacturaService.eliminarFactura(context, factura);
     if (mounted) Navigator.pop(context);
   }

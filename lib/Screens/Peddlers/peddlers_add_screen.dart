@@ -63,19 +63,24 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
   @override
   void initState() {
     super.initState();
-    factura = Provider.of<FacturasProvider>(context, listen: false).getInvoiceByIndex(widget.index);
+    factura = Provider.of<FacturasProvider>(context, listen: false)
+        .getInvoiceByIndex(widget.index);
     // seed de controllers desde la factura
-    kms   = TextEditingController(text: (factura.peddler?.km ?? '').toString());
-    obser = TextEditingController(text: (factura.peddler?.observaciones ?? '').toString());
-    ch    = TextEditingController(text: (factura.peddler?.chofer ?? '').toString());
-    or    = TextEditingController(text: (factura.peddler?.orden ?? '').toString());
+    kms = TextEditingController(text: (factura.peddler?.km ?? '').toString());
+    obser = TextEditingController(
+        text: (factura.peddler?.observaciones ?? '').toString());
+    ch =
+        TextEditingController(text: (factura.peddler?.chofer ?? '').toString());
+    or = TextEditingController(text: (factura.peddler?.orden ?? '').toString());
     // placa inicial (si ya venía)
     placa = (factura.peddler?.placa ?? '').toString();
 
     _kmsFocusNode.addListener(() => _scrollToAvoidKeyboard(_kmsFocusNode));
-    _choferFocusNode.addListener(() => _scrollToAvoidKeyboard(_choferFocusNode));
+    _choferFocusNode
+        .addListener(() => _scrollToAvoidKeyboard(_choferFocusNode));
     _ordenFocusNode.addListener(() => _scrollToAvoidKeyboard(_ordenFocusNode));
-    _observacionesFocusNode.addListener(() => _scrollToAvoidKeyboard(_observacionesFocusNode));
+    _observacionesFocusNode
+        .addListener(() => _scrollToAvoidKeyboard(_observacionesFocusNode));
   }
 
   @override
@@ -97,7 +102,8 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
     double keyboardHeight = MediaQuery.of(context).viewInsets.bottom + 100;
     final renderBox = focusNode.context?.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
-    double textFieldPosition = renderBox.localToGlobal(Offset.zero).dy + renderBox.size.height;
+    double textFieldPosition =
+        renderBox.localToGlobal(Offset.zero).dy + renderBox.size.height;
     double screenHeight = MediaQuery.of(context).size.height;
     double offset = textFieldPosition - (screenHeight - keyboardHeight);
     if (offset > 0) {
@@ -111,27 +117,299 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final facturaC = Provider.of<FacturasProvider>(context).getInvoiceByIndex(widget.index);
+    final facturaC =
+        Provider.of<FacturasProvider>(context).getInvoiceByIndex(widget.index);
+    SizeConfig().init(context);
+
+    // Color para Peddlers (Amber)
+    const peddlerColor = Color(0xFFF59E0B); // Amber
 
     return SafeArea(
       child: Scaffold(
         resizeToAvoidBottomInset: true,
-        backgroundColor: kContrateFondoOscuro,
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(50),
-          child: appBar1(facturaC),
+        backgroundColor: const Color(0xFF12151A),
+        body: Stack(
+          children: [
+            CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                // ═══════════════════════════════════════════════════════════════
+                // SLIVER APP BAR - Moderno con floating + snap
+                // ═══════════════════════════════════════════════════════════════
+                SliverAppBar(
+                  floating: true,
+                  snap: true,
+                  elevation: 0,
+                  backgroundColor: Colors.transparent,
+                  expandedHeight: 80,
+                  collapsedHeight: 80,
+                  toolbarHeight: 80,
+                  automaticallyImplyLeading: false,
+                  flexibleSpace: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          peddlerColor.withOpacity(0.9),
+                          peddlerColor.withOpacity(0.6),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(24),
+                        bottomRight: Radius.circular(24),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: peddlerColor.withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          // Botón Back
+                          GestureDetector(
+                            onTap: () {
+                              FacturaService.updateFactura(context, facturaC);
+                              Navigator.pop(context);
+                            },
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+
+                          // Título y badge productos
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Peddler',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        '${facturaC.numeroProductos} items',
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Total Litros
+                          if (facturaC.totalLitros > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.2),
+                                ),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  const Text(
+                                    'Litros',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  Text(
+                                    VariosHelpers.formattedToVolumenValue(
+                                      facturaC.totalLitros.toString(),
+                                    ),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // ═══════════════════════════════════════════════════════════════
+                // CONTENIDO PRINCIPAL
+                // ═══════════════════════════════════════════════════════════════
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: getProportionateScreenWidth(10)),
+                    child: Column(
+                      children: [
+                        SizedBox(height: SizeConfig.screenHeight * 0.02),
+                        CartInlineCompact(
+                          showProductsPage: false,
+                          index: widget.index,
+                          onAddTransactions: () => TransaccionesSheet.open(
+                            context: context,
+                            zona: factura.cierre!.idzona!,
+                            onItemSelected: (p) {
+                              final prov = context.read<FacturasProvider>();
+                              final inv = prov.getInvoiceByIndex(widget.index);
+                              inv.detail ??= [];
+                              inv.detail!.add(p);
+                              FacturaService.updateFactura(context, inv);
+                            },
+                            showPrintIcon: false,
+                            onPrintTap: (p) {},
+                          ),
+                          onAddProducts: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        ProductsPage(index: widget.index)));
+                          },
+                        ),
+                        SizedBox(height: SizeConfig.screenHeight * 0.02),
+                        ShowClient(
+                          factura: facturaC,
+                          padding: const EdgeInsets.only(left: 5, right: 5),
+                          tipo: ClienteTipo.peddler,
+                        ),
+                        facturaC.formPago!.clienteCredito.nombre.isNotEmpty
+                            ? ShowEmail(
+                                email: facturaC.formPago!.clienteCredito.email)
+                            : const SizedBox.shrink(),
+                        SizedBox(height: SizeConfig.screenHeight * 0.02),
+                        signUpForm(facturaC),
+                        SizedBox(height: SizeConfig.screenHeight * 0.02),
+
+                        // Espacio para el botón flotante
+                        const SizedBox(height: 100),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // ═══════════════════════════════════════════════════════════════
+            // BOTÓN CREAR ORDEN (flotante, aparece cuando hay cliente y productos)
+            // ═══════════════════════════════════════════════════════════════
+            if (facturaC.formPago!.clienteFactura.nombre.isNotEmpty &&
+                (facturaC.detail?.isNotEmpty ?? false))
+              Positioned(
+                bottom: 20,
+                left: 20,
+                right: 20,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFF59E0B).withOpacity(0.4),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _goPeddler(facturaC),
+                      borderRadius: BorderRadius.circular(18),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 18),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.local_shipping_rounded,
+                              color: Colors.black87,
+                              size: 24,
+                            ),
+                            SizedBox(width: 12),
+                            Text(
+                              'Crear Orden Peddler',
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+            // Loader
+            if (_showLoader) const LoaderComponent(loadingText: 'Creando...'),
+          ],
         ),
-        body: _body(facturaC),
       ),
     );
   }
 
+  // Método appBar1 ya no se usa pero lo dejamos por compatibilidad
   Widget appBar1(Invoice facturaApp) {
     return SafeArea(
       child: Container(
         color: kNewsurfaceHi,
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: getProportionateScreenWidth(20)),
+          padding:
+              EdgeInsets.symmetric(horizontal: getProportionateScreenWidth(20)),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -140,7 +418,8 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
                 width: getProportionateScreenWidth(38),
                 child: TextButton(
                   style: TextButton.styleFrom(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(60)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(60)),
                     backgroundColor: kNewtextPri,
                     padding: EdgeInsets.zero,
                   ),
@@ -159,7 +438,10 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
               const Text.rich(
                 TextSpan(
                   text: "Orden Peddler",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kTextColorWhite),
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: kTextColorWhite),
                 ),
               ),
               const Spacer(),
@@ -167,62 +449,6 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _body(Invoice facturaC) {
-    return Container(
-      color: kNewborder,
-      child: Stack(
-        children: [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: getProportionateScreenWidth(10)),
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              child: Column(
-                children: [
-                  SizedBox(height: SizeConfig.screenHeight * 0.02),
-                  CartInlineCompact(
-                    showProductsPage: false,
-                    index: widget.index,
-                    onAddTransactions: () => TransaccionesSheet.open(
-                      context: context,
-                      zona: factura.cierre!.idzona!,
-                      onItemSelected: (p) {
-                        final prov = context.read<FacturasProvider>();
-                        final inv = prov.getInvoiceByIndex(widget.index);
-                        inv.detail ??= [];
-                        inv.detail!.add(p);
-                        FacturaService.updateFactura(context, inv);
-                      },
-                      showPrintIcon: false,
-                      onPrintTap: (p) {},
-                    ),
-                    onAddProducts: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => ProductsPage(index: widget.index)));
-                    },
-                  ),
-                  SizedBox(height: SizeConfig.screenHeight * 0.02),
-                  ShowClient(
-                    factura: facturaC,
-                    padding: const EdgeInsets.only(left: 5, right: 5),
-                    tipo: ClienteTipo.peddler,
-                  ),
-                  facturaC.formPago!.clienteCredito.nombre.isNotEmpty
-                      ? ShowEmail(email: facturaC.formPago!.clienteCredito.email)
-                      : const SizedBox.shrink(),
-                  SizedBox(height: SizeConfig.screenHeight * 0.02),
-                  signUpForm(facturaC),
-                  SizedBox(height: SizeConfig.screenHeight * 0.02),
-                  showTotal(facturaC),
-                  const SizedBox(height: 45),
-                ],
-              ),
-            ),
-          ),
-          _showLoader ? const LoaderComponent(loadingText: 'Creando...') : const SizedBox.shrink(),
-        ],
       ),
     );
   }
@@ -246,7 +472,8 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
   // === PLACAS (BottomSheet Selector) ===
   Widget showPlaca(Invoice facturaC) {
     // mismas placas que usas en ProceeeCreditScreen, aquí para peddler el cliente es clienteCredito
-    final placasCliente = List<String>.from(facturaC.formPago!.clienteFactura.placas);
+    final placasCliente =
+        List<String>.from(facturaC.formPago!.clienteFactura.placas);
 
     if (placasCliente.isEmpty) {
       return Padding(
@@ -288,14 +515,16 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
   }) {
     final hasValue = value.trim().isNotEmpty;
     final displayText = hasValue ? value : placeholder;
-    final borderColor = (errorText != null && errorText.isNotEmpty) ? kNewred : kNewborder;
+    final borderColor =
+        (errorText != null && errorText.isNotEmpty) ? kNewred : kNewborder;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(color: kNewtextPri, fontWeight: FontWeight.w600, fontSize: 14),
+          style: const TextStyle(
+              color: kNewtextPri, fontWeight: FontWeight.w600, fontSize: 14),
         ),
         const SizedBox(height: 8),
         Material(
@@ -317,7 +546,8 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
                       displayText,
                       style: TextStyle(
                         color: hasValue ? kNewtextPri : kNewtextMut,
-                        fontWeight: hasValue ? FontWeight.w600 : FontWeight.w500,
+                        fontWeight:
+                            hasValue ? FontWeight.w600 : FontWeight.w500,
                       ),
                     ),
                   ),
@@ -332,7 +562,8 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
             padding: const EdgeInsets.only(top: 6),
             child: Text(
               errorText,
-              style: const TextStyle(color: kNewred, fontSize: 12, fontWeight: FontWeight.w500),
+              style: const TextStyle(
+                  color: kNewred, fontSize: 12, fontWeight: FontWeight.w500),
             ),
           ),
       ],
@@ -355,7 +586,8 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
       placa = selected;
       placaTypeIdShowError = false;
       // sincronizar con la factura
-      factura.peddler ??= Peddler.empty(); // si tienes un ctor vacío; si no, quita esta línea
+      factura.peddler ??=
+          Peddler.empty(); // si tienes un ctor vacío; si no, quita esta línea
       factura.peddler!.placa = placa;
     });
   }
@@ -393,14 +625,19 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
                     child: Container(
                       width: 40,
                       height: 4,
-                      decoration: BoxDecoration(color: kNewborder, borderRadius: BorderRadius.circular(4)),
+                      decoration: BoxDecoration(
+                          color: kNewborder,
+                          borderRadius: BorderRadius.circular(4)),
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
                     child: Text(
                       title,
-                      style: const TextStyle(color: kNewtextPri, fontSize: 18, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                          color: kNewtextPri,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700),
                     ),
                   ),
                   const Divider(color: kNewborder, height: 1),
@@ -408,7 +645,8 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
                     child: ListView.separated(
                       physics: const BouncingScrollPhysics(),
                       itemCount: options.length,
-                      separatorBuilder: (_, __) => const Divider(color: kNewborder, height: 1),
+                      separatorBuilder: (_, __) =>
+                          const Divider(color: kNewborder, height: 1),
                       itemBuilder: (context, index) {
                         final option = options[index];
                         final label = labelBuilder(option);
@@ -418,10 +656,13 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
                             label,
                             style: TextStyle(
                               color: kNewtextPri,
-                              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                              fontWeight:
+                                  selected ? FontWeight.w700 : FontWeight.w500,
                             ),
                           ),
-                          trailing: selected ? const Icon(Icons.check_circle, color: kNewgreen) : null,
+                          trailing: selected
+                              ? const Icon(Icons.check_circle, color: kNewgreen)
+                              : null,
                           onTap: () => Navigator.of(context).pop(option),
                         );
                       },
@@ -443,7 +684,9 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
       child: TextField(
         focusNode: _kmsFocusNode,
         keyboardType: TextInputType.number,
-        inputFormatters: <TextInputFormatter>[FilteringTextInputFormatter.allow(RegExp(r'[0-9]'))],
+        inputFormatters: <TextInputFormatter>[
+          FilteringTextInputFormatter.allow(RegExp(r'[0-9]'))
+        ],
         decoration: darkDecoration(
           label: 'Kms',
           hint: 'Ingresa los kms',
@@ -549,7 +792,8 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
   Widget showTotal(Invoice facturaC) {
     return SafeArea(
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: getProportionateScreenWidth(20)),
+        padding:
+            EdgeInsets.symmetric(horizontal: getProportionateScreenWidth(20)),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -557,16 +801,25 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
                 ? Text.rich(
                     TextSpan(
                       text: "Total Lts:\n",
-                      style: const TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          fontSize: 20,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold),
                       children: [
                         TextSpan(
-                    text: " ${VariosHelpers.formattedToVolumenValue(facturaC.totalLitros.toString())}",
-                    style: const TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ) : const SizedBox.shrink(),
-            facturaC.formPago!.clienteFactura.nombre.isNotEmpty && (facturaC.detail?.isNotEmpty ?? false)
+                          text:
+                              " ${VariosHelpers.formattedToVolumenValue(facturaC.totalLitros.toString())}",
+                          style: const TextStyle(
+                              fontSize: 20,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
+            facturaC.formPago!.clienteFactura.nombre.isNotEmpty &&
+                    (facturaC.detail?.isNotEmpty ?? false)
                 ? SizedBox(
                     width: getProportionateScreenWidth(160),
                     child: DefaultButton(
@@ -645,7 +898,8 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
       orden: facturaC.peddler!.orden,
     );
 
-    final response = await ApiHelper.post('Api/Peddler/PostPeddler', pd.toJson());
+    final response =
+        await ApiHelper.post('Api/Peddler/PostPeddler', pd.toJson());
 
     setState(() => _showLoader = false);
 
@@ -658,25 +912,28 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
           title: const Text('Error'),
           content: Text(response.message),
           actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Aceptar')),
+            TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Aceptar')),
           ],
         ),
       );
       return;
     }
 
-   // await _handlePrint(pd);
-     await _handlePrint(pd);
+    // await _handlePrint(pd);
+    await _handlePrint(pd);
     await _goHomeSuccess();
   }
 
-   Future<void> _handlePrint(Peddler p,) async {
+  Future<void> _handlePrint(
+    Peddler p,
+  ) async {
     try {
-      final tp = TestPrint(totalChars: 32);     
+      final tp = TestPrint(totalChars: 32);
       await tp.printPeddler(
-        p,      
-       );
-    
+        p,
+      );
     } catch (err, st) {
       debugPrint('handlePeddlerPrint error: $err\n$st');
       Fluttertoast.showToast(msg: 'Error al imprimir el Peddler');

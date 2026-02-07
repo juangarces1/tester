@@ -44,7 +44,7 @@ class _NewHomeScreenState extends State<NewHomeScreen> {
     ];
     return SafeArea(
       child: Scaffold(
-        appBar: _buildCustomAppBar(),
+        appBar: _buildCustomAppBarV2(),
         key: _scaffoldKey,
         backgroundColor: kColorFondoOscuro,
         body: IndexedStack(
@@ -218,6 +218,170 @@ class _NewHomeScreenState extends State<NewHomeScreen> {
         ),
       ],
     );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // V2 - APPBAR MODERNO CON GLASSMORPHISM Y DISEÑO 2025
+  // ═══════════════════════════════════════════════════════════════════════════
+  PreferredSizeWidget _buildCustomAppBarV2() {
+    final cierreActivo = context.read<CierreActivoProvider>();
+    final usuario = cierreActivo.usuario;
+    final cierreFinal = cierreActivo.cierreFinal;
+
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(80),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: kGradientHome,
+          boxShadow: [
+            BoxShadow(
+              color: kPrimaryColor.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                // ─────────────────────────────────────────────────────────────
+                // AVATAR CON GLOW
+                // ─────────────────────────────────────────────────────────────
+                GestureDetector(
+                  onTap: _showEmpleadoModal,
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFF97316), Color(0xFFEA580C)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFF97316).withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        _getInitials(usuario?.nombreCompleto ?? 'U'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 14),
+
+                // ─────────────────────────────────────────────────────────────
+                // NOMBRE + CHIP DE CIERRE
+                // ─────────────────────────────────────────────────────────────
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Nombre
+                      Text(
+                        usuario?.nombreCompleto ?? '—',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          letterSpacing: 0.3,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      // Chip de Cierre
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF22C55E),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '#${cierreFinal?.idcierre ?? '—'} • Zona ${cierreFinal?.idzona ?? '—'}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // ─────────────────────────────────────────────────────────────
+                // LOGO
+                // ─────────────────────────────────────────────────────────────
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.1),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.2),
+                    ),
+                  ),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/splash.png',
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getInitials(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.isEmpty) return 'U';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
   }
 
   void _showEmpleadoModal() {
