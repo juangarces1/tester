@@ -1,321 +1,138 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-
 import 'package:http/http.dart' as http;
-import 'package:tester/ConsoleModels/console_transaction.dart';
-import 'package:tester/ConsoleModels/dispenser_last_info_response.dart';
-import 'package:tester/ConsoleModels/dispensersstatusresponse.dart';
-import 'package:tester/ConsoleModels/nozzle_info.dart';
-import 'package:tester/ConsoleModels/pump_faces_model.dart';
-import 'package:tester/ConsoleModels/success_response.dart';
-import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/helpers/constans.dart';
 
+/// Modelo de request para el endpoint /api/pump/preset-with-tag
+class PresetWithTagRequest {
+  final String nozzleCode;
+  final String tagId;
+  final int identifierType; // 0=Frentista, 1=Cliente
+  final bool authorize;
+  final double
+      presetValue; // Valor directo en colones o litros (0 = tanque lleno)
+  final int timeoutSeconds;
+  final int presetType; // 0=Monto(₡), 1=Volumen(litros)
+  final int priceLevel; // 0=À vista, 1=Crédito, 2=Débito
+
+  const PresetWithTagRequest({
+    required this.nozzleCode,
+    required this.tagId,
+    this.identifierType = 0,
+    this.authorize = true,
+    required this.presetValue,
+    this.timeoutSeconds = 30,
+    required this.presetType,
+    this.priceLevel = 0,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'nozzleCode': nozzleCode,
+        'tagId': tagId,
+        'identifierType': identifierType,
+        'authorize': authorize,
+        'presetValue': presetValue,
+        'timeoutSeconds': timeoutSeconds,
+        'presetType': presetType,
+        'priceLevel': priceLevel,
+      };
+}
+
 class ConsoleApiHelper {
-  // URL base para la API de Horustec Dispatches
+  static String get _base => Constans.baseUrlConsole;
 
-  /// GET /api/user/{UserMail} -> { "data": "<uuid>" }
-  Future<String> getUserIdByEmail(String email) async {
-    final uri = Uri.parse(
-        '${Constans.baseUrlHorustec}user/${Uri.encodeComponent(email)}');
-    final res = await http.get(uri);
+  // ─────────────────────────────────────────────────────────────────────────
+  // Preset con tag RFID — endpoint único para monto, volumen y tanque lleno
+  // POST /api/pump/preset-with-tag
+  // ─────────────────────────────────────────────────────────────────────────
 
-    if (res.statusCode != 200) {
-      throw Exception('HTTP ${res.statusCode}: ${res.body}');
-    }
-    final decoded = jsonDecode(res.body);
-    final id = decoded?['data'];
-    if (id is String && id.isNotEmpty) {
-      return id;
-    }
-    throw Exception('Respuesta inválida al resolver userId');
-  }
+  /// Autoriza un preset por **monto** (₡) en la manguera indicada.
+  /// [nozzleCode] debe ser "01".."48" (string con cero a la izquierda).
+  /// [amount] en colones, valor directo (ej: 5000.0).
+  /// [tagId] identificador RFID del frentista (16 chars hex).
+  static Future<bool> presetByAmount({
+    required String nozzleCode,
+    required double amount,
+    required String tagId,
+    bool authorize = true,
+    int timeoutSeconds = 30,
+  }) =>
+      _sendPreset(PresetWithTagRequest(
+        nozzleCode: nozzleCode,
+        tagId: tagId,
+        authorize: authorize,
+        presetValue: amount,
+        timeoutSeconds: timeoutSeconds,
+        presetType: 0, // Monto
+      ));
 
-  // 8. Pre-despacho
-  static Future<bool> preDispense(
-      int hoseId, double amount, String userIdentifier,
-      {bool authorize = true}) async {
-    final uri = Uri.parse(
-        '${Constans.baseUrlHorustec}Dispense/PreDispense?hoseId=$hoseId&amount=$amount&userIdentifier=$userIdentifier&authorize=$authorize');
-    final res = await http.post(uri);
-    if (res.statusCode == 200) {
-      return SuccessResponse.fromJson(jsonDecode(res.body)).success;
-    }
-    return false;
-  }
+  /// Autoriza un preset por **volumen** (litros) en la manguera indicada.
+  /// [liters] en litros, valor directo (ej: 20.0).
+  static Future<bool> presetByVolume({
+    required String nozzleCode,
+    required double liters,
+    required String tagId,
+    bool authorize = true,
+    int timeoutSeconds = 30,
+  }) =>
+      _sendPreset(PresetWithTagRequest(
+        nozzleCode: nozzleCode,
+        tagId: tagId,
+        authorize: authorize,
+        presetValue: liters,
+        timeoutSeconds: timeoutSeconds,
+        presetType: 1, // Volumen
+      ));
 
-  // 9. Post-despacho
-  static Future<bool> postDispense(int hoseId) async {
-    final uri = Uri.parse(
-        '${Constans.baseUrlHorustec}Dispense/PostDispense?hoseId=$hoseId');
-    final res = await http.post(uri);
-    if (res.statusCode == 200) {
-      return SuccessResponse.fromJson(jsonDecode(res.body)).success;
-    }
-    return false;
-  }
+  /// Autoriza **tanque lleno** en la manguera indicada.
+  /// Envía presetValue=0 que el concentrador interpreta como sin límite.
+  static Future<bool> presetTankFull({
+    required String nozzleCode,
+    required String tagId,
+    bool authorize = true,
+    int timeoutSeconds = 60,
+  }) =>
+      _sendPreset(PresetWithTagRequest(
+        nozzleCode: nozzleCode,
+        tagId: tagId,
+        authorize: authorize,
+        presetValue: 0,
+        timeoutSeconds: timeoutSeconds,
+        presetType: 0, // Monto con 0 = tanque lleno
+      ));
 
-  // 10. Finalizar despacho por dispenserId
-  static Future<bool> endDispense(int dispenserId) async {
-    final uri = Uri.parse(
-        '${Constans.baseUrlCoreWeb}Dispense/EndDispense?dispenserId=$dispenserId');
-    final res = await http.post(uri);
-    if (res.statusCode == 200) {
-      return SuccessResponse.fromJson(jsonDecode(res.body)).success;
-    }
-    return false;
-  }
+  // ─────────────────────────────────────────────────────────────────────────
+  // Interno
+  // ─────────────────────────────────────────────────────────────────────────
 
-  /// Finaliza/cancela un despacho por ID de dispensador.
-  /// Utiliza el endpoint api/Dispense/EndDispense de Horus.
-  static Future<bool> endDispenseByDispenser(int dispenserId) async {
-    final uri = Uri.parse(
-      '${Constans.baseUrlHorustec}Dispense/EndDispense?dispenserId=$dispenserId',
-    );
-    debugPrint(
-        '🛑 [API] CALLING endDispenseByDispenser: dispenserId=$dispenserId');
+  static Future<bool> _sendPreset(PresetWithTagRequest req) async {
+    final uri = Uri.parse('${_base}pump/preset-with-tag');
+    final body = jsonEncode(req.toJson());
+
+    debugPrint('🚀 [ConsoleApi] POST $uri');
+    debugPrint('   body: $body');
 
     try {
-      final res = await http.post(uri);
+      final res = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: body,
+          )
+          .timeout(const Duration(seconds: 15));
+
       if (res.statusCode == 200) {
-        final success = SuccessResponse.fromJson(jsonDecode(res.body)).success;
-        debugPrint('✅ [API] endDispenseByDispenser SUCCESS: $success');
-        return success;
+        debugPrint('✅ [ConsoleApi] preset-with-tag OK');
+        return true;
       } else {
-        debugPrint('❌ [API] endDispenseByDispenser FAILED: ${res.statusCode}');
-        debugPrint('RESPONSE BODY: ${res.body}');
+        debugPrint('❌ [ConsoleApi] preset-with-tag FAILED: ${res.statusCode}');
+        debugPrint('   response: ${res.body}');
         return false;
       }
     } catch (e) {
-      debugPrint('❌ [API] endDispenseByDispenser EXCEPTION: $e');
+      debugPrint('❌ [ConsoleApi] preset-with-tag EXCEPTION: $e');
       return false;
-    }
-  }
-
-  // 11. Obtener información del último despacho de un dispensador
-  static Future<DispenserLastInfoResponse?> getDispenserLastInfo(
-      int dispenserId) async {
-    final uri = Uri.parse(
-        '${Constans.baseUrlCoreWeb}Manager/GetDispenserLastInfo?dispenserId=$dispenserId');
-    final res = await http.get(uri);
-    if (res.statusCode == 200) {
-      return DispenserLastInfoResponse.fromJson(jsonDecode(res.body));
-    }
-    return null;
-  }
-
-  // 12. Obtener estado de todos los dispensadores
-  static Future<List<DispenserStatus>> getDispensersStatus() async {
-    final url =
-        Uri.parse('${Constans.baseUrlHorustec}Manager/GetDispensersStatus');
-    final res = await http.get(url);
-    if (res.statusCode == 200) {
-      return DispensersStatusResponse.fromJson(jsonDecode(res.body)).dispensers;
-    }
-    throw Exception(
-        'Error al obtener estado de dispensadores: HTTP ${res.statusCode}');
-  }
-
-  /// Endpoint alternativo más simple: /api/Connector/Statuses
-  /// Devuelve un array de strings donde cada 3 elementos corresponden a un dispensador.
-  /// Ej: [0-2] = Dispensador 1, [3-5] = Dispensador 2, etc.
-  static Future<List<String>> getConnectorStatuses() async {
-    final url = Uri.parse('${Constans.baseUrlHorustec}Connector/Statuses');
-    final res = await http.get(url);
-    if (res.statusCode == 200) {
-      final json = jsonDecode(res.body);
-      final statuses = json['statuses'];
-      if (statuses is List) {
-        return statuses.cast<String>();
-      }
-      throw Exception(
-          'Formato de respuesta inválido: statuses no es una lista');
-    }
-    throw Exception(
-        'Error al obtener Connector/Statuses: HTTP ${res.statusCode}');
-  }
-
-  // 14. Obtener último despacho por manguera (nozzle)
-  // static Future<DispatchModel?> getLastDispatchByNozzle(int nozzleNumber) async {
-  //   final uri = Uri.parse(
-  //     '${Constans.baseUrlCoreWeb}horustech/dispatches/nozzle/$nozzleNumber/last'
-  //   );
-  //   final res = await http.get(uri);
-  //   if (res.statusCode == 200) {
-  //     final body = jsonDecode(res.body);
-  //     // El JSON viene en { "data": { "id":…, "nozzleNumber":…, "volume":… } }
-  //     return DispatchModel.fromJson(body['data']);
-  //   }
-  //   return null;
-  // }
-
-  static Future<List<PumpData>> getPumpsAndFaces() async {
-    final url = Uri.parse(
-        '${Constans.baseUrlCoreWeb}pumps-beaches-configuration'); // O la ruta correcta de tu endpoint
-    final response = await http.get(url);
-
-    if (response.statusCode == 200) {
-      final jsonMap = json.decode(response.body);
-      final pumpResponse = PumpFacesResponse.fromJson(jsonMap);
-      return pumpResponse.data;
-    } else {
-      throw Exception('Error al obtener pumps: ${response.statusCode}');
-    }
-  }
-
-  static Future<List<NozzleInfo>> getNozzles() async {
-    final url = Uri.parse('${Constans.baseUrlCoreWeb}horustech/nozzles');
-    final response = await http.get(url);
-
-    if (response.statusCode == 200) {
-      final jsonMap = json.decode(response.body);
-      final nozzleResponse = NozzleApiResponse.fromJson(jsonMap);
-      return nozzleResponse.data;
-    } else {
-      throw Exception('Error al obtener nozzles: ${response.statusCode}');
-    }
-  }
-
-  // 13. Eliminar despacho Horustech
-  static Future<bool> deleteDispatch(int dispatchId) async {
-    // Ajusta la base URL si tu Constans.baseUrlCoreWeb ya incluye /api/
-    final uri =
-        Uri.parse('${Constans.baseUrlCoreWeb}horustech/dispatches/$dispatchId');
-
-    final res = await http.delete(uri);
-
-    if (res.statusCode == 200) {
-      // La API responde: { "data": true }
-      return SuccessResponse.fromJson(jsonDecode(res.body)).success;
-    }
-    return false;
-  }
-
-  /// Autoriza tanque lleno
-  static Future<bool> postDispenseV2(int nozzleNumber, String userIdentifier,
-      {bool authorize = true}) async {
-    final uri = Uri.parse(
-      '${Constans.baseUrlHorustec}Dispense/PostDispense'
-      '?hoseId=$nozzleNumber'
-      '&userIdentifier=$userIdentifier'
-      '&authorize=$authorize',
-    );
-    debugPrint(
-        '🚀 [API] CALLING postDispenseV2: nozzle=$nozzleNumber, user=$userIdentifier');
-    final res = await http.post(uri);
-    if (res.statusCode == 200) {
-      debugPrint('✅ [API] postDispenseV2 SUCCESS');
-    } else {
-      debugPrint('❌ [API] postDispenseV2 FAILED: URI=$uri');
-      debugPrint('STATUS CODE: ${res.statusCode}');
-      debugPrint('RESPONSE BODY: ${res.body}');
-    }
-    return res.statusCode == 200;
-  }
-
-  /// Autoriza preset
-  static Future<bool> preDispenseV2(
-    int nozzleNumber,
-    num amount,
-    String userIdentifier, {
-    required bool volumeDispatch,
-    bool authorize = true,
-  }) async {
-    final uri = Uri.parse(
-      '${Constans.baseUrlHorustec}Dispense/PreDispense'
-      '?hoseId=$nozzleNumber'
-      '&amount=$amount'
-      '&userIdentifier=$userIdentifier'
-      '&authorize=$authorize'
-      '&volumeDispatch=$volumeDispatch',
-    );
-    debugPrint(
-        '🚀 [API] CALLING preDispenseV2: nozzle=$nozzleNumber, amount=$amount, user=$userIdentifier');
-    final res = await http.post(uri);
-    if (res.statusCode == 200) {
-      debugPrint('✅ [API] preDispenseV2 SUCCESS');
-    } else {
-      debugPrint('❌ [API] preDispenseV2 FAILED: URI=$uri');
-      debugPrint('STATUS CODE: ${res.statusCode}');
-      debugPrint('RESPONSE BODY: ${res.body}');
-    }
-    return res.statusCode == 200;
-  }
-
-  /// Última transacción SIN PAGO por manguera (nozzle).
-  /// Devuelve null si no hay registro.
-
-  static Future<Response> getLastUnpaidByNozzle(
-    int nozzle, {
-    Duration timeout = const Duration(seconds: 12),
-  }) async {
-    final uri = Uri.parse(
-      '${Constans.baseUrlCoreWeb}horustech/dispatches/nozzle/$nozzle/last-unpaid',
-    );
-
-    try {
-      final response = await http.get(uri).timeout(timeout);
-
-      if (response.statusCode == 200) {
-        final raw = jsonDecode(response.body);
-
-        // A: si usas la clase refactorizada (con _unwrap), puedes pasar raw (si es Map)
-        if (raw is! Map) {
-          throw const FormatException(
-              'Se esperaba un objeto JSON (Map), pero llegó otra cosa.');
-        }
-        final tx = ConsoleTransaction.fromJson(raw.cast<String, dynamic>());
-        return Response(isSuccess: true, message: 'Éxito', result: tx);
-      } else if (response.statusCode == 204) {
-        // No content
-        return Response(isSuccess: true, message: '', result: []);
-      } else {
-        // Handle other statuses, maybe something went wrong
-        return Response(isSuccess: false, message: "Error: ${response.body}");
-      }
-    } on TimeoutException {
-      return Response(
-          isSuccess: false, message: 'Tiempo de espera agotado', result: null);
-    } catch (e) {
-      return Response(isSuccess: false, message: 'Error: $e', result: null);
-    }
-  }
-
-  static Future<Response> getTransactionLastByNozzle(
-    int nozzle, {
-    Duration timeout = const Duration(seconds: 12),
-  }) async {
-    final uri = Uri.parse(
-      '${Constans.baseUrlCoreWeb}horustech/dispatches/nozzle/$nozzle/last',
-    );
-
-    try {
-      final response = await http.get(uri).timeout(timeout);
-
-      if (response.statusCode == 200) {
-        final raw = jsonDecode(response.body);
-
-        // A: si usas la clase refactorizada (con _unwrap), puedes pasar raw (si es Map)
-        if (raw is! Map) {
-          throw const FormatException(
-              'Se esperaba un objeto JSON (Map), pero llegó otra cosa.');
-        }
-        final tx = ConsoleTransaction.fromJson(raw.cast<String, dynamic>());
-        return Response(isSuccess: true, message: 'Éxito', result: tx);
-      } else if (response.statusCode == 204) {
-        // No content
-        return Response(isSuccess: true, message: '', result: []);
-      } else {
-        // Handle other statuses, maybe something went wrong
-        return Response(isSuccess: false, message: "Error: ${response.body}");
-      }
-    } on TimeoutException {
-      return Response(
-          isSuccess: false, message: 'Tiempo de espera agotado', result: null);
-    } catch (e) {
-      return Response(isSuccess: false, message: 'Error: $e', result: null);
     }
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/Providers/experimental/alt_dispatch_control.dart';
-import 'package:tester/Providers/dispatch_control.dart' show DispatchStage;
+
 import 'package:tester/ViewModels/new_map.dart';
 
 /// Este Provider es el encargado de agrupar los despachos y sincronizarlos con el mapa.
@@ -33,39 +33,17 @@ class AltDespachosProvider extends ChangeNotifier {
   void addDispatch(AltDispatchControl d) {
     _despachos.add(d);
     _onMapUpdate();
-    _syncPollingInterval();
     notifyListeners();
   }
 
   void removeDispatch(AltDispatchControl d) {
     _despachos.remove(d);
-    _syncPollingInterval();
     notifyListeners();
   }
 
-  void _syncPollingInterval() {
-    // Estados que requieren polling activo
-    const activeStages = {
-      DispatchStage.idle,
-      DispatchStage.hoseSelected,
-      DispatchStage.readyToAuthorize,
-      DispatchStage.authorizing,
-      DispatchStage.authorized,
-      DispatchStage.dispatching,
-      // unpaid y completed NO necesitan polling
-    };
-
-    // Verificamos si hay al menos un despacho en estado activo
-    final hasActiveDispatch =
-        _despachos.any((d) => activeStages.contains(d.stage));
-
-    if (hasActiveDispatch) {
-      // Hay actividad: Polling SECUENCIAL (500ms delay entre requests)
-      mapProvider.startGlobalPolling(milliseconds: 500);
-    } else {
-      // Solo despachos en 'completed' o lista vacía: Parada total
-      mapProvider.stopGlobalPolling();
-    }
+  void reset() {
+    _despachos.clear();
+    notifyListeners();
   }
 
   /// Función CRUCIAL: Se ejecuta cada vez que el MapProvider termina de pedir los estados al API.

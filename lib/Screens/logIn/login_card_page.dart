@@ -142,17 +142,17 @@ class _LoginNfcScreenState extends State<LoginNfcScreen> {
       );
       await usuarioProv.signIn(mockUser);
       if (!mounted) return;
-      // 6) Cargar mapa
+      // 6) Conectar al hub SignalR de monitoreo
       final mapProv = context.read<MapProvider>();
       try {
-        await mapProv.loadMap();
+        await mapProv.connect();
       } catch (e) {
         setState(() {
           _scanning = false;
           _showLoader = false;
         });
         Fluttertoast.showToast(
-          msg: 'No se pudo cargar la configuración de la estación: $e',
+          msg: 'No se pudo conectar al monitoreo de la estación: $e',
         );
         return;
       }

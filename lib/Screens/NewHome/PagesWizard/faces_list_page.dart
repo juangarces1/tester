@@ -30,19 +30,21 @@ class _FacesListPageState extends State<FacesListPage> {
     super.dispose();
   }
 
+  /// Con SignalR el mapa se actualiza automáticamente vía push.
+  /// Este método ya no hace polling; solo resetea el flag de primera entrada.
   Future<void> _refreshMap() async {
     if (_loadingInFlight) return;
-    _loadingInFlight = true;
-    try {
-      await context.read<MapProvider>().loadMapDirect();
-    } finally {
-      if (mounted) {
-        setState(() {
-          _loadingInFlight = false;
-          _isFirstEntry = false;
-        });
-      }
+
+    final mapProv = context.read<MapProvider>();
+    if (!mapProv.isConnected) {
+      // Reintentar conexión si está desconectado o hubo error
+      await mapProv.connect();
     }
+
+    setState(() {
+      _loadingInFlight = false;
+      _isFirstEntry = false;
+    });
   }
 
   @override
@@ -191,8 +193,12 @@ class _FacesListPageState extends State<FacesListPage> {
                           itemBuilder: (_, index) {
                             final position = positions[index];
                             final status = _statusLabel(position);
+                            // Permitir selección si está disponible O si aún
+                            // no llegó el primer ReceiveStatus del hub (unknown/sin datos)
                             final isAvailable =
-                                status.toLowerCase() == 'disponible';
+                                status.toLowerCase() == 'disponible' ||
+                                    status.toLowerCase() == 'bloqueada' ||
+                                    status.toLowerCase() == 'sin datos';
                             return _PositionCard(
                               position: position,
                               enabled: isAvailable,
@@ -401,24 +407,25 @@ String _statusLabel(PositionPhysical position) {
       .where((status) => status.isNotEmpty)
       .toList();
 
-  if (normalized.any((s) => s.contains('fuel'))) {
-    return 'Despachando';
-  }
-  if (normalized.any((s) => s.contains('author'))) {
-    return 'Autorizada';
-  }
-  if (normalized.any((s) => s.contains('available'))) {
-    return 'Disponible';
-  }
-  if (normalized.any((s) => s.contains('busy'))) {
-    return 'Ocupada';
-  }
-  if (normalized.any((s) => s.contains('stopped'))) {
-    return 'Detenida';
-  }
-  if (normalized.isEmpty) {
+  // Prioridad de estados (el más crítico define la tarjeta)
+  if (normalized.any((s) => s.contains('error'))) return 'Error';
+  if (normalized.any((s) => s.contains('blocked'))) return 'Bloqueada';
+  if (normalized.any((s) => s.contains('calling'))) return 'Llamando';
+  if (normalized.any((s) => s.contains('fuel'))) return 'Despachando';
+  if (normalized.any((s) => s.contains('author'))) return 'Autorizada';
+  if (normalized.any((s) => s.contains('busy'))) return 'Ocupada';
+  if (normalized.any((s) => s.contains('waiting'))) return 'Esperando';
+  if (normalized.any((s) => s.contains('stopped'))) return 'Detenida';
+  if (normalized.any((s) => s.contains('available'))) return 'Disponible';
+
+  // Estado inicial o fallbacks
+  if (normalized.isEmpty || normalized.every((s) => s == 'unknown')) {
     return 'Sin datos';
   }
+  if (normalized.every((s) => s == 'unavailable')) {
+    return 'No Configurada';
+  }
+
   final raw = normalized.first;
   return raw[0].toUpperCase() + raw.substring(1);
 }
@@ -430,11 +437,24 @@ Color _statusColor(String status) {
     case 'autorizada':
       return Colors.cyanAccent;
     case 'despachando':
-      return Colors.blueAccent;
+      return Colors.blue; // Azul puro
     case 'ocupada':
-      return Colors.redAccent;
+      return Colors.orangeAccent;
     case 'detenida':
       return Colors.blueGrey;
+    case 'bloqueada':
+      return Colors.indigoAccent;
+    case 'llamando':
+      return Colors
+          .lightBlueAccent; // Podría parpadear en una implementación futura
+    case 'esperando':
+      return Colors.amber;
+    case 'error':
+      return Colors.red;
+    case 'no configurada':
+      return Colors.grey.shade800;
+    case 'sin datos':
+      return Colors.grey.shade700;
     default:
       return Colors.white70;
   }
@@ -447,11 +467,21 @@ IconData _statusIcon(String status) {
     case 'autorizada':
       return Icons.verified_rounded;
     case 'despachando':
-      return Icons.flash_on_rounded;
+      return Icons.local_gas_station_rounded;
     case 'ocupada':
-      return Icons.lock_rounded;
+      return Icons.lock_clock_rounded;
     case 'detenida':
       return Icons.stop_circle_rounded;
+    case 'bloqueada':
+      return Icons.lock_outline_rounded;
+    case 'llamando':
+      return Icons.front_hand_rounded; // Mano levantada
+    case 'esperando':
+      return Icons.hourglass_top_rounded;
+    case 'error':
+      return Icons.error_rounded;
+    case 'no configurada':
+      return Icons.desktop_access_disabled_rounded;
     default:
       return Icons.help_outline_rounded;
   }

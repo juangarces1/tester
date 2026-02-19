@@ -1,10 +1,10 @@
 // lib/Screens/Dispatch/preset_step_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
+import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/experimental/alt_despachos_provider.dart';
-import 'package:tester/Providers/experimental/alt_dispatch_control.dart';
-import 'package:tester/Screens/NewHome/PagesWizard/dispatch_summary_page.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
 enum PresetMode { amount, volume, full }
@@ -63,15 +63,10 @@ class PresetStepPage extends StatelessWidget {
               subtitle: 'Hasta detenerse',
               icon: Icons.water_drop,
               color: Colors.greenAccent,
-              onTap: () {
+              onTap: () async {
                 dispatch.setTankFull(true);
                 despachosProv.refresh();
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) =>
-                          DispatchSummaryPage(dispatchId: dispatchId)),
-                );
+                await _authorizeDispatch(context, dispatchId);
               },
             ),
           ],
@@ -289,7 +284,7 @@ class _UnifiedPresetPageState extends State<UnifiedPresetPage> {
     setState(() => _error = null);
   }
 
-  void _confirmOrder() {
+  void _confirmOrder() async {
     final despachosProv =
         Provider.of<AltDespachosProvider>(context, listen: false);
     final dispatch = despachosProv.getById(widget.dispatchId);
@@ -313,11 +308,7 @@ class _UnifiedPresetPageState extends State<UnifiedPresetPage> {
     }
 
     despachosProv.refresh();
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-          builder: (_) => DispatchSummaryPage(dispatchId: widget.dispatchId)),
-    );
+    await _authorizeDispatch(context, widget.dispatchId);
   }
 }
 
@@ -530,6 +521,91 @@ class _HeroButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Función de autorización compartida (top-level)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Autoriza el despacho directamente desde la pantalla de preset,
+/// sin pasar por DispatchSummaryPage.
+Future<void> _authorizeDispatch(BuildContext context, String dispatchId) async {
+  final despachosProv =
+      Provider.of<AltDespachosProvider>(context, listen: false);
+  final dispatch = despachosProv.getById(dispatchId);
+
+  if (dispatch == null) {
+    Fluttertoast.showToast(
+      msg: 'No se encontró el despacho.',
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.CENTER,
+      backgroundColor: Colors.red,
+      textColor: Colors.white,
+    );
+    return;
+  }
+
+  // Validación previa
+  if (!dispatch.isReadyToAuthorize) {
+    final reason = dispatch.notReadyReason ?? 'No está listo para autorizar.';
+    Fluttertoast.showToast(
+      msg: reason,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.CENTER,
+      backgroundColor: Colors.orange,
+      textColor: Colors.white,
+    );
+    return;
+  }
+
+  // Obtener usuario del cierre activo
+  final user = context.read<CierreActivoProvider>().usuario;
+  final tagId = user?.attendantId ?? '';
+  if (user == null || tagId.isEmpty) {
+    Fluttertoast.showToast(
+      msg: 'Debes iniciar sesión para autorizar.',
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.CENTER,
+      backgroundColor: Colors.orange,
+      textColor: Colors.white,
+    );
+    return;
+  }
+
+  // Mostrar loading
+  if (!context.mounted) return;
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const Center(
+      child: CircularProgressIndicator(color: Colors.blueAccent),
+    ),
+  );
+
+  final ok = await dispatch.applyPresetAndAuthorize(tagId);
+
+  if (!context.mounted) return;
+  Navigator.of(context, rootNavigator: true).pop(); // cierra loading
+
+  if (ok) {
+    Fluttertoast.showToast(
+      msg: '✅ Despacho autorizado',
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.CENTER,
+      backgroundColor: Colors.green,
+      textColor: Colors.white,
+    );
+    // Volver al inicio del wizard (pop hasta la primera pantalla del flujo)
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  } else {
+    Fluttertoast.showToast(
+      msg: '❌ Error al autorizar. Intenta de nuevo.',
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.CENTER,
+      backgroundColor: Colors.red,
+      textColor: Colors.white,
     );
   }
 }

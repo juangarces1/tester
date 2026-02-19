@@ -31,6 +31,7 @@ class HosePhysical {
   final int? volumeFieldDecimalPlaces;
   final num? totalVolume;
   final num? totalAmount;
+  final String? tagId;
 
   const HosePhysical({
     required this.nozzleNumber,
@@ -52,6 +53,7 @@ class HosePhysical {
     this.volumeFieldDecimalPlaces,
     this.totalVolume,
     this.totalAmount,
+    this.tagId,
   });
 }
 

@@ -12,7 +12,8 @@ import 'package:tester/Models/FuelRed/sinpe.dart';
 import 'package:tester/Models/FuelRed/transferencia.dart';
 
 // Si quieres usar el enum para setear flags:
-import 'package:tester/Providers/dispatch_control.dart' show InvoiceType;
+import 'package:tester/Providers/experimental/alt_dispatch_control.dart'
+    show InvoiceType;
 
 class FacturasProvider with ChangeNotifier {
   final List<Invoice> _facturas = <Invoice>[];

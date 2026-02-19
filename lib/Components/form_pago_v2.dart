@@ -203,9 +203,10 @@ class FormPagoV2State extends State<FormPagoV2> {
         ],
       ),
       child: Expansible(
+        animationStyle: AnimationStyle(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic),
         controller: widget.expansibleController,
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
         maintainState: true,
         headerBuilder: (context, anim) => _buildHeader(anim),
         bodyBuilder: (context, anim) => _buildBody(),

@@ -78,20 +78,21 @@ class _ClienteCardState extends State<ClienteCard> {
   Widget build(BuildContext context) {
     final e = widget.cliente;
     final bool hayActividades = (e.actividadesEconomicas?.isNotEmpty ?? false);
-    final bool hasStatus = (widget.statusText != null && widget.statusText!.trim().isNotEmpty);
+    final bool hasStatus =
+        (widget.statusText != null && widget.statusText!.trim().isNotEmpty);
 
     // Contraste automático
     final Color cardBg = widget.backgroundColor ?? Theme.of(context).cardColor;
-    final isDark = ThemeData.estimateBrightnessForColor(cardBg) == Brightness.dark;
+    final isDark =
+        ThemeData.estimateBrightnessForColor(cardBg) == Brightness.dark;
     final Color onBg = isDark ? Colors.white : Colors.black87;
     final Color onBgMuted = isDark ? Colors.white70 : Colors.black54;
 
     final Color statusBg = _statusIsError(widget.statusText)
         ? Colors.red.withValues(alpha: 0.12)
         : Colors.green.withValues(alpha: 0.12);
-    final Color statusFg = _statusIsError(widget.statusText)
-        ? Colors.red
-        : Colors.green;
+    final Color statusFg =
+        _statusIsError(widget.statusText) ? Colors.red : Colors.green;
 
     final bool disabled = widget.isBusy || widget.readOnly;
 
@@ -141,7 +142,8 @@ class _ClienteCardState extends State<ClienteCard> {
             else if (hasStatus)
               Container(
                 margin: const EdgeInsets.only(top: 2),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: statusBg,
                   borderRadius: BorderRadius.circular(12),
@@ -162,7 +164,8 @@ class _ClienteCardState extends State<ClienteCard> {
                         widget.statusText!,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: statusFg, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                            color: statusFg, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -174,31 +177,38 @@ class _ClienteCardState extends State<ClienteCard> {
             // ====== Emails ======
             if (widget.showEmails) ...[
               DropdownButtonFormField<String>(
-                key: ValueKey('emails-${widget.cliente.documento}-${emails.join("|")}'),
+                key: ValueKey(
+                    'emails-${widget.cliente.documento}-${emails.join("|")}'),
                 isExpanded: true,
                 decoration: InputDecoration(
                   labelText: "Email",
                   labelStyle: TextStyle(color: onBgMuted),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: onBgMuted.withValues(alpha: 0.4)),
+                    borderSide:
+                        BorderSide(color: onBgMuted.withValues(alpha: 0.4)),
                   ),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  contentPadding:
+                      const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                 ),
                 dropdownColor: cardBg,
                 style: TextStyle(color: onBg),
-                value: selectedEmail, // puede ser null
-                hint: Text('Selecciona un email', style: TextStyle(color: onBgMuted)),
+                initialValue: selectedEmail, // puede ser null
+                hint: Text('Selecciona un email',
+                    style: TextStyle(color: onBgMuted)),
                 onChanged: disabled
                     ? null
                     : (newValue) {
                         setState(() {
                           widget.cliente.email = newValue ?? '';
                           // asegúrate de dejar dedupe aplicado
-                          widget.cliente.emails = _dedupeEmails(widget.cliente.emails);
+                          widget.cliente.emails =
+                              _dedupeEmails(widget.cliente.emails);
                           if (newValue != null &&
-                              !widget.cliente.emails.any((v) => v.toLowerCase() == newValue.toLowerCase())) {
+                              !widget.cliente.emails.any((v) =>
+                                  v.toLowerCase() == newValue.toLowerCase())) {
                             widget.cliente.emails.insert(0, newValue);
                           }
                         });
@@ -206,33 +216,40 @@ class _ClienteCardState extends State<ClienteCard> {
                 items: emails
                     .map((value) => DropdownMenuItem<String>(
                           value: value,
-                          child: Text(value, overflow: TextOverflow.ellipsis, style: TextStyle(color: onBg)),
+                          child: Text(value,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: onBg)),
                         ))
                     .toList(),
               ),
               const SizedBox(height: 8),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _circleIconButton(
                     icon: Icons.edit,
                     color: Colors.orangeAccent,
-                    onTap: disabled ? null : () => widget.onEditarEmail?.call(e, widget.index),
+                    onTap: disabled
+                        ? null
+                        : () => widget.onEditarEmail?.call(e, widget.index),
                   ),
                   _circleIconButton(
                     icon: Icons.refresh,
                     color: kBlueColorLogo,
-                    onTap: disabled ? null : () => widget.onGetEmails?.call(e.documento, widget.index),
+                    onTap: disabled
+                        ? null
+                        : () =>
+                            widget.onGetEmails?.call(e.documento, widget.index),
                   ),
                   _circleIconButton(
                     icon: Icons.add,
                     color: Colors.green,
-                    onTap: disabled ? null : () => widget.onAgregarEmail?.call(e, widget.index),
+                    onTap: disabled
+                        ? null
+                        : () => widget.onAgregarEmail?.call(e, widget.index),
                   ),
                 ],
               ),
-
               const SizedBox(height: 14),
             ],
 
@@ -243,11 +260,11 @@ class _ClienteCardState extends State<ClienteCard> {
                   Icon(Icons.business_center, size: 18, color: onBg),
                   const SizedBox(width: 6),
                   Text('Actividades económicas',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: onBg)),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, color: onBg)),
                 ],
               ),
               const SizedBox(height: 8),
-
               if (!hayActividades)
                 Column(
                   children: [
@@ -262,9 +279,13 @@ class _ClienteCardState extends State<ClienteCard> {
                       label: const Text('Cargar desde Hacienda'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: onBg,
-                        side: BorderSide(color: onBgMuted.withValues(alpha: 0.6)),
+                        side:
+                            BorderSide(color: onBgMuted.withValues(alpha: 0.6)),
                       ),
-                      onPressed: disabled ? null : () => widget.onSyncActividades?.call(e.documento, widget.index),
+                      onPressed: disabled
+                          ? null
+                          : () => widget.onSyncActividades
+                              ?.call(e.documento, widget.index),
                     ),
                   ],
                 )
@@ -274,14 +295,17 @@ class _ClienteCardState extends State<ClienteCard> {
                   children: [
                     if (e.actividadSeleccionada != null) ...[
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: onBgMuted.withValues(alpha: 0.4)),
+                          border: Border.all(
+                              color: onBgMuted.withValues(alpha: 0.4)),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.check_circle_outline, size: 18, color: onBg),
+                            Icon(Icons.check_circle_outline,
+                                size: 18, color: onBg),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -300,38 +324,44 @@ class _ClienteCardState extends State<ClienteCard> {
                       spacing: 8,
                       runSpacing: 6,
                       children: e.actividadesEconomicas!.map((a) {
-                        final selected = (e.actividadSeleccionada?.codigo == a.codigo);
-                        final isPrincipal = (e.actividadPrincipal?.codigo == a.codigo);
+                        final selected =
+                            (e.actividadSeleccionada?.codigo == a.codigo);
+                        final isPrincipal =
+                            (e.actividadPrincipal?.codigo == a.codigo);
 
                         return ChoiceChip(
                           selected: selected,
                           label: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(a.codigo ?? '', style: TextStyle(color: onBg)),
+                              Text(a.codigo ?? '',
+                                  style: TextStyle(color: onBg)),
                               if (isPrincipal) ...[
                                 const SizedBox(width: 6),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: Colors.amber.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Text('Principal', style: TextStyle(fontSize: 11)),
+                                  child: const Text('Principal',
+                                      style: TextStyle(fontSize: 11)),
                                 ),
                               ],
                             ],
                           ),
-                          onSelected: disabled ? null : (_) {
-                            setState(() {
-                              widget.cliente.actividadSeleccionada = a;
-                              selectedActividadCodigo = a.codigo;
-                            });
-                          },
+                          onSelected: disabled
+                              ? null
+                              : (_) {
+                                  setState(() {
+                                    widget.cliente.actividadSeleccionada = a;
+                                    selectedActividadCodigo = a.codigo;
+                                  });
+                                },
                         );
                       }).toList(),
                     ),
-
                     const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -341,15 +371,18 @@ class _ClienteCardState extends State<ClienteCard> {
                           label: const Text('Re-sincronizar Hacienda'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: onBg,
-                            side: BorderSide(color: onBgMuted.withValues(alpha: 0.6)),
+                            side: BorderSide(
+                                color: onBgMuted.withValues(alpha: 0.6)),
                           ),
-                          onPressed: disabled ? null : () => widget.onSyncActividades?.call(e.documento, widget.index),
+                          onPressed: disabled
+                              ? null
+                              : () => widget.onSyncActividades
+                                  ?.call(e.documento, widget.index),
                         ),
                       ],
                     ),
                   ],
                 ),
-
               const SizedBox(height: 12),
             ],
 
@@ -359,10 +392,12 @@ class _ClienteCardState extends State<ClienteCard> {
                   elevation: 6,
                   backgroundColor: isDark ? Colors.white : kPrimaryColor,
                   foregroundColor: isDark ? kPrimaryColor : Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: disabled ? null : () => widget.onInfoUser?.call(e),
-                child: const Text('Select', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: const Text('Select',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
               ),
           ],
         ),
@@ -406,7 +441,8 @@ class _ClienteCardState extends State<ClienteCard> {
       onTap: onTap,
       child: CircleAvatar(
         radius: 18,
-        backgroundColor: (disabled ? Colors.grey : color).withValues(alpha: 0.15),
+        backgroundColor:
+            (disabled ? Colors.grey : color).withValues(alpha: 0.15),
         child: Icon(icon, color: disabled ? Colors.grey : color, size: 20),
       ),
     );

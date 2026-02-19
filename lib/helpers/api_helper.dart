@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:tester/ConsoleModels/dispensersstatusresponse.dart';
 import 'package:tester/Models/FuelRed/nozzle_mapping.dart';
 import 'package:tester/Models/LogIn/inventory_item.dart';
 import 'package:tester/Models/Promo/cliente_promo.dart';
@@ -348,26 +349,37 @@ class ApiHelper {
   }
 
   static Future<Response> getMapHoseDispenser() async {
+    // Revertido a la API original porque el endpoint no existe en el nuevo Console (404)
     var url = Uri.parse('${Constans.getAPIUrl()}/api/Shifts/GetHoseKeyMap/');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
-    }
-    List<NozzleMapping> nozzleMappings = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
-        nozzleMappings.add(NozzleMapping.fromJson(item));
+    try {
+      debugPrint('🔍 [ApiHelper] GET $url');
+      var response = await http.get(
+        url,
+        headers: {
+          'content-type': 'application/json',
+          'accept': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      var body = response.body;
+      if (response.statusCode >= 400) {
+        debugPrint('❌ [ApiHelper] Error ${response.statusCode}: $body');
+        return Response(
+            isSuccess: false, message: 'Status ${response.statusCode}: $body');
       }
+
+      List<NozzleMapping> nozzleMappings = [];
+      var decodedJson = jsonDecode(body);
+      if (decodedJson != null) {
+        for (var item in decodedJson) {
+          nozzleMappings.add(NozzleMapping.fromJson(item));
+        }
+      }
+      return Response(isSuccess: true, result: nozzleMappings);
+    } catch (e) {
+      debugPrint('❌ [ApiHelper] Exception fetching map: $e');
+      return Response(isSuccess: false, message: e.toString());
     }
-    return Response(isSuccess: true, result: nozzleMappings);
   }
 
   static Future<Response> getFacturasByCierre(int? cierre) async {
@@ -874,7 +886,8 @@ class ApiHelper {
         queryParams['minId'] = minId.toString();
       }
 
-      var url = Uri.parse('${Constans.getAPIUrl()}/api/Clientes/GetClientsContadoPaged')
+      var url = Uri.parse(
+              '${Constans.getAPIUrl()}/api/Clientes/GetClientsContadoPaged')
           .replace(queryParameters: queryParams);
 
       debugPrint('🌐 API Call: $url');
@@ -904,7 +917,8 @@ class ApiHelper {
       var decodedJson = jsonDecode(body);
       if (decodedJson == null) {
         debugPrint('❌ Response body is null');
-        return Response(isSuccess: false, message: 'Respuesta vacía del servidor');
+        return Response(
+            isSuccess: false, message: 'Respuesta vacía del servidor');
       }
 
       debugPrint('📦 Response structure: ${decodedJson.keys.toList()}');
@@ -931,7 +945,8 @@ class ApiHelper {
         'totalPages': decodedJson['totalPages'] ?? 0,
       };
 
-      debugPrint('✅ Returning ${clientes.length} clientes, page ${result['page']}/${result['totalPages']}');
+      debugPrint(
+          '✅ Returning ${clientes.length} clientes, page ${result['page']}/${result['totalPages']}');
 
       return Response(isSuccess: true, result: result);
     } catch (e, stackTrace) {
@@ -1296,6 +1311,37 @@ class ApiHelper {
       return Response(isSuccess: true, result: cliente);
     } catch (e) {
       return Response(isSuccess: false, message: "Exception: ${e.toString()}");
+    }
+  }
+
+  static Future<Response> getFuelingPoints() async {
+    var url = Uri.parse('${Constans.getAPIUrl()}/api/Shifts/GetFuelingPoints');
+    try {
+      debugPrint('🔍 [ApiHelper] GET $url');
+      var response = await http.get(
+        url,
+        headers: {
+          'content-type': 'application/json',
+          'accept': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      var body = response.body;
+      if (response.statusCode >= 400) {
+        debugPrint('❌ [ApiHelper] Error ${response.statusCode}: $body');
+        return Response(
+            isSuccess: false, message: 'Status ${response.statusCode}: $body');
+      }
+
+      var decodedJson = jsonDecode(body);
+      if (decodedJson != null) {
+        final data = DispensersStatusResponse.fromJson(decodedJson);
+        return Response(isSuccess: true, result: data);
+      }
+      return Response(isSuccess: false, message: 'Respuesta vacía');
+    } catch (e) {
+      debugPrint('❌ [ApiHelper] Exception fetching fueling points: $e');
+      return Response(isSuccess: false, message: e.toString());
     }
   }
 }

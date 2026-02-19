@@ -32,16 +32,11 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
     super.initState();
   }
 
+  /// Con SignalR el mapa se actualiza automáticamente vía push.
+  /// Este método ya no hace polling manual.
   Future<void> _refreshMap() async {
     if (_loadingInFlight) return;
-    setState(() => _loadingInFlight = true);
-    try {
-      await context.read<MapProvider>().loadMapDirect();
-    } finally {
-      if (mounted) {
-        setState(() => _loadingInFlight = false);
-      }
-    }
+    if (mounted) setState(() => _loadingInFlight = false);
   }
 
   @override
@@ -189,8 +184,10 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
                               delegate: SliverChildBuilderDelegate(
                                 (context, index) {
                                   final hose = hoses[index];
-                                  final isAvailable =
-                                      hose.status.toLowerCase() == 'available';
+                                  final isAvailable = hose.status
+                                              .toLowerCase() ==
+                                          'available' ||
+                                      hose.status.toLowerCase() == 'blocked';
                                   return _HoseCard(
                                     hose: hose,
                                     enabled: isAvailable,
@@ -435,10 +432,18 @@ class _HoseCard extends StatelessWidget {
 
 String _hoseStatusLabel(String raw) {
   final normalized = raw.toLowerCase();
+
+  if (normalized.contains('error')) return 'Error';
+  if (normalized.contains('blocked')) return 'Bloqueada';
+  if (normalized.contains('calling')) return 'Llamando';
   if (normalized.contains('fuel')) return 'Despachando';
   if (normalized.contains('author')) return 'Autorizada';
-  if (normalized.contains('available')) return 'Disponible';
   if (normalized.contains('busy')) return 'Ocupada';
+  if (normalized.contains('waiting')) return 'Esperando';
+  if (normalized.contains('stopped')) return 'Detenida';
+  if (normalized.contains('available')) return 'Disponible';
+  if (normalized.contains('unavailable')) return 'No Configurada';
+
   if (normalized.isEmpty || normalized == 'unknown') return 'Sin datos';
   return normalized[0].toUpperCase() + normalized.substring(1);
 }
@@ -448,11 +453,25 @@ Color _hoseStatusColor(String status) {
     case 'disponible':
       return Colors.greenAccent;
     case 'autorizada':
-      return Colors.lightBlueAccent;
+      return Colors.cyanAccent;
     case 'despachando':
-      return Colors.orangeAccent;
+      return Colors.blueAccent;
     case 'ocupada':
+      return Colors.orangeAccent;
+    case 'detenida':
+      return Colors.blueGrey;
+    case 'bloqueada':
       return Colors.redAccent;
+    case 'llamando':
+      return Colors.lightBlueAccent;
+    case 'esperando':
+      return Colors.amber;
+    case 'error':
+      return Colors.red;
+    case 'no configurada':
+      return Colors.grey.shade800;
+    case 'sin datos':
+      return Colors.grey.shade700;
     default:
       return Colors.white70;
   }
@@ -465,11 +484,21 @@ IconData _hoseStatusIcon(String status) {
     case 'autorizada':
       return Icons.verified_rounded;
     case 'despachando':
-      return Icons.flash_on_rounded;
+      return Icons.local_gas_station_rounded;
     case 'ocupada':
-      return Icons.lock_rounded;
+      return Icons.lock_clock_rounded;
     case 'detenida':
       return Icons.stop_circle_rounded;
+    case 'bloqueada':
+      return Icons.block_rounded;
+    case 'llamando':
+      return Icons.front_hand_rounded;
+    case 'esperando':
+      return Icons.hourglass_top_rounded;
+    case 'error':
+      return Icons.error_rounded;
+    case 'no configurada':
+      return Icons.desktop_access_disabled_rounded;
     default:
       return Icons.help_outline_rounded;
   }

@@ -92,8 +92,9 @@ class Transaccion {
     //   dt = DateFormat('dd/MM/yyyy HH:mm').parse(raw, true); // 'true' => UTC
     // }
 
-    if (dt == null)
+    if (dt == null) {
       return raw; // último recurso: manda como venía (evitar null)
+    }
 
     // si no tiene zona, asume que es hora local del dispositivo
     if (!dt.isUtc) dt = dt.toUtc();

@@ -1,19 +1,19 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:signalr_netcore/signalr_client.dart';
 import '../ViewModels/new_map.dart';
 import '../Models/FuelRed/nozzle_mapping.dart';
+import '../Models/SignalR/nozzle_status_dto.dart';
+import '../ConsoleModels/dispensersstatusresponse.dart';
 import '../helpers/api_helper.dart';
-import '../helpers/console_api_helper.dart';
+import '../helpers/constans.dart';
 
 class MapProvider extends ChangeNotifier {
+  // ── Estado público ──────────────────────────────────────────────────────────
   Map<int, PositionPhysical>? _stationMap;
   bool _loading = true;
   String? _error;
   bool _toastShown = false;
-  List<NozzleMapping>? _cachedMappings;
-
-  Timer? _pollingTimer;
-  bool _isPollingActive = false;
 
   Map<int, PositionPhysical>? get stationMap => _stationMap;
   bool get isLoading => _loading;
@@ -21,330 +21,386 @@ class MapProvider extends ChangeNotifier {
   bool get isError => _error != null;
   bool get toastShown => _toastShown;
 
-  // ========== CONTADORES DE MONITOREO ==========
-  int _pollAttempts = 0; // Cuántas veces intentamos pollear
-  int _pollSuccess = 0; // Cuántas veces el API respondió OK
-  int _pollErrors = 0; // Cuántas veces falló
-  int _pollEmptyResponses = 0; // Cuántas veces respondió vacío
+  // ── SignalR ─────────────────────────────────────────────────────────────────
+  HubConnection? _hubConnection;
+  bool _isConnected = false;
+  bool get isConnected => _isConnected;
 
-  int get pollAttempts => _pollAttempts;
-  int get pollSuccess => _pollSuccess;
-  int get pollErrors => _pollErrors;
-  int get pollEmptyResponses => _pollEmptyResponses;
+  // ── Caché de mappings (nozzleCode → dispenserNumber) ───────────────────────
+  /// Cargados una sola vez desde la API REST al conectar.
+  List<NozzleMapping>? _cachedMappings;
 
-  void resetCounters() {
-    _pollAttempts = 0;
-    _pollSuccess = 0;
-    _pollErrors = 0;
-    _pollEmptyResponses = 0;
+  /// Índice rápido: nozzleCode (ej. "01") → NozzleMapping
+  // Map<String, NozzleMapping> _mappingByCode = {};
+
+  // ── Visualización en vivo ───────────────────────────────────────────────────
+  /// Litros actuales por nozzleCode (solo mangueras activas).
+  final Map<String, double> _currentLiters = {};
+
+  /// Monto actual por nozzleCode.
+  final Map<String, double?> _currentCash = {};
+
+  /// Estado actual por nozzleCode (persistente entre eventos).
+  final Map<String, String> _currentStatus = {};
+
+  /// Tag ID actual por nozzleCode (si existe).
+  final Map<String, String?> _currentTags = {};
+
+  // ── Compatibilidad con AltDespachosProvider (stubs vacíos) ─────────────────
+  /// Ya no se usa polling, pero se mantienen para no romper código existente.
+  void startGlobalPolling({int milliseconds = 500}) {}
+  void stopGlobalPolling() {}
+
+  // ── Conexión ────────────────────────────────────────────────────────────────
+
+  /// Conecta al hub SignalR de monitoreo.
+  /// Llama esto justo después del login.
+  Future<void> connect() async {
+    if (_isConnected) return;
+
+    _loading = true;
+    _error = null;
+    _toastShown = false;
+    notifyListeners();
+
+    try {
+      // 1. Cargar mappings desde la API REST (solo una vez)
+      await _loadMappings();
+
+      // 2. Construir conexión SignalR
+      final httpOptions = HttpConnectionOptions(
+        transport: HttpTransportType.WebSockets,
+        skipNegotiation: true,
+      );
+
+      _hubConnection = HubConnectionBuilder()
+          .withUrl(Constans.monitoringHubUrl, options: httpOptions)
+          .withAutomaticReconnect()
+          .build();
+
+      // 3. Registrar handlers de eventos
+      _hubConnection!.on('ReceiveStatus', _onReceiveStatus);
+      _hubConnection!.on('ReceiveVisualization', _onReceiveVisualization);
+
+      // 4. Manejar cambios de estado de la conexión
+      _hubConnection!.onclose(({error}) {
+        debugPrint('🔴 [MapProvider] SignalR desconectado: $error');
+        _isConnected = false;
+        notifyListeners();
+      });
+
+      _hubConnection!.onreconnecting(({error}) {
+        debugPrint('🟡 [MapProvider] SignalR reconectando...');
+        _isConnected = false;
+        notifyListeners();
+      });
+
+      _hubConnection!.onreconnected(({connectionId}) {
+        debugPrint('🟢 [MapProvider] SignalR reconectado: $connectionId');
+        _isConnected = true;
+        notifyListeners();
+      });
+
+      // 5. Iniciar conexión
+      await _hubConnection!.start();
+      _isConnected = true;
+      debugPrint(
+          '🟢 [MapProvider] SignalR conectado a ${Constans.monitoringHubUrl}');
+
+      // 6. Construir mapa inicial desde los mappings (sin esperar ReceiveStatus)
+      //    Así el wizard muestra las posiciones de inmediato.
+      _buildInitialMap();
+
+      _loading = false;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      _loading = false;
+      _isConnected = false;
+      debugPrint('❌ [MapProvider] Error al conectar SignalR: $_error');
+      notifyListeners();
+    }
   }
-  // ============================================
 
-  int? _currentPollingMs;
-  bool _stopPollingRequested = false;
-
-  /// Inicia polling SECUENCIAL: espera que termine cada request antes de iniciar el siguiente.
-  /// Esto evita acumulación de requests cuando el servidor es lento.
-  void startGlobalPolling({int milliseconds = 500}) {
-    if (_isPollingActive) return; // Ya hay un loop corriendo
-
-    _isPollingActive = true;
-    _stopPollingRequested = false;
-    _currentPollingMs = milliseconds;
-
-    // Iniciar loop secuencial
-    _runSequentialPolling(milliseconds);
+  /// Desconecta del hub SignalR.
+  Future<void> disconnect() async {
+    try {
+      await _hubConnection?.stop();
+    } catch (_) {}
+    _hubConnection = null;
+    _isConnected = false;
+    debugPrint('⏹️ [MapProvider] SignalR desconectado manualmente');
   }
 
-  /// Loop secuencial: await cada request, repite inmediatamente.
-  /// SIN DELAY: apenas termina uno, inicia el siguiente para mantener conexión caliente.
-  Future<void> _runSequentialPolling(int delayMs) async {
-    debugPrint('🔄 [MapProvider] Iniciando polling SECUENCIAL CONTINUO');
+  // ── Handlers de eventos SignalR ─────────────────────────────────────────────
 
-    while (_isPollingActive && !_stopPollingRequested) {
-      await loadMapDirect(); // Espera a que termine
-      // SIN DELAY: inicia el siguiente inmediatamente
+  /// `ReceiveStatus` — estado de TODAS las mangueras configuradas.
+  /// Payload: List<NozzleStatusDto>
+  void _onReceiveStatus(List<Object?>? parameters) {
+    if (parameters == null || parameters.isEmpty) return;
+
+    final raw = parameters[0];
+    if (raw is! List) return;
+
+    final statuses = raw
+        .whereType<Map<String, dynamic>>()
+        .map(NozzleStatusDto.fromJson)
+        .toList();
+
+    debugPrint('📡 [MapProvider] ReceiveStatus → ${statuses.length} mangueras');
+
+    for (final s in statuses) {
+      _currentStatus[s.nozzleCode] = s.status.toStatusString();
+
+      // Si la manguera está disponible, limpiar datos de despacho anterior
+      if (s.status == NozzleStatus.available) {
+        _currentLiters.remove(s.nozzleCode);
+        _currentCash.remove(s.nozzleCode);
+        _currentTags.remove(s.nozzleCode);
+      }
     }
 
-    debugPrint('⏹️ [MapProvider] Polling SECUENCIAL detenido');
+    _rebuildMap();
   }
 
-  void stopGlobalPolling() {
-    _stopPollingRequested = true;
-    _pollingTimer?.cancel();
-    _isPollingActive = false;
-    _currentPollingMs = null;
+  /// `ReceiveVisualization` — datos en vivo de mangueras activas (litros, monto).
+  /// Payload: List<NozzleVisualizationDto>
+  void _onReceiveVisualization(List<Object?>? parameters) {
+    if (parameters == null || parameters.isEmpty) return;
+
+    final raw = parameters[0];
+    if (raw is! List) return;
+
+    final visualizations = raw
+        .whereType<Map<String, dynamic>>()
+        .map(NozzleVisualizationDto.fromJson)
+        .toList();
+
+    debugPrint(
+        '📊 [MapProvider] ReceiveVisualization → ${visualizations.length} mangueras activas');
+
+    // Actualizar litros/monto en caché
+    // Actualizar cache con datos de visualización
+    for (final v in visualizations) {
+      _currentLiters[v.nozzleCode] = v.currentLiters;
+      _currentCash[v.nozzleCode] = v.currentCash;
+
+      if (v.tagId != null) {
+        _currentTags[v.nozzleCode] = v.tagId;
+      }
+
+      if (v.status != null) {
+        _currentStatus[v.nozzleCode] = v.status!.toStatusString();
+      }
+    }
+
+    _rebuildMap();
   }
 
-  /// ALTERNATIVO: Inicia polling usando /api/Connector/Statuses
-  /// Usar para probar si este endpoint es más estable.
-  /// SIN CANDADO - permite peticiones concurrentes para mantener conexión activa
-  void startConnectorPolling({int milliseconds = 1000}) {
-    if (_isPollingActive && _currentPollingMs == milliseconds) return;
+  // ── Construcción del mapa ───────────────────────────────────────────────────
 
-    _pollingTimer?.cancel();
-    _currentPollingMs = milliseconds;
-    _isPollingActive = true;
+  /// Reconstruye `_stationMap` usando `_cachedMappings` y el estado actual en cache.
+  void _rebuildMap() {
+    if (_cachedMappings == null || _cachedMappings!.isEmpty) return;
 
-    _pollingTimer =
-        Timer.periodic(Duration(milliseconds: milliseconds), (timer) {
-      // SIN CANDADO: siempre dispara el poll
-      loadMapFromConnector();
-    });
+    final Map<int, List<_HoseEntry>> groups = {};
 
-    // Carga inmediata al iniciar
-    loadMapFromConnector();
+    for (final mapping in _cachedMappings!) {
+      final code = _nozzleNumberToCode(mapping.hoseNumber);
+
+      // Estado actual o 'unknown' si no ha llegado nada
+      final statusStr = _currentStatus[code] ?? 'unknown';
+
+      final hose = HosePhysical(
+        nozzleNumber: mapping.hoseNumber,
+        hoseKey: mapping.hoseKey,
+        fuel: _resolveFuel(mapping),
+        status: statusStr,
+        dispenserNumber: mapping.dispenserNumber,
+        totalVolume: _currentLiters[code],
+        totalAmount: _currentCash[code],
+        tagId: _currentTags[code],
+      );
+
+      groups
+          .putIfAbsent(mapping.dispenserNumber, () => [])
+          .add(_HoseEntry(hose: hose, positionPhysical: null));
+    }
+
+    // Construir el Map<int, PositionPhysical> final
+    final result = <int, PositionPhysical>{};
+    var posCounter = 1;
+    final sortedIds = groups.keys.toList()..sort();
+
+    for (final dispenserId in sortedIds) {
+      final entries = groups[dispenserId]!;
+      final hoses = entries.map((e) => e.hose).toList()
+        ..sort((a, b) => a.nozzleNumber.compareTo(b.nozzleNumber));
+
+      result[posCounter] = PositionPhysical(
+        number: posCounter,
+        pumpId: dispenserId,
+        pumpName: 'Surtidor $dispenserId',
+        faceIndex: 1,
+        faceLabel: dispenserId.toString(),
+        faceDescription: 'Surtidor $dispenserId',
+        hoses: List.unmodifiable(hoses),
+      );
+      posCounter++;
+    }
+
+    _stationMap = result;
+    _error = null;
+    notifyListeners();
   }
 
-  /// Marca que ya lanzamos el toast para no repetirlo en cada rebuild.
-  void markToastShown() {
-    _toastShown = true;
+  // ── Helpers ─────────────────────────────────────────────────────────────────
+
+  /// Carga los NozzleMappings desde la API REST (solo una vez).
+  Future<void> _loadMappings() async {
+    if (_cachedMappings != null) return;
+
+    final mappingResp = await ApiHelper.getMapHoseDispenser();
+    if (!mappingResp.isSuccess) {
+      throw Exception('Error al cargar mappings: ${mappingResp.message}');
+    }
+
+    _cachedMappings =
+        (mappingResp.result as List<NozzleMapping>? ?? const <NozzleMapping>[]);
+
+    // Construir índice rápido por nozzleCode (ej. "01", "02")
+
+    debugPrint(
+        '📋 [MapProvider] Mappings cargados: ${_cachedMappings!.length} mangueras');
   }
 
-  /// Devuelve el número de posición (o dispensador) asociado a una manguera.
+  /// Construye el mapa inicial desde los mappings con estado 'unknown'.
+  /// Se llama justo después de conectar al hub, antes de recibir el primer
+  /// ReceiveStatus. Así el wizard muestra los dispensadores de inmediato.
+  void _buildInitialMap() {
+    if (_cachedMappings == null || _cachedMappings!.isEmpty) return;
+    // Solo construir si aún no hay mapa (no sobreescribir uno ya recibido)
+    if (_stationMap != null) return;
+
+    debugPrint(
+        '🗺️ [MapProvider] Construyendo mapa inicial desde ${_cachedMappings!.length} mappings');
+
+    final Map<int, List<_HoseEntry>> groups = {};
+
+    for (final mapping in _cachedMappings!) {
+      final hose = HosePhysical(
+        nozzleNumber: mapping.hoseNumber,
+        hoseKey: mapping.hoseKey,
+        fuel: const Fuel(name: 'Combustible', color: Colors.teal),
+        // Inicializamos como 'available' para no bloquear el flujo
+        // hasta que llegue el primer reporte real del hub.
+        status: 'available',
+        dispenserNumber: mapping.dispenserNumber,
+        totalVolume: null,
+        totalAmount: null,
+      );
+      groups
+          .putIfAbsent(mapping.dispenserNumber, () => [])
+          .add(_HoseEntry(hose: hose, positionPhysical: null));
+    }
+
+    final result = <int, PositionPhysical>{};
+    var posCounter = 1;
+    final sortedIds = groups.keys.toList()..sort();
+
+    for (final dispenserId in sortedIds) {
+      final entries = groups[dispenserId]!;
+      final hoses = entries.map((e) => e.hose).toList()
+        ..sort((a, b) => a.nozzleNumber.compareTo(b.nozzleNumber));
+
+      result[posCounter] = PositionPhysical(
+        number: posCounter,
+        pumpId: dispenserId,
+        pumpName: 'Surtidor $dispenserId',
+        faceIndex: 1,
+        faceLabel: dispenserId.toString(),
+        faceDescription: 'Surtidor $dispenserId',
+        hoses: List.unmodifiable(hoses),
+      );
+      posCounter++;
+    }
+
+    _stationMap = result;
+    debugPrint('🗺️ [MapProvider] Mapa inicial: ${result.length} posiciones');
+    notifyListeners();
+  }
+
+  /// Convierte número de manguera (1, 2, 3...) al código de 2 dígitos ("01", "02"...)
+  /// que usa el servidor SignalR.
+  String _nozzleNumberToCode(int number) => number.toString().padLeft(2, '0');
+
+  /// Devuelve el número de posición asociado a una manguera (por nozzleNumber).
   int? positionIndexForNozzle(int nozzleNumber) {
     final map = _stationMap;
     if (map == null) return null;
-
     for (final entry in map.entries) {
-      final hoses = entry.value.hoses;
-      final match = hoses.any((hose) => hose.nozzleNumber == nozzleNumber);
-      if (match) {
-        return entry.key; // o entry.value.number, son iguales
+      if (entry.value.hoses.any((h) => h.nozzleNumber == nozzleNumber)) {
+        return entry.key;
       }
     }
     return null;
   }
 
-  Future<void> loadMap({bool strictPhysicalOnly = false}) async {
+  /// Marca que ya se mostró el toast inicial.
+  void markToastShown() {
+    _toastShown = true;
+  }
+
+  // ── Reset ───────────────────────────────────────────────────────────────────
+
+  /// Limpia todo el estado y desconecta SignalR.
+  /// Llamar al hacer logout.
+  /// Limpia todo el estado y desconecta SignalR.
+  /// Llamar al hacer logout.
+  void reset() {
+    disconnect();
+    _stationMap = null;
     _loading = true;
     _error = null;
-    // No borramos _stationMap aquí para evitar saltos en la UI durante el polling
     _toastShown = false;
-    notifyListeners();
-
-    try {
-      final pumps = await ConsoleApiHelper.getPumpsAndFaces();
-      final statuses = await ConsoleApiHelper.getDispensersStatus();
-      final mappingResp = await ApiHelper.getMapHoseDispenser();
-      if (!mappingResp.isSuccess) {
-        throw Exception(mappingResp.message);
-      }
-
-      final mappings = (mappingResp.result as List<NozzleMapping>? ??
-          const <NozzleMapping>[]);
-      _stationMap = PositionBuilder.build(
-        pumps: pumps,
-        statuses: statuses,
-        mappings: mappings,
-        strictPhysicalOnly: strictPhysicalOnly,
-      );
-    } catch (e) {
-      _error = e.toString();
-      _stationMap = null;
-    }
-
-    _loading = false;
+    _cachedMappings = null;
+    _currentLiters.clear();
+    _currentCash.clear();
+    _currentStatus.clear();
+    _cachedMappings = null;
+    _currentTags.clear();
     notifyListeners();
   }
 
-  /// MÉTODO SIMPLIFICADO: Carga mapa usando solo estados y mappings cacheados.
-  /// SIN CANDADO: permite peticiones concurrentes
-  Future<void> loadMapDirect() async {
-    // SIN CANDADO: no bloqueamos peticiones concurrentes
-
-    _pollAttempts++;
-    debugPrint('📡 [MapProvider] Poll #$_pollAttempts iniciando...');
-
-    final isFirstLoad = _stationMap == null;
-
-    // Solo mostramos loading si es la primera carga
-    if (isFirstLoad) {
-      _loading = true;
-      _error = null;
-      _toastShown = false;
-      notifyListeners();
-    }
-
-    try {
-      // 1. Cargar mappings solo si no están en caché
-      if (_cachedMappings == null) {
-        final mappingResp = await ApiHelper.getMapHoseDispenser();
-        if (!mappingResp.isSuccess) {
-          throw Exception('Error al cargar mappings: ${mappingResp.message}');
-        }
-        _cachedMappings = (mappingResp.result as List<NozzleMapping>? ??
-            const <NozzleMapping>[]);
-      }
-
-      // 2. Cargar estados (siempre necesario para tiempo real)
-      final stopwatch = Stopwatch()..start();
-      final statuses = await ConsoleApiHelper.getDispensersStatus();
-      stopwatch.stop();
-      final responseTimeMs = stopwatch.elapsedMilliseconds;
-
-      // Si la lista de estados está vacía
-      if (statuses.isEmpty) {
-        _pollEmptyResponses++;
-        debugPrint(
-            '⚠️ [MapProvider] Poll #$_pollAttempts → VACÍO en ${responseTimeMs}ms (total vacíos: $_pollEmptyResponses)');
-        _loading = false;
-        return;
-      }
-
-      // 3. Reconstruir mapa
-      _stationMap = PositionBuilder.buildDirect(
-        statuses: statuses,
-        mappings: _cachedMappings!,
-      );
-      _error = null;
-      _pollSuccess++;
-
-      // Log de éxito con resumen de estados
-      final statusSummary =
-          statuses.take(5).map((s) => '${s.number}:${s.status}').join(', ');
-      debugPrint(
-          '✅ [MapProvider] Poll #$_pollAttempts → OK en ${responseTimeMs}ms (${statuses.length} dispensers) [$statusSummary${statuses.length > 5 ? '...' : ''}]');
-      debugPrint(
-          '   📊 Stats: OK=$_pollSuccess, ERR=$_pollErrors, VACÍO=$_pollEmptyResponses | ⏱️ Response: ${responseTimeMs}ms');
-    } catch (e) {
-      _pollErrors++;
-      _error = e.toString();
-      debugPrint('❌ [MapProvider] Poll #$_pollAttempts → ERROR: $_error');
-      debugPrint(
-          '   📊 Stats: OK=$_pollSuccess, ERR=$_pollErrors, VACÍO=$_pollEmptyResponses');
-    }
-
-    _loading = false;
-    notifyListeners();
+  @override
+  void dispose() {
+    disconnect();
+    super.dispose();
   }
 
-  /// MÉTODO ALTERNATIVO: Usa /api/Connector/Statuses
-  /// Cada 3 elementos del array corresponden a 1 dispensador.
-  /// Ej: [0-2] = Disp 1, [3-5] = Disp 2, etc.
-  /// SIN CANDADO: permite peticiones concurrentes
-  Future<void> loadMapFromConnector() async {
-    // SIN CANDADO: no bloqueamos peticiones concurrentes
+  Fuel _resolveFuel(NozzleMapping mapping) {
+    // FALLBACK TEMPORAL: Mapeo fijo por número de manguera
+    // Asumimos orden: 1=Regular, 2=Super, 3=Diesel
+    // El hoseNumber es global (1..32), así que usamos el residuo.
+    final index = (mapping.hoseNumber - 1) % 3;
 
-    _pollAttempts++;
-    debugPrint('📡 [MapProvider/Connector] Poll #$_pollAttempts iniciando...');
-
-    final isFirstLoad = _stationMap == null;
-
-    if (isFirstLoad) {
-      _loading = true;
-      _error = null;
-      _toastShown = false;
-      notifyListeners();
+    switch (index) {
+      case 0: // 1, 4, 7...
+        return const Fuel(name: 'Regular', color: Color(0xFFec1c24)); // Rojo
+      case 1: // 2, 5, 8...
+        return const Fuel(name: 'Super', color: Color(0xFFb634b8)); // Morado
+      case 2: // 3, 6, 9...
+        return const Fuel(name: 'Diesel', color: Color(0xFF1dbd4a)); // Verde
+      default:
+        return const Fuel(name: 'Combustible', color: Colors.teal);
     }
-
-    try {
-      // 1. Cargar mappings solo si no están en caché
-      if (_cachedMappings == null) {
-        final mappingResp = await ApiHelper.getMapHoseDispenser();
-        if (!mappingResp.isSuccess) {
-          throw Exception('Error al cargar mappings: ${mappingResp.message}');
-        }
-        _cachedMappings = (mappingResp.result as List<NozzleMapping>? ??
-            const <NozzleMapping>[]);
-      }
-
-      // 2. Cargar estados del endpoint alternativo
-      final stopwatch = Stopwatch()..start();
-      final statuses = await ConsoleApiHelper.getConnectorStatuses();
-      stopwatch.stop();
-      final responseTimeMs = stopwatch.elapsedMilliseconds;
-
-      if (statuses.isEmpty) {
-        _pollEmptyResponses++;
-        debugPrint(
-            '⚠️ [MapProvider/Connector] Poll #$_pollAttempts → VACÍO en ${responseTimeMs}ms');
-        _loading = false;
-        return;
-      }
-
-      // 3. Mapear: cada 3 statuses = 1 dispensador
-      // El índice de la manguera es 1-based (1, 2, 3, 4, ...)
-      final result = <int, PositionPhysical>{};
-      const hosesPerDispenser = 3;
-      final dispenserCount = (statuses.length / hosesPerDispenser).ceil();
-
-      for (var dispIdx = 0; dispIdx < dispenserCount; dispIdx++) {
-        final dispenserNumber = dispIdx + 1;
-        final hoses = <HosePhysical>[];
-
-        for (var hoseIdx = 0; hoseIdx < hosesPerDispenser; hoseIdx++) {
-          final globalIndex = dispIdx * hosesPerDispenser + hoseIdx;
-          if (globalIndex >= statuses.length) break;
-
-          final status = statuses[globalIndex];
-          final nozzleNumber = globalIndex + 1; // 1-based
-
-          // Buscar mapping para este nozzle si existe
-          final mapping = _cachedMappings?.firstWhere(
-            (m) => m.hoseNumber == nozzleNumber,
-            orElse: () => NozzleMapping(
-              id: nozzleNumber, // ID ficticio usando nozzleNumber
-              hoseNumber: nozzleNumber,
-              hoseKey: 'H$nozzleNumber',
-              dispenserNumber: dispenserNumber,
-            ),
-          );
-
-          hoses.add(HosePhysical(
-            nozzleNumber: nozzleNumber,
-            hoseKey: mapping?.hoseKey ?? 'H$nozzleNumber',
-            fuel: const Fuel(name: 'Combustible', color: Colors.teal),
-            status: status,
-            dispenserNumber: dispenserNumber,
-          ));
-        }
-
-        if (hoses.isNotEmpty) {
-          result[dispenserNumber] = PositionPhysical(
-            number: dispenserNumber,
-            pumpId: dispenserNumber,
-            pumpName: 'Surtidor $dispenserNumber',
-            faceIndex: 1,
-            faceLabel: dispenserNumber.toString(),
-            faceDescription: 'Surtidor $dispenserNumber',
-            hoses: List.unmodifiable(hoses),
-          );
-        }
-      }
-
-      _stationMap = result;
-      _error = null;
-      _pollSuccess++;
-
-      // Log de éxito
-      final statusSummary = statuses.take(6).join(', ');
-      debugPrint(
-          '✅ [MapProvider/Connector] Poll #$_pollAttempts → OK en ${responseTimeMs}ms (${statuses.length} hoses, ${result.length} dispensers)');
-      debugPrint(
-          '   📊 Statuses: [$statusSummary${statuses.length > 6 ? '...' : ''}]');
-      debugPrint(
-          '   📊 Stats: OK=$_pollSuccess, ERR=$_pollErrors, VACÍO=$_pollEmptyResponses | ⏱️ Response: ${responseTimeMs}ms');
-    } catch (e) {
-      _pollErrors++;
-      _error = e.toString();
-      debugPrint(
-          '❌ [MapProvider/Connector] Poll #$_pollAttempts → ERROR: $_error');
-      debugPrint(
-          '   📊 Stats: OK=$_pollSuccess, ERR=$_pollErrors, VACÍO=$_pollEmptyResponses');
-    }
-
-    _loading = false;
-    notifyListeners();
   }
+}
 
-  // Dentro de MapProvider
-  void reset() {
-    _stationMap = null; // Limpia el mapa cargado
-    _loading = true; // Marca como pendiente de carga
-    _error = null; // Borra mensajes de error
-    _toastShown = false; // Permite que vuelva a mostrarse el toast inicial
-    _cachedMappings = null; // 👈 También limpiamos caché si se resetea todo
-    notifyListeners(); // Notifica a la UI
-  }
+// ── Clase auxiliar interna ──────────────────────────────────────────────────
+
+class _HoseEntry {
+  final HosePhysical hose;
+  final PositionPhysical? positionPhysical;
+  _HoseEntry({required this.hose, required this.positionPhysical});
 }

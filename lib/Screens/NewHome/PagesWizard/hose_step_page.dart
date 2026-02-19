@@ -1,10 +1,10 @@
 // lib/Screens/Dispatch/hose_step_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:tester/Providers/despachos_provider.dart';
+import 'package:tester/Providers/experimental/alt_despachos_provider.dart';
+import 'package:tester/Providers/experimental/alt_dispatch_control.dart';
 import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/preset_kind_page.dart';
-import 'package:tester/Providers/dispatch_control.dart';
 import 'package:tester/ViewModels/new_map.dart';
 
 class HoseStepPage extends StatefulWidget {
@@ -39,8 +39,9 @@ class _HoseStepPageState extends State<HoseStepPage> {
   @override
   Widget build(BuildContext context) {
     final mapProv = context.watch<MapProvider>();
-    final despachosProv = context.read<DespachosProvider>();
-    final DispatchControl dispatch = despachosProv.getById(widget.dispatchId)!;
+    final despachosProv = context.read<AltDespachosProvider>();
+    final AltDispatchControl dispatch =
+        despachosProv.getById(widget.dispatchId)!;
 
     final selectedNumber = dispatch.selectedPosition?.number;
     final map = mapProv.stationMap;
@@ -354,10 +355,11 @@ Color _hoseStatusColor(String label) {
     case 'autorizada':
       return Colors.lightBlueAccent;
     case 'despachando':
-      return Colors.orangeAccent;
+      return Colors.blue; // Azul puro
     case 'pendiente pago':
       return Colors.amberAccent;
     case 'bloqueada':
+      return Colors.indigoAccent;
     case 'ocupada':
       return Colors.redAccent;
     default:
@@ -376,9 +378,9 @@ IconData _hoseStatusIcon(String label) {
     case 'pendiente pago':
       return Icons.payments;
     case 'bloqueada':
-      return Icons.lock;
+      return Icons.lock_outline;
     case 'ocupada':
-      return Icons.do_not_disturb_on;
+      return Icons.timer_off_outlined;
     default:
       return Icons.help_outline;
   }

@@ -5,18 +5,14 @@ import 'package:provider/provider.dart';
 import 'package:tester/Models/FuelRed/product.dart';
 import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
-import 'package:tester/Providers/despachos_provider.dart';
+
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/Screens/Peddlers/peddlers_add_screen.dart';
 import 'package:tester/Screens/checkout/checkount.dart';
 import 'package:tester/Screens/credito/credit_process_screen.dart';
 import 'package:tester/Screens/tickets/ticket_screen.dart';
 import 'package:tester/Providers/experimental/alt_dispatch_control.dart';
-import 'package:tester/Providers/dispatch_control.dart'
-    show DispatchStage, InvoiceType;
-import 'package:tester/Providers/despachos_provider.dart' show HoseStatus;
 import 'package:tester/helpers/api_helper.dart';
-import 'package:tester/helpers/console_api_helper.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
 class DispatchCard extends StatefulWidget {
@@ -428,6 +424,11 @@ class _DispatchCardState extends State<DispatchCard>
   }
 
   Widget _dispatchingIndicator() {
+    final hose = widget.d.selectedHose;
+    final amount = hose?.totalAmount ?? 0;
+    final volume = hose?.totalVolume ?? 0;
+    final tag = hose?.tagId;
+
     return Container(
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.all(16),
@@ -436,28 +437,104 @@ class _DispatchCardState extends State<DispatchCard>
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.blue.withOpacity(0.3)),
       ),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Column(
         children: [
-          SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.5,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-            ),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                ),
+              ),
+              SizedBox(width: 12),
+              Text(
+                'Despachando combustible...',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
-          SizedBox(width: 12),
-          Text(
-            'Despachando combustible...',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
+          const SizedBox(height: 16),
+          // Valores en vivo
+          Row(
+            children: [
+              Expanded(
+                child: _liveValueItem(
+                  'Volumen',
+                  '${volume.toStringAsFixed(3)} L',
+                  Icons.local_gas_station,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _liveValueItem(
+                  'Importe',
+                  _fmtMoney(amount),
+                  Icons.attach_money,
+                ),
+              ),
+            ],
           ),
+          if (tag != null && tag.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.nfc, size: 16, color: Colors.blueAccent),
+                  const SizedBox(width: 6),
+                  Text(
+                    'TAG: $tag',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _liveValueItem(String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: Colors.white54),
+            const SizedBox(width: 4),
+            Text(label,
+                style: const TextStyle(color: Colors.white54, fontSize: 12)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
     );
   }
 
@@ -628,20 +705,10 @@ class _DispatchCardState extends State<DispatchCard>
       return;
     }
 
-    // Mostrar loading
-    Fluttertoast.showToast(msg: 'Finalizando despacho...');
-
-    // Llamar al API para finalizar el despacho en la consola
-    final success = await ConsoleApiHelper.endDispenseByDispenser(dispenserId);
-
-    if (!mounted) return;
-
-    if (success) {
-      widget.d.markCompleted();
-      Fluttertoast.showToast(msg: 'Despacho finalizado ✅');
-    } else {
-      Fluttertoast.showToast(msg: 'Error al finalizar en consola ❌');
-    }
+    // El nuevo API no expone un endpoint de finalización manual.
+    // El estado se actualiza automáticamente vía SignalR.
+    widget.d.markCompleted();
+    Fluttertoast.showToast(msg: 'Despacho finalizado ✅');
   }
 
   void _goFacturacion(AltDispatchControl control) async {

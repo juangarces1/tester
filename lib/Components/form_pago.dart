@@ -13,7 +13,6 @@ import 'package:tester/Screens/Transfers/transfer_screen.dart';
 import 'package:tester/constans.dart';
 import 'package:provider/provider.dart';
 
-
 class FormPago extends StatefulWidget {
   @override
   // ignore: overridden_fields
@@ -23,30 +22,31 @@ class FormPago extends StatefulWidget {
   final String ruta;
   final ExpansibleController expansibleController; // 👈 nuevo
 
-  const FormPago({required this.key,
-   required this.index,
-   required this.fontColor,  
-   required this.ruta,
-   required this.expansibleController,
-   }) : super(key: key);
+  const FormPago({
+    required this.key,
+    required this.index,
+    required this.fontColor,
+    required this.ruta,
+    required this.expansibleController,
+  }) : super(key: key);
 
   @override
-   FormPagoState createState() => FormPagoState();
+  FormPagoState createState() => FormPagoState();
 }
 
 class FormPagoState extends State<FormPago> {
-   late Invoice factura;
-   late TextEditingController  cashController;
-   late TextEditingController  transferController;    
-   late TextEditingController  bacController;
-   late TextEditingController  bnController;
-   late TextEditingController  davController;
-   late TextEditingController  sctiaController;
-   late TextEditingController  pointsController;
-   late TextEditingController  dollarController;
-   late TextEditingController  chequeController;
-   late TextEditingController  cuponController;
-   late TextEditingController  sinpeController;
+  late Invoice factura;
+  late TextEditingController cashController;
+  late TextEditingController transferController;
+  late TextEditingController bacController;
+  late TextEditingController bnController;
+  late TextEditingController davController;
+  late TextEditingController sctiaController;
+  late TextEditingController pointsController;
+  late TextEditingController dollarController;
+  late TextEditingController chequeController;
+  late TextEditingController cuponController;
+  late TextEditingController sinpeController;
 
   static const TextStyle _fieldTextStyle = TextStyle(
     color: kNewtextPri,
@@ -55,27 +55,34 @@ class FormPagoState extends State<FormPago> {
   );
 
   static const double _shortcutSize = 56;
-   
+
   @override
   void initState() {
     super.initState();
     //  cashController.text= widget.factura.formPago!.totalEfectivo.toInt().toString();
-       factura = Provider.of<FacturasProvider>(context, listen: false).getInvoiceByIndex(widget.index);
-       cashController = TextEditingController(text: factura.formPago!.monedaEfectivo);
-       transferController = TextEditingController(text: factura.formPago!.monedaTransfer);
-       bacController = TextEditingController(text: factura.formPago!.monedaBac);     
-       bnController = TextEditingController(text: factura.formPago!.monedaBn);
-       davController = TextEditingController(text: factura.formPago!.monedaDav);
-       sctiaController = TextEditingController(text: factura.formPago!.monedaSctia);
-       pointsController = TextEditingController(text: factura.formPago!.monedaPuntos);
-       dollarController = TextEditingController(text: factura.formPago!.monedaDollar);
-       chequeController = TextEditingController(text: factura.formPago!.monedaCheque);
-       cuponController = TextEditingController(text: factura.formPago!.monedaCupones);  
-       sinpeController = TextEditingController(text: factura.formPago!.monedaSinpe);
-       
+    factura = Provider.of<FacturasProvider>(context, listen: false)
+        .getInvoiceByIndex(widget.index);
+    cashController =
+        TextEditingController(text: factura.formPago!.monedaEfectivo);
+    transferController =
+        TextEditingController(text: factura.formPago!.monedaTransfer);
+    bacController = TextEditingController(text: factura.formPago!.monedaBac);
+    bnController = TextEditingController(text: factura.formPago!.monedaBn);
+    davController = TextEditingController(text: factura.formPago!.monedaDav);
+    sctiaController =
+        TextEditingController(text: factura.formPago!.monedaSctia);
+    pointsController =
+        TextEditingController(text: factura.formPago!.monedaPuntos);
+    dollarController =
+        TextEditingController(text: factura.formPago!.monedaDollar);
+    chequeController =
+        TextEditingController(text: factura.formPago!.monedaCheque);
+    cuponController =
+        TextEditingController(text: factura.formPago!.monedaCupones);
+    sinpeController =
+        TextEditingController(text: factura.formPago!.monedaSinpe);
 
-   // setValues();
- 
+    // setValues();
   }
 
   @override
@@ -88,7 +95,7 @@ class FormPagoState extends State<FormPago> {
     sctiaController.dispose();
     pointsController.dispose();
     dollarController.dispose();
-    chequeController.dispose(); 
+    chequeController.dispose();
     cuponController.dispose();
     sinpeController.dispose();
 
@@ -146,8 +153,6 @@ class FormPagoState extends State<FormPago> {
 
   @override
   Widget build(BuildContext context) {
-  
-   
     final inputTheme = InputDecorationTheme(
       filled: true,
       fillColor: kNewsurfaceHi,
@@ -174,298 +179,288 @@ class FormPagoState extends State<FormPago> {
       ),
     );
 
-   
-
-   return Container(
-    decoration: BoxDecoration(
-      color: kNewsurface,
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: kNewborder),
-      boxShadow: const [ /* ... */ ],
-    ),
-    child: Theme(
-      data: Theme.of(context).copyWith(inputDecorationTheme: inputTheme),
-      child: Expansible(
-        controller: widget.expansibleController,
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-        maintainState: true,
-        // HEADER: pinta tu cabecera y permite toggle al tocar
-        headerBuilder: (context, anim) {
-          final isOpen = widget.expansibleController.isExpanded;
-          return InkWell(
-            onTap: () => isOpen
-                ? widget.expansibleController.collapse()
-                : widget.expansibleController.expand(),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Seleccione la Forma de Pago',
-                      style: TextStyle(
-                        color: widget.fontColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
+    return Container(
+      decoration: BoxDecoration(
+        color: kNewsurface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: kNewborder),
+        boxShadow: const [/* ... */],
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(inputDecorationTheme: inputTheme),
+        child: Expansible(
+          animationStyle: AnimationStyle(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic),
+          controller: widget.expansibleController,
+          maintainState: true,
+          // HEADER: pinta tu cabecera y permite toggle al tocar
+          headerBuilder: (context, anim) {
+            final isOpen = widget.expansibleController.isExpanded;
+            return InkWell(
+              onTap: () => isOpen
+                  ? widget.expansibleController.collapse()
+                  : widget.expansibleController.expand(),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Seleccione la Forma de Pago',
+                        style: TextStyle(
+                          color: widget.fontColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
                       ),
                     ),
-                  ),
-                  // Icono que rota con la animación
-                  AnimatedRotation(
-                    turns: anim.value * 0.5, // 0 → 0°, 1 → 180°
-                    duration: const Duration(milliseconds: 220),
-                    child: Icon(
-                      Icons.expand_more_rounded,
-                      color: widget.fontColor,
+                    // Icono que rota con la animación
+                    AnimatedRotation(
+                      turns: anim.value * 0.5, // 0 → 0°, 1 → 180°
+                      duration: const Duration(milliseconds: 220),
+                      child: Icon(
+                        Icons.expand_more_rounded,
+                        color: widget.fontColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+          // BODY: tu contenido actual de pagos
+          bodyBuilder: (context, anim) {
+            return Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF0F141E), Color(0xFF1A2332)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(18),
+                  bottomRight: Radius.circular(18),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ClientPoints(
+                      factura: factura,
                     ),
                   ),
+                  const SizedBox(height: 15),
+                  _showBacAndBn(),
+                  const SizedBox(height: 12),
+                  _showScotiaDav(),
+                  const SizedBox(height: 12),
+                  _showCashDollar(),
+                  const SizedBox(height: 12),
+                  _showPointTransfers(),
+                  const SizedBox(height: 12),
+                  _showChequeCupones(),
+                  const SizedBox(height: 12),
+                  _showSinpeRefresh(),
+                  const SizedBox(height: 8),
                 ],
               ),
-            ),
-          );
-        },
-        // BODY: tu contenido actual de pagos
-        bodyBuilder: (context, anim) {
-          return Container(
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0F141E), Color(0xFF1A2332)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(18),
-                bottomRight: Radius.circular(18),
-              ),
-            ),
-          
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: ClientPoints(factura: factura,),
-                ),
-                const SizedBox(height: 15),
-                _showBacAndBn(),
-                const SizedBox(height: 12),
-                _showScotiaDav(),
-                const SizedBox(height: 12),
-                _showCashDollar(),
-                const SizedBox(height: 12),
-                _showPointTransfers(),
-                const SizedBox(height: 12),
-                _showChequeCupones(),
-                const SizedBox(height: 12),
-                _showSinpeRefresh(),
-                const SizedBox(height: 8),
-              ],
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _showCashDollar() {
-    return
-      Container(
-        padding: const EdgeInsets.only(left: 20.0, right: 25),
-        child: Row(
-          children: [
-            Flexible(
-              child: TextField(   
-                style: _fieldTextStyle,
-                cursorColor: kNewgreen,
-                controller: cashController,
-                keyboardType: TextInputType.number,
-                inputFormatters: <TextInputFormatter>[
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
-                  ],
-                decoration: const InputDecoration(
-                  hintText: 'Ingrese el Monto',
-                  labelText: 'Efectivo',  
-                ),
-                onChanged: (value) {            
-                 if (value.isNotEmpty){ 
-                   setState(() {    
-                     factura.formPago!.totalEfectivo = double.parse(value);
-                     FacturaService.updateFactura(context, factura);
-                     if(factura.saldo < 0){                 
-                       factura.formPago!.totalEfectivo = 0;                        
-                       cashController.text= value.toString();
-                        FacturaService.updateFactura(context, factura);
-                       Fluttertoast.showToast(
-                        msg: " La cantidad es superior al saldo, por favor vuelva a ingresarla",
-                        toastLength: Toast.LENGTH_SHORT,
-                        gravity: ToastGravity.CENTER,
-                        timeInSecForIosWeb: 1,
-                        backgroundColor: Colors.red,
-                        textColor: Colors.white,
-                        fontSize: 16.0
-                      ); 
-                     }
-
-                  });  
-                 
-                }         
-                },
+    return Container(
+      padding: const EdgeInsets.only(left: 20.0, right: 25),
+      child: Row(
+        children: [
+          Flexible(
+            child: TextField(
+              style: _fieldTextStyle,
+              cursorColor: kNewgreen,
+              controller: cashController,
+              keyboardType: TextInputType.number,
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+              ],
+              decoration: const InputDecoration(
+                hintText: 'Ingrese el Monto',
+                labelText: 'Efectivo',
               ),
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  setState(() {
+                    factura.formPago!.totalEfectivo = double.parse(value);
+                    FacturaService.updateFactura(context, factura);
+                    if (factura.saldo < 0) {
+                      factura.formPago!.totalEfectivo = 0;
+                      cashController.text = value.toString();
+                      FacturaService.updateFactura(context, factura);
+                      Fluttertoast.showToast(
+                          msg:
+                              " La cantidad es superior al saldo, por favor vuelva a ingresarla",
+                          toastLength: Toast.LENGTH_SHORT,
+                          gravity: ToastGravity.CENTER,
+                          timeInSecForIosWeb: 1,
+                          backgroundColor: Colors.red,
+                          textColor: Colors.white,
+                          fontSize: 16.0);
+                    }
+                  });
+                }
+              },
             ),
-            const SizedBox(width: 12),
-            _buildImageShortcut('assets/COLON.jpg', _goCashAll),
-             const SizedBox(width: 10,),
-               Flexible(
-              child: TextField(   
-                style: _fieldTextStyle,
-                cursorColor: kNewgreen,
-                controller: dollarController,    
-                keyboardType: TextInputType.number,
-                inputFormatters: <TextInputFormatter>[
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
-                  ],
-                decoration: const InputDecoration(
-                  hintText: 'Ingrese el Monto',
-                  labelText: 'Dollares',            
-                  
-                
-                ),
-                onChanged: (value) {            
-                 if (value.isNotEmpty){ 
-                   setState(() {     
-                         
-                     factura.formPago!.totalDollars = double.parse(value);
-                        FacturaService.updateFactura(context, factura);
-                                    
-                     if(factura.saldo < 0){                 
-                       factura.formPago!.totalDollars = 0;                     
-                          FacturaService.updateFactura(context, factura); 
-                       dollarController.text= value.toString();
-                       Fluttertoast.showToast(
-                        msg: "La cantidad es superior al saldo, por favor vuelva a ingresarla",
-                        toastLength: Toast.LENGTH_SHORT,
-                        gravity: ToastGravity.CENTER,
-                        timeInSecForIosWeb: 1,
-                        backgroundColor: Colors.red,
-                        textColor: Colors.white,
-                        fontSize: 16.0
-                      ); 
-                     }
-                  });  
-                }         
-                },
+          ),
+          const SizedBox(width: 12),
+          _buildImageShortcut('assets/COLON.jpg', _goCashAll),
+          const SizedBox(
+            width: 10,
+          ),
+          Flexible(
+            child: TextField(
+              style: _fieldTextStyle,
+              cursorColor: kNewgreen,
+              controller: dollarController,
+              keyboardType: TextInputType.number,
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+              ],
+              decoration: const InputDecoration(
+                hintText: 'Ingrese el Monto',
+                labelText: 'Dollares',
               ),
-            ),
-            const SizedBox(width: 12),
-            _buildImageShortcut('assets/dollar.png', _goDollar),
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  setState(() {
+                    factura.formPago!.totalDollars = double.parse(value);
+                    FacturaService.updateFactura(context, factura);
 
-          ],
-        ),
-      );
+                    if (factura.saldo < 0) {
+                      factura.formPago!.totalDollars = 0;
+                      FacturaService.updateFactura(context, factura);
+                      dollarController.text = value.toString();
+                      Fluttertoast.showToast(
+                          msg:
+                              "La cantidad es superior al saldo, por favor vuelva a ingresarla",
+                          toastLength: Toast.LENGTH_SHORT,
+                          gravity: ToastGravity.CENTER,
+                          timeInSecForIosWeb: 1,
+                          backgroundColor: Colors.red,
+                          textColor: Colors.white,
+                          fontSize: 16.0);
+                    }
+                  });
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+          _buildImageShortcut('assets/dollar.png', _goDollar),
+        ],
+      ),
+    );
   }
 
   Widget _showBacAndBn() {
-    return
-      Container(
-        padding: const EdgeInsets.only(left: 20.0, right: 25),
-        child: Row(
-          children: [
-            Flexible(
-              child: TextField(  
-                style: _fieldTextStyle,
-                cursorColor: kNewgreen,
-                controller: bacController,      
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  hintText: 'Ingrese el Monto',
-                  labelText: 'Tarjeta Bac',          
-                          
-                ),
-               onChanged: (value) {            
-                 if (value.isNotEmpty){ 
-                   setState(() {     
-                              
-                     factura.formPago!.totalBac = double.parse(value);
-                       FacturaService.updateFactura(context, factura);
-                                   
-                     if(factura.saldo < 0){                  
-                       factura.formPago!.totalBac = 0;  
-                       FacturaService.updateFactura(context, factura);
-                       bacController.text= value.toString();               
-                       Fluttertoast.showToast(
-                        msg: " La cantidad es superior al saldo, por favor vuelva a ingresarla",
-                        toastLength: Toast.LENGTH_SHORT,
-                        gravity: ToastGravity.CENTER,
-                        timeInSecForIosWeb: 1,
-                        backgroundColor: Colors.red,
-                        textColor: Colors.white,
-                        fontSize: 16.0
-                      ); 
-                     }
-                  });  
-                }         
-                },
+    return Container(
+      padding: const EdgeInsets.only(left: 20.0, right: 25),
+      child: Row(
+        children: [
+          Flexible(
+            child: TextField(
+              style: _fieldTextStyle,
+              cursorColor: kNewgreen,
+              controller: bacController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                hintText: 'Ingrese el Monto',
+                labelText: 'Tarjeta Bac',
               ),
-            ),
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  setState(() {
+                    factura.formPago!.totalBac = double.parse(value);
+                    FacturaService.updateFactura(context, factura);
 
-            const SizedBox(width: 12),
-            _buildImageShortcut('assets/Bac.png', _goTarjetaBacAll),
-            const SizedBox(width: 10,),
-             Flexible(
-              child: TextField(
-                style: _fieldTextStyle,
-                cursorColor: kNewgreen,
-                controller: bnController,        
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  hintText: 'Ingrese el Monto',
-                  labelText: 'Tarjeta BN',         
-                           
-                ),
-               onChanged: (value) {            
-                 if (value.isNotEmpty){ 
-                   setState(() {     
-                          
-                     factura.formPago!.totalBn = double.parse(value);
-                
-                     FacturaService.updateFactura(context ,factura);
-                     int valor= int.parse(value);
-                     if(factura.saldo < 0){                 
-                       factura.formPago!.totalBn = 0;
-                     
-                       FacturaService.updateFactura(context, factura);
-                       bnController.text = valor.toString();                
-                       Fluttertoast.showToast(
-                        msg: " La cantidad es superior al saldo, por favor vuelva a ingresarla",
-                        toastLength: Toast.LENGTH_SHORT,
-                        gravity: ToastGravity.CENTER,
-                        timeInSecForIosWeb: 1,
-                        backgroundColor: Colors.red,
-                        textColor: Colors.white,
-                        fontSize: 16.0
-                      ); 
-                     }
-                  });  
-                }         
-                },
+                    if (factura.saldo < 0) {
+                      factura.formPago!.totalBac = 0;
+                      FacturaService.updateFactura(context, factura);
+                      bacController.text = value.toString();
+                      Fluttertoast.showToast(
+                          msg:
+                              " La cantidad es superior al saldo, por favor vuelva a ingresarla",
+                          toastLength: Toast.LENGTH_SHORT,
+                          gravity: ToastGravity.CENTER,
+                          timeInSecForIosWeb: 1,
+                          backgroundColor: Colors.red,
+                          textColor: Colors.white,
+                          fontSize: 16.0);
+                    }
+                  });
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+          _buildImageShortcut('assets/Bac.png', _goTarjetaBacAll),
+          const SizedBox(
+            width: 10,
+          ),
+          Flexible(
+            child: TextField(
+              style: _fieldTextStyle,
+              cursorColor: kNewgreen,
+              controller: bnController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                hintText: 'Ingrese el Monto',
+                labelText: 'Tarjeta BN',
               ),
-            ),
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  setState(() {
+                    factura.formPago!.totalBn = double.parse(value);
 
-            const SizedBox(width: 12),
-            _buildImageShortcut('assets/BN.jpg', _goTarjetaBN),
-          
-          ],
-        ),
-      );
+                    FacturaService.updateFactura(context, factura);
+                    int valor = int.parse(value);
+                    if (factura.saldo < 0) {
+                      factura.formPago!.totalBn = 0;
+
+                      FacturaService.updateFactura(context, factura);
+                      bnController.text = valor.toString();
+                      Fluttertoast.showToast(
+                          msg:
+                              " La cantidad es superior al saldo, por favor vuelva a ingresarla",
+                          toastLength: Toast.LENGTH_SHORT,
+                          gravity: ToastGravity.CENTER,
+                          timeInSecForIosWeb: 1,
+                          backgroundColor: Colors.red,
+                          textColor: Colors.white,
+                          fontSize: 16.0);
+                    }
+                  });
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+          _buildImageShortcut('assets/BN.jpg', _goTarjetaBN),
+        ],
+      ),
+    );
   }
-  
-  Widget _showPointTransfers(){
-       if(factura.formPago!.totalTransfer > 0){
-         transferController.text = factura.formPago!.monedaTransfer; 
-       }
-   
+
+  Widget _showPointTransfers() {
+    if (factura.formPago!.totalTransfer > 0) {
+      transferController.text = factura.formPago!.monedaTransfer;
+    }
+
     return Padding(
       padding: const EdgeInsets.only(left: 20.0, right: 25),
       child: Row(
@@ -474,142 +469,137 @@ class FormPagoState extends State<FormPago> {
             child: TextField(
               style: _fieldTextStyle,
               cursorColor: kNewgreen,
-              readOnly: true,   
-              controller: pointsController,    
+              readOnly: true,
+              controller: pointsController,
               keyboardType: TextInputType.number,
               inputFormatters: <TextInputFormatter>[
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
               ],
               decoration: const InputDecoration(
                 hintText: 'Select...',
-                labelText: 'Puntos', 
-              ),          
+                labelText: 'Puntos',
+              ),
             ),
           ),
           const SizedBox(width: 12),
           _buildImageShortcut('assets/points.jpg', _goPoints),
-        const SizedBox(width: 12,),
-           Flexible(
-              child: TextField(  
-                style: _fieldTextStyle,
-                cursorColor: kNewgreen,
-                readOnly: true, 
-                controller: transferController,    
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  hintText: 'Select...',
-                  labelText: 'Transferencias', 
-                ),          
+          const SizedBox(
+            width: 12,
+          ),
+          Flexible(
+            child: TextField(
+              style: _fieldTextStyle,
+              cursorColor: kNewgreen,
+              readOnly: true,
+              controller: transferController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                hintText: 'Select...',
+                labelText: 'Transferencias',
               ),
             ),
-            const SizedBox(width: 12),
-            _buildImageShortcut('assets/transferencia.png', _goTransfers),
-      
+          ),
+          const SizedBox(width: 12),
+          _buildImageShortcut('assets/transferencia.png', _goTransfers),
         ],
       ),
     );
-  
-    
   }
-  
+
   Widget _showScotiaDav() {
-    return
-      Container(
-          padding: const EdgeInsets.only(left: 20.0, right: 25),
-        child: Row(
-          children: [
-            Flexible(
-              child: TextField(   
-                style: _fieldTextStyle,
-                cursorColor: kNewgreen,
-                controller: sctiaController,    
-                keyboardType: TextInputType.number,
-                inputFormatters: <TextInputFormatter>[
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
-                  ],
-                decoration: const InputDecoration(
-                  hintText: 'Ingrese el Monto',
-                  labelText: 'Tarjeta Sctia',          
-                  
-                
-                ),
-                onChanged: (value) {            
-                 if (value.isNotEmpty){ 
-                   setState(() { 
-                     factura.formPago!.totalSctia = double.parse(value);
-                     
-                        FacturaService.updateFactura(context, factura);        
-                     if(factura.saldo < 0){                 
-                        factura.formPago!.totalSctia = 0;
-                    
-                       FacturaService.updateFactura(context, factura);
-                        sctiaController.text= value.toString();
-                        Fluttertoast.showToast(
-                          msg: " La cantidad es superior al saldo, por favor vuelva a ingresarla",
+    return Container(
+      padding: const EdgeInsets.only(left: 20.0, right: 25),
+      child: Row(
+        children: [
+          Flexible(
+            child: TextField(
+              style: _fieldTextStyle,
+              cursorColor: kNewgreen,
+              controller: sctiaController,
+              keyboardType: TextInputType.number,
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+              ],
+              decoration: const InputDecoration(
+                hintText: 'Ingrese el Monto',
+                labelText: 'Tarjeta Sctia',
+              ),
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  setState(() {
+                    factura.formPago!.totalSctia = double.parse(value);
+
+                    FacturaService.updateFactura(context, factura);
+                    if (factura.saldo < 0) {
+                      factura.formPago!.totalSctia = 0;
+
+                      FacturaService.updateFactura(context, factura);
+                      sctiaController.text = value.toString();
+                      Fluttertoast.showToast(
+                          msg:
+                              " La cantidad es superior al saldo, por favor vuelva a ingresarla",
                           toastLength: Toast.LENGTH_SHORT,
                           gravity: ToastGravity.CENTER,
                           timeInSecForIosWeb: 1,
                           backgroundColor: Colors.red,
                           textColor: Colors.white,
-                          fontSize: 16.0
-                        ); 
-                     }
-                  });  
-                }         
-                },
-              ),
+                          fontSize: 16.0);
+                    }
+                  });
+                }
+              },
             ),
-
+          ),
           const SizedBox(width: 12),
           _buildImageShortcut('assets/Scottia.png', _goTarjetaScotia),
-           const SizedBox(width: 10,),
-           Flexible(
-              child: TextField(   
-                style: _fieldTextStyle,
-                cursorColor: kNewgreen,
-                controller: davController,    
-                keyboardType: TextInputType.number,
-                inputFormatters: <TextInputFormatter>[
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
-                  ],
-                decoration: const InputDecoration(
-                  hintText: 'Ingrese el Monto',
-                  labelText: 'Tarjeta Dav',            
-                  
-                
-                ),
-                onChanged: (value) {            
-                 if (value.isNotEmpty){ 
-                   setState(() {  
-                     factura.formPago!.totalDav = double.parse(value);                    
-                     FacturaService.updateFactura(context, factura);               
-                     if(factura.saldo < 0){                 
-                        factura.formPago!.totalDav = 0;
-                     
-                        FacturaService.updateFactura(context, factura);
-                        davController.text= value.toString();
-                        Fluttertoast.showToast(
-                          msg: "La cantidad es superior al saldo, por favor vuelva a ingresarla",
+          const SizedBox(
+            width: 10,
+          ),
+          Flexible(
+            child: TextField(
+              style: _fieldTextStyle,
+              cursorColor: kNewgreen,
+              controller: davController,
+              keyboardType: TextInputType.number,
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+              ],
+              decoration: const InputDecoration(
+                hintText: 'Ingrese el Monto',
+                labelText: 'Tarjeta Dav',
+              ),
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  setState(() {
+                    factura.formPago!.totalDav = double.parse(value);
+                    FacturaService.updateFactura(context, factura);
+                    if (factura.saldo < 0) {
+                      factura.formPago!.totalDav = 0;
+
+                      FacturaService.updateFactura(context, factura);
+                      davController.text = value.toString();
+                      Fluttertoast.showToast(
+                          msg:
+                              "La cantidad es superior al saldo, por favor vuelva a ingresarla",
                           toastLength: Toast.LENGTH_SHORT,
                           gravity: ToastGravity.CENTER,
                           timeInSecForIosWeb: 1,
                           backgroundColor: Colors.red,
                           textColor: Colors.white,
-                          fontSize: 16.0
-                        ); 
-                     }
-                  });  
-                }         
-                },
-              ),
+                          fontSize: 16.0);
+                    }
+                  });
+                }
+              },
             ),
-            const SizedBox(width: 12),
-            _buildImageShortcut('assets/davicasa.png', _goTarjetaDav),
-          ],
-        ),
-      );
+          ),
+          const SizedBox(width: 12),
+          _buildImageShortcut('assets/davicasa.png', _goTarjetaDav),
+        ],
+      ),
+    );
   }
-  
+
   Widget _showChequeCupones() {
     return Padding(
       padding: const EdgeInsets.only(left: 20.0, right: 25),
@@ -639,7 +629,8 @@ class FormPagoState extends State<FormPago> {
                       FacturaService.updateFactura(context, factura);
                       chequeController.text = value.toString();
                       Fluttertoast.showToast(
-                        msg: 'La cantidad es superior al saldo, por favor vuelva a ingresarla',
+                        msg:
+                            'La cantidad es superior al saldo, por favor vuelva a ingresarla',
                         toastLength: Toast.LENGTH_SHORT,
                         gravity: ToastGravity.CENTER,
                         timeInSecForIosWeb: 1,
@@ -679,7 +670,8 @@ class FormPagoState extends State<FormPago> {
                       FacturaService.updateFactura(context, factura);
                       cuponController.text = value.toString();
                       Fluttertoast.showToast(
-                        msg: 'La cantidad es superior al saldo, por favor vuelva a ingresarla',
+                        msg:
+                            'La cantidad es superior al saldo, por favor vuelva a ingresarla',
                         toastLength: Toast.LENGTH_SHORT,
                         gravity: ToastGravity.CENTER,
                         timeInSecForIosWeb: 1,
@@ -700,392 +692,405 @@ class FormPagoState extends State<FormPago> {
     );
   }
 
-Widget _showSinpeRefresh() {
-  if (factura.formPago!.totalSinpe > 0) {
-    sinpeController.text = factura.formPago!.totalSinpe.toInt().toString();
-  }
+  Widget _showSinpeRefresh() {
+    if (factura.formPago!.totalSinpe > 0) {
+      sinpeController.text = factura.formPago!.totalSinpe.toInt().toString();
+    }
 
-  return Padding(
-    padding: const EdgeInsets.only(left: 20.0, right: 25),
-    child: Row(
-      children: [
-        // Mitad izquierda (TextField + imagen)
-        Expanded(
-          flex: 1,
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  readOnly: true,
-                  controller: sinpeController,
-                  style: _fieldTextStyle,
-                  cursorColor: kNewgreen,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    hintText: 'Select...',
-                    labelText: 'Sinpes',
+    return Padding(
+      padding: const EdgeInsets.only(left: 20.0, right: 25),
+      child: Row(
+        children: [
+          // Mitad izquierda (TextField + imagen)
+          Expanded(
+            flex: 1,
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    readOnly: true,
+                    controller: sinpeController,
+                    style: _fieldTextStyle,
+                    cursorColor: kNewgreen,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      hintText: 'Select...',
+                      labelText: 'Sinpes',
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              _buildImageShortcut('assets/sinpe.png', _goSinpes),
-            ],
+                const SizedBox(width: 12),
+                _buildImageShortcut('assets/sinpe.png', _goSinpes),
+              ],
+            ),
           ),
-        ),
 
-        // Separación opcional entre las dos mitades
-        const SizedBox(width: 12),
+          // Separación opcional entre las dos mitades
+          const SizedBox(width: 12),
 
-        // Mitad derecha (refresh)
-        Expanded(
-          flex: 1,
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: _buildIconShortcut(Icons.refresh_rounded, goRefresh),
+          // Mitad derecha (refresh)
+          Expanded(
+            flex: 1,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: _buildIconShortcut(Icons.refresh_rounded, goRefresh),
+            ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
-  
   void _goCashAll() {
-    if(factura.saldo<=0){        
-         Fluttertoast.showToast(
-            msg: "La factura ya no tiene saldo",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.CENTER,
-            timeInSecForIosWeb: 1,
-            backgroundColor: Colors.red,
-            textColor: Colors.white,
-            fontSize: 16.0
-          ); 
-        return;
-    }
-    
-    setState(() {
-     
-      factura.formPago!.totalEfectivo += factura.saldo;
-      cashController.text= factura.formPago!.totalEfectivo.toInt().toString();
-      
-       //  onSaldoChanged(factura.formPago!.saldo);
-    
-    });
-      FacturaService.updateFactura(context, factura);
-  }
-
-  void _goTarjetaBacAll() {
-    if(factura.saldo<=0){
-        Fluttertoast.showToast(
-            msg: "La factura ya no tiene saldo",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.CENTER,
-            timeInSecForIosWeb: 1,
-            backgroundColor: Colors.red,
-            textColor: Colors.white,
-            fontSize: 16.0
-          ); 
-        return;
-    }
-    
-    setState(() {
-     
-      factura.formPago!.totalBac += factura.saldo;
-      bacController.text=factura.formPago!.totalBac.toInt().toString();
-     FacturaService.updateFactura(context, factura);
-    });
-  }
-
-  void _goTarjetaBN() {
-    if(factura.saldo<=0){
-        Fluttertoast.showToast(
-            msg: "La factura ya no tiene saldo",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.CENTER,
-            timeInSecForIosWeb: 1,
-            backgroundColor: Colors.red,
-            textColor: Colors.white,
-            fontSize: 16.0
-          ); 
-        return;
-    }
-    
-     setState(() {
-     
-      factura.formPago!.totalBn += factura.saldo;
-      bnController.text=factura.formPago!.totalBn.toInt().toString();
-      FacturaService.updateFactura(context,factura);
-    });
-  }
-
-  void _goTarjetaScotia() {
-    if(factura.saldo<=0){
-        Fluttertoast.showToast(
-            msg: "La factura ya no tiene saldo",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.CENTER,
-            timeInSecForIosWeb: 1,
-            backgroundColor: Colors.red,
-            textColor: Colors.white,
-            fontSize: 16.0
-          ); 
-        return;
-    }
-    
-    setState(() {       
-        factura.formPago!.totalSctia += factura.saldo;
-        sctiaController.text= factura.formPago!.totalSctia.toInt().toString();
-        FacturaService.updateFactura(context, factura);
-    });
-  }
-
-  void _goTarjetaDav() {
-    if(factura.saldo<=0){
-        Fluttertoast.showToast(
-            msg: "La factura ya no tiene saldo",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.CENTER,
-            timeInSecForIosWeb: 1,
-            backgroundColor: Colors.red,
-            textColor: Colors.white,
-            fontSize: 16.0
-          ); 
-        return;
-    }
-    
-    setState(() {
-     
-      factura.formPago!.totalDav +=factura.saldo;
-      davController.text= factura.formPago!.totalDav.toInt().toString();
-  
-      FacturaService.updateFactura(context, factura);
-    });
-  }
-
-  void _goDollar() {
-    if(factura.saldo<=0){
-        Fluttertoast.showToast(
-            msg: "La factura ya no tiene saldo",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.CENTER,
-            timeInSecForIosWeb: 1,
-            backgroundColor: Colors.red,
-            textColor: Colors.white,
-            fontSize: 16.0
-          ); 
-        return;
-    }    
-    setState(() {
-      
-      factura.formPago!.totalDollars += factura.saldo;
-      dollarController.text= factura.formPago!.totalDollars.toInt().toString();
-      FacturaService.updateFactura(context, factura);     
-    });
-  }
-
-  void _goCheque() {
-    if(factura.saldo<=0){
-        Fluttertoast.showToast(
-            msg: "La factura ya no tiene saldo",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.CENTER,
-            timeInSecForIosWeb: 1,
-            backgroundColor: Colors.red,
-            textColor: Colors.white,
-            fontSize: 16.0
-          ); 
-        return;
-    }    
-    setState(() {  
-      factura.formPago!.totalCheques += factura.saldo;
-      chequeController.text= factura.formPago!.totalCheques.toInt().toString();
-      FacturaService.updateFactura(context, factura);      
-    });
-  }
-
-  void _goCupon() {
-    if(factura.saldo<=0){
-       Fluttertoast.showToast(
-            msg: "La factura ya no tiene saldo",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.CENTER,
-            timeInSecForIosWeb: 1,
-            backgroundColor: Colors.red,
-            textColor: Colors.white,
-            fontSize: 16.0
-          ); 
-        return;
-    }    
-    setState(() {
-    
-      factura.formPago!.totalCupones += factura.saldo;
-      cuponController.text= factura.formPago!.totalCupones.toInt().toString();
-      FacturaService.updateFactura(context, factura);
-    });
-  }
-
-  void _goPoints() {
-     if(factura.saldo<=0){
-        Fluttertoast.showToast(
+    if (factura.saldo <= 0) {
+      Fluttertoast.showToast(
           msg: "La factura ya no tiene saldo",
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.CENTER,
           timeInSecForIosWeb: 1,
           backgroundColor: Colors.red,
           textColor: Colors.white,
-          fontSize: 16.0
-        ); 
-        return;
-     }    
-    
-     if(factura.formPago!.clientePuntos.nombre.isEmpty){
-       Fluttertoast.showToast(
-            msg: "Seleccione el Cliente Frecuente",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.CENTER,
-            timeInSecForIosWeb: 1,
-            backgroundColor: Colors.red,
-            textColor: Colors.white,
-            fontSize: 16.0
-          ); 
-        return;
-     }   
+          fontSize: 16.0);
+      return;
+    }
 
-     if(factura.formPago!.clientePuntos.puntos==0){
-       Fluttertoast.showToast(
-            msg: "El cliente no tiene puntos",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.CENTER,
-            timeInSecForIosWeb: 1,
-            backgroundColor: Colors.red,
-            textColor: Colors.white,
-            fontSize: 16.0
-          ); 
-        return;
-     } 
-
-      if(factura.saldo < factura.formPago!.clientePuntos.puntos){       
-          factura.formPago!.totalPuntos = factura.saldo;  
-      }
-      else{
-        factura.formPago!.totalPuntos =  factura.formPago!.clientePuntos.puntos.toDouble();
-      }
-
-      setState(() {          
-           pointsController.text= factura.formPago!.totalPuntos.toInt().toString();           
-           FacturaService.updateFactura(context, factura);
-      });
-    
-  }
-  
-  void _goTransfers()  {   
-   // transferController.text='';i
     setState(() {
-             
-      
-       factura.formPago!.transfer.totalTransfer=factura.saldo;
-        FacturaService.updateFactura(context, factura);
-    });
- 
-   
+      factura.formPago!.totalEfectivo += factura.saldo;
+      cashController.text = factura.formPago!.totalEfectivo.toInt().toString();
 
-  
-   Navigator.push(
+      //  onSaldoChanged(factura.formPago!.saldo);
+    });
+    FacturaService.updateFactura(context, factura);
+  }
+
+  void _goTarjetaBacAll() {
+    if (factura.saldo <= 0) {
+      Fluttertoast.showToast(
+          msg: "La factura ya no tiene saldo",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0);
+      return;
+    }
+
+    setState(() {
+      factura.formPago!.totalBac += factura.saldo;
+      bacController.text = factura.formPago!.totalBac.toInt().toString();
+      FacturaService.updateFactura(context, factura);
+    });
+  }
+
+  void _goTarjetaBN() {
+    if (factura.saldo <= 0) {
+      Fluttertoast.showToast(
+          msg: "La factura ya no tiene saldo",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0);
+      return;
+    }
+
+    setState(() {
+      factura.formPago!.totalBn += factura.saldo;
+      bnController.text = factura.formPago!.totalBn.toInt().toString();
+      FacturaService.updateFactura(context, factura);
+    });
+  }
+
+  void _goTarjetaScotia() {
+    if (factura.saldo <= 0) {
+      Fluttertoast.showToast(
+          msg: "La factura ya no tiene saldo",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0);
+      return;
+    }
+
+    setState(() {
+      factura.formPago!.totalSctia += factura.saldo;
+      sctiaController.text = factura.formPago!.totalSctia.toInt().toString();
+      FacturaService.updateFactura(context, factura);
+    });
+  }
+
+  void _goTarjetaDav() {
+    if (factura.saldo <= 0) {
+      Fluttertoast.showToast(
+          msg: "La factura ya no tiene saldo",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0);
+      return;
+    }
+
+    setState(() {
+      factura.formPago!.totalDav += factura.saldo;
+      davController.text = factura.formPago!.totalDav.toInt().toString();
+
+      FacturaService.updateFactura(context, factura);
+    });
+  }
+
+  void _goDollar() {
+    if (factura.saldo <= 0) {
+      Fluttertoast.showToast(
+          msg: "La factura ya no tiene saldo",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0);
+      return;
+    }
+    setState(() {
+      factura.formPago!.totalDollars += factura.saldo;
+      dollarController.text = factura.formPago!.totalDollars.toInt().toString();
+      FacturaService.updateFactura(context, factura);
+    });
+  }
+
+  void _goCheque() {
+    if (factura.saldo <= 0) {
+      Fluttertoast.showToast(
+          msg: "La factura ya no tiene saldo",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0);
+      return;
+    }
+    setState(() {
+      factura.formPago!.totalCheques += factura.saldo;
+      chequeController.text = factura.formPago!.totalCheques.toInt().toString();
+      FacturaService.updateFactura(context, factura);
+    });
+  }
+
+  void _goCupon() {
+    if (factura.saldo <= 0) {
+      Fluttertoast.showToast(
+          msg: "La factura ya no tiene saldo",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0);
+      return;
+    }
+    setState(() {
+      factura.formPago!.totalCupones += factura.saldo;
+      cuponController.text = factura.formPago!.totalCupones.toInt().toString();
+      FacturaService.updateFactura(context, factura);
+    });
+  }
+
+  void _goPoints() {
+    if (factura.saldo <= 0) {
+      Fluttertoast.showToast(
+          msg: "La factura ya no tiene saldo",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0);
+      return;
+    }
+
+    if (factura.formPago!.clientePuntos.nombre.isEmpty) {
+      Fluttertoast.showToast(
+          msg: "Seleccione el Cliente Frecuente",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0);
+      return;
+    }
+
+    if (factura.formPago!.clientePuntos.puntos == 0) {
+      Fluttertoast.showToast(
+          msg: "El cliente no tiene puntos",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0);
+      return;
+    }
+
+    if (factura.saldo < factura.formPago!.clientePuntos.puntos) {
+      factura.formPago!.totalPuntos = factura.saldo;
+    } else {
+      factura.formPago!.totalPuntos =
+          factura.formPago!.clientePuntos.puntos.toDouble();
+    }
+
+    setState(() {
+      pointsController.text = factura.formPago!.totalPuntos.toInt().toString();
+      FacturaService.updateFactura(context, factura);
+    });
+  }
+
+  void _goTransfers() {
+    // transferController.text='';i
+    setState(() {
+      factura.formPago!.transfer.totalTransfer = factura.saldo;
+      FacturaService.updateFactura(context, factura);
+    });
+
+    Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => TransferScreen(index: widget.index,))
-    );
-   
-}
-  
- 
+        MaterialPageRoute(
+            builder: (context) => TransferScreen(
+                  index: widget.index,
+                )));
+  }
+
   void setValues() {
     setState(() {
-      if(factura.formPago!.totalEfectivo>0){
-        cashController.text= factura.formPago!.totalEfectivo.toInt().toString();
+      if (factura.formPago!.totalEfectivo > 0) {
+        cashController.text =
+            factura.formPago!.totalEfectivo.toInt().toString();
       }
-      if(factura.formPago!.totalDollars>0){
-        dollarController.text= factura.formPago!.totalDollars.toInt().toString();
+      if (factura.formPago!.totalDollars > 0) {
+        dollarController.text =
+            factura.formPago!.totalDollars.toInt().toString();
       }
-      if(factura.formPago!.totalCheques>0){
-        chequeController.text= factura.formPago!.totalCheques.toInt().toString();
+      if (factura.formPago!.totalCheques > 0) {
+        chequeController.text =
+            factura.formPago!.totalCheques.toInt().toString();
       }
-      if(factura.formPago!.totalCupones>0){
-        cuponController.text= factura.formPago!.totalCupones.toInt().toString();
+      if (factura.formPago!.totalCupones > 0) {
+        cuponController.text =
+            factura.formPago!.totalCupones.toInt().toString();
       }
-      if(factura.formPago!.totalPuntos>0){
-        pointsController.text= factura.formPago!.totalPuntos.toInt().toString();
+      if (factura.formPago!.totalPuntos > 0) {
+        pointsController.text =
+            factura.formPago!.totalPuntos.toInt().toString();
       }
-      if(factura.formPago!.totalTransfer>0){
-        transferController.text= factura.formPago!.totalTransfer.toInt().toString();
+      if (factura.formPago!.totalTransfer > 0) {
+        transferController.text =
+            factura.formPago!.totalTransfer.toInt().toString();
       }
-      if(factura.formPago!.totalBac>0){
-        bacController.text= factura.formPago!.totalBac.toInt().toString();
+      if (factura.formPago!.totalBac > 0) {
+        bacController.text = factura.formPago!.totalBac.toInt().toString();
       }
-      if(factura.formPago!.totalBn>0){
-        bnController.text= factura.formPago!.totalBn.toInt().toString();
+      if (factura.formPago!.totalBn > 0) {
+        bnController.text = factura.formPago!.totalBn.toInt().toString();
       }
-      if(factura.formPago!.totalDav>0){
-        davController.text= factura.formPago!.totalDav.toInt().toString();
+      if (factura.formPago!.totalDav > 0) {
+        davController.text = factura.formPago!.totalDav.toInt().toString();
       }
-      if(factura.formPago!.totalSctia>0){
-        sctiaController.text= factura.formPago!.totalSctia.toInt().toString();
+      if (factura.formPago!.totalSctia > 0) {
+        sctiaController.text = factura.formPago!.totalSctia.toInt().toString();
       }
-        if(factura.formPago!.totalSinpe>0){
-        sctiaController.text= factura.formPago!.totalSctia.toInt().toString();
+      if (factura.formPago!.totalSinpe > 0) {
+        sctiaController.text = factura.formPago!.totalSctia.toInt().toString();
       }
-     FacturaService.updateFactura(context, factura);
+      FacturaService.updateFactura(context, factura);
     });
   }
 
   void _goSinpes() {
-    sinpeController.text='';
-   
-   
-     Navigator.push(context,
-       MaterialPageRoute(
-         builder: (context) => ListaSinpesScreen(
-           index: widget.index,         
-          
-         )));
+    sinpeController.text = '';
+
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => ListaSinpesScreen(
+                  index: widget.index,
+                )));
   }
-  
+
   goRefresh() {
     setState(() {
-      factura.formPago!.totalBac=0;
-      factura.formPago!.totalBn=0;
-      factura.formPago!.totalCheques=0;
-      factura.formPago!.totalCupones=0;
-      factura.formPago!.totalDav=0;
-      factura.formPago!.totalDollars=0;
-      factura.formPago!.totalEfectivo=0;
-      factura.formPago!.totalPuntos=0;
-      factura.formPago!.totalSctia=0;
-      factura.formPago!.totalTransfer=0;
-      factura.formPago!.transfer.totalTransfer=0;
-      factura.formPago!.totalSinpe=0;
-      factura.formPago!.transfer = Transferencia(cliente: Cliente(nombre: '', documento: '', codigoTipoID: '', email: '', puntos: 0, codigo: '', telefono: '', plazo: 0), transfers: [], monto: 0, totalTransfer: 0, );
-      factura.formPago!.clientePuntos = Cliente(nombre: '', documento: '', codigoTipoID: '', email: '', puntos: 0, codigo: '', telefono: '', plazo: 0);     
-      factura.formPago!.clienteFactura = Cliente(nombre: '', documento: '', codigoTipoID: '', email: '', puntos: 0, codigo: '', telefono: '', plazo: 0  );     
-      factura.formPago!.sinpe = Sinpe(numFact: '', fecha: DateTime.now(), id: 0, idCierre: 0, activo: 0, monto: 0, nombreEmpleado: '', nota: '', numComprobante: '');
-    
-     
-      sinpeController.text='';
-      cashController.text='';
-      dollarController.text='';
-      chequeController.text='';
-      cuponController.text='';
-      pointsController.text='';
-      transferController.text='';
-      bacController.text='';
-      bnController.text='';
-      davController.text='';
-      sctiaController.text='';
+      factura.formPago!.totalBac = 0;
+      factura.formPago!.totalBn = 0;
+      factura.formPago!.totalCheques = 0;
+      factura.formPago!.totalCupones = 0;
+      factura.formPago!.totalDav = 0;
+      factura.formPago!.totalDollars = 0;
+      factura.formPago!.totalEfectivo = 0;
+      factura.formPago!.totalPuntos = 0;
+      factura.formPago!.totalSctia = 0;
+      factura.formPago!.totalTransfer = 0;
+      factura.formPago!.transfer.totalTransfer = 0;
+      factura.formPago!.totalSinpe = 0;
+      factura.formPago!.transfer = Transferencia(
+        cliente: Cliente(
+            nombre: '',
+            documento: '',
+            codigoTipoID: '',
+            email: '',
+            puntos: 0,
+            codigo: '',
+            telefono: '',
+            plazo: 0),
+        transfers: [],
+        monto: 0,
+        totalTransfer: 0,
+      );
+      factura.formPago!.clientePuntos = Cliente(
+          nombre: '',
+          documento: '',
+          codigoTipoID: '',
+          email: '',
+          puntos: 0,
+          codigo: '',
+          telefono: '',
+          plazo: 0);
+      factura.formPago!.clienteFactura = Cliente(
+          nombre: '',
+          documento: '',
+          codigoTipoID: '',
+          email: '',
+          puntos: 0,
+          codigo: '',
+          telefono: '',
+          plazo: 0);
+      factura.formPago!.sinpe = Sinpe(
+          numFact: '',
+          fecha: DateTime.now(),
+          id: 0,
+          idCierre: 0,
+          activo: 0,
+          monto: 0,
+          nombreEmpleado: '',
+          nota: '',
+          numComprobante: '');
+
+      sinpeController.text = '';
+      cashController.text = '';
+      dollarController.text = '';
+      chequeController.text = '';
+      cuponController.text = '';
+      pointsController.text = '';
+      transferController.text = '';
+      bacController.text = '';
+      bnController.text = '';
+      davController.text = '';
+      sctiaController.text = '';
       FacturaService.updateFactura(context, factura);
-      
     });
   }
- 
-
-
 }

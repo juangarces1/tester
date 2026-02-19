@@ -5,9 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
-
 import 'package:tester/Components/cart_inline_section.dart';
-import 'package:tester/Components/default_button.dart';
 import 'package:tester/Components/form_pago_v2.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Components/show_actividad_select.dart';
@@ -21,7 +19,6 @@ import 'package:tester/Models/FuelRed/product.dart';
 import 'package:tester/Models/FuelRed/response.dart';
 import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
-
 import 'package:tester/Screens/NewHome/Components/produccts_page.dart';
 import 'package:tester/Screens/test_print/testprint.dart';
 import 'package:tester/constans.dart';
@@ -1204,37 +1201,37 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
     );
   }
 
-  Widget _otrosCamposSummary(Invoice f) {
-    final chips = <Widget>[];
-    if ((f.kms ?? 0) > 0) {
-      chips.add(_miniChip('Kms: ${f.kms}'));
-    }
-    if ((f.placa ?? '').trim().isNotEmpty) {
-      chips.add(_miniChip('Placa: ${f.placa!.toUpperCase()}'));
-    }
-    if ((f.observaciones ?? '').trim().isNotEmpty) {
-      chips.add(_miniChip('Obs.'));
-    }
-    if (chips.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Wrap(spacing: 8, runSpacing: 6, children: chips),
-    );
-  }
+  // Widget _otrosCamposSummary(Invoice f) {
+  //   final chips = <Widget>[];
+  //   if ((f.kms ?? 0) > 0) {
+  //     chips.add(_miniChip('Kms: ${f.kms}'));
+  //   }
+  //   if ((f.placa ?? '').trim().isNotEmpty) {
+  //     chips.add(_miniChip('Placa: ${f.placa!.toUpperCase()}'));
+  //   }
+  //   if ((f.observaciones ?? '').trim().isNotEmpty) {
+  //     chips.add(_miniChip('Obs.'));
+  //   }
+  //   if (chips.isEmpty) {
+  //     return const SizedBox.shrink();
+  //   }
+  //   return Padding(
+  //     padding: const EdgeInsets.symmetric(horizontal: 20),
+  //     child: Wrap(spacing: 8, runSpacing: 6, children: chips),
+  //   );
+  // }
 
-  Widget _miniChip(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: kNewsurfaceHi,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: kNewborder),
-      ),
-      child: Text(text,
-          style:
-              const TextStyle(color: kNewtextSec, fontWeight: FontWeight.w600)),
-    );
-  }
+  // Widget _miniChip(String text) {
+  //   return Container(
+  //     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+  //     decoration: BoxDecoration(
+  //       color: kNewsurfaceHi,
+  //       borderRadius: BorderRadius.circular(20),
+  //       border: Border.all(color: kNewborder),
+  //     ),
+  //     child: Text(text,
+  //         style:
+  //             const TextStyle(color: kNewtextSec, fontWeight: FontWeight.w600)),
+  //   );
+  // }
 }
