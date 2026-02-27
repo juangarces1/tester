@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Screens/NewHome/Components/dispatch_card.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/faces_list_page.dart';
-import 'package:tester/Providers/experimental/alt_despachos_provider.dart';
-import 'package:tester/Providers/experimental/alt_dispatch_control.dart';
+import 'package:tester/Providers/experimental/active_dispatch_manager.dart';
+import 'package:tester/Providers/experimental/dispatch_session.dart';
 
 import 'package:tester/constans.dart';
 
@@ -34,24 +34,18 @@ class _FirstPageState extends State<FirstPage> {
     super.dispose();
   }
 
-  bool _isVisible(AltDispatchControl d) {
-    // El card se muestra desde authorizing en adelante.
-    return d.stage == DispatchStage.authorizing ||
-        d.stage == DispatchStage.authorized ||
-        d.stage == DispatchStage.dispatching ||
-        d.stage == DispatchStage.unpaid ||
-        d.canRetry;
+  bool _isVisible(DispatchSession d) {
+    return !d.isCompleted;
   }
 
-  bool _canDelete(AltDispatchControl d) {
-    // Permitir swipe solo cuando ya no interfiere con la operación
-    return d.stage == DispatchStage.readyToAuthorize || d.canRetry;
+  bool _canDelete(DispatchSession d) {
+    return d.canRetryOrDiscard;
   }
 
   @override
   Widget build(BuildContext context) {
-    final despachosProv = Provider.of<AltDespachosProvider>(context);
-    final all = despachosProv.despachos;
+    final despachosProv = Provider.of<ActiveDispatchManager>(context);
+    final all = despachosProv.activeSessions;
     final despachos = all.where(_isVisible).toList();
 
     const fabHeight = 56.0;
@@ -121,9 +115,9 @@ class _FirstPageState extends State<FirstPage> {
                                 false;
                           },
                           onDismissed: (_) {
-                            final prov = Provider.of<AltDespachosProvider>(ctx,
+                            final prov = Provider.of<ActiveDispatchManager>(ctx,
                                 listen: false);
-                            prov.removeDispatch(d);
+                            prov.finishSession(d.id);
                           },
                           child: GestureDetector(
                             onTap: () {},
@@ -165,45 +159,11 @@ class _FirstPageState extends State<FirstPage> {
   }
 
   Future<void> _startNewFlow(BuildContext ctx) async {
-    final despachosProv = Provider.of<AltDespachosProvider>(ctx, listen: false);
-    final dispatchId = DateTime.now().millisecondsSinceEpoch.toString();
-
-    final dispatch = AltDispatchControl(
-      id: dispatchId,
-      onComplete: () {
-        // Remover el despacho cuando se marque como completado
-        despachosProv.removeById(dispatchId);
-      },
-    );
-
-    despachosProv.addDispatch(dispatch);
-
     await Navigator.push(
       ctx,
       MaterialPageRoute(
-        builder: (_) => FacesListPage(dispatchId: dispatch.id),
+        builder: (_) => const FacesListPage(),
       ),
     );
-
-    // Stages que mantienen el despacho vivo al volver del wizard
-    final keepStages = {
-      DispatchStage
-          .readyToAuthorize, // ← El usuario configuró todo pero aún no autorizó
-      DispatchStage.authorizing,
-      DispatchStage.authorized,
-      DispatchStage.dispatching,
-      DispatchStage.completed,
-      DispatchStage.unpaid,
-    };
-
-    debugPrint(
-        '[FirstPage] Wizard returned. Dispatch stage: ${dispatch.stage}');
-    debugPrint('[FirstPage] Keep stages: $keepStages');
-    debugPrint('[FirstPage] Will keep: ${keepStages.contains(dispatch.stage)}');
-
-    if (!keepStages.contains(dispatch.stage)) {
-      debugPrint('[FirstPage] REMOVING dispatch ${dispatch.id}');
-      despachosProv.removeById(dispatch.id);
-    }
   }
 }

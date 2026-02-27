@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:tester/Models/FuelRed/product.dart';
 import 'package:tester/helpers/constans.dart';
 
 /// Modelo de request para el endpoint /api/pump/preset-with-tag
@@ -56,7 +57,7 @@ class ConsoleApiHelper {
     required double amount,
     required String tagId,
     bool authorize = true,
-    int timeoutSeconds = 30,
+    int timeoutSeconds = 10,
   }) =>
       _sendPreset(PresetWithTagRequest(
         nozzleCode: nozzleCode,
@@ -74,7 +75,7 @@ class ConsoleApiHelper {
     required double liters,
     required String tagId,
     bool authorize = true,
-    int timeoutSeconds = 30,
+    int timeoutSeconds = 10,
   }) =>
       _sendPreset(PresetWithTagRequest(
         nozzleCode: nozzleCode,
@@ -91,7 +92,7 @@ class ConsoleApiHelper {
     required String nozzleCode,
     required String tagId,
     bool authorize = true,
-    int timeoutSeconds = 60,
+    int timeoutSeconds = 10,
   }) =>
       _sendPreset(PresetWithTagRequest(
         nozzleCode: nozzleCode,
@@ -133,6 +134,60 @@ class ConsoleApiHelper {
     } catch (e) {
       debugPrint('❌ [ConsoleApi] preset-with-tag EXCEPTION: $e');
       return false;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Última venta por manguera — POST /api/pump/last-sale
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Consulta la última venta registrada en la consola para [nozzleCode].
+  /// [since] filtra solo transacciones con fecha ≥ ese instante.
+  /// Retorna un `Product` listo para facturar, o `null` si no hay resultados.
+  static Future<Product?> getLastSaleByNozzle(
+    String nozzleCode, {
+    DateTime? since,
+  }) async {
+    final uri = Uri.parse('${_base}pump/last-sale');
+
+    final Map<String, dynamic> body = {
+      'nozzleCode': nozzleCode,
+      if (since != null) 'since': since.toUtc().toIso8601String(),
+    };
+
+    debugPrint('🔍 [ConsoleApi] POST $uri');
+    debugPrint('   body: ${jsonEncode(body)}');
+
+    try {
+      final res = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (res.statusCode == 200) {
+        final decoded = jsonDecode(res.body);
+        // El response puede ser { data: {...} }, { result: {...} } o directamente el objeto
+        final Map<String, dynamic>? prodJson =
+            decoded is Map<String, dynamic> ? decoded : null;
+
+        if (prodJson == null || prodJson.isEmpty) {
+          debugPrint('⚠️ [ConsoleApi] last-sale: respuesta vacía');
+          return null;
+        }
+
+        debugPrint('✅ [ConsoleApi] last-sale OK para manguera $nozzleCode');
+        return Product.fromJson(prodJson);
+      } else {
+        debugPrint(
+            '❌ [ConsoleApi] last-sale FAILED: ${res.statusCode} → ${res.body}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('❌ [ConsoleApi] last-sale EXCEPTION: $e');
+      return null;
     }
   }
 }

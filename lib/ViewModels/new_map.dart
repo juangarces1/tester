@@ -131,6 +131,7 @@ class PositionBuilder {
       );
 
       // Agregamos metadata al grupo (etiquetas, descripciones)
+      // Agregamos metadata al grupo (etiquetas, descripciones)
       group.faceData.addLabel(mapping.hoseKey);
       if (group.faceData.description == null && mapping.hoseKey.isNotEmpty) {
         // Podríamos usar una descripción genérica del surtidor
@@ -304,17 +305,18 @@ class PositionBuilder {
         mapping?.hoseNumber ?? statusCtx?.hose.number ?? nozzleNumber;
     if (resolvedNozzle == null || resolvedNozzle <= 0) return null;
 
+    final fallbackStr = mapping != null
+        ? "${mapping.dispenserNumber}-${mapping.hoseNumber}"
+        : fallbackKey;
     final hoseKey = statusCtx?.hose.key ??
-        (mapping?.hoseKey.isNotEmpty == true
-            ? mapping!.hoseKey
-            : (fallbackKey.isNotEmpty
-                ? fallbackKey
-                : 'P$pumpId-H$resolvedNozzle'));
+        (fallbackStr.isNotEmpty ? fallbackStr : 'P$pumpId-H$resolvedNozzle');
 
     final hoseStatus =
         statusCtx?.hose.status ?? statusCtx?.dispenser.status ?? 'unknown';
 
-    final fuel = _fuelFrom(hose: statusCtx?.hose);
+    final fuel = mapping != null
+        ? _fuelFromGrade(mapping.grade, mapping.hoseNumber)
+        : _fuelFrom(hose: statusCtx?.hose);
     // Preferimos el dispensador proveniente del mapping porque ya trae la asociaci\u00f3n bomba/manguera.
     final dispenserNumber =
         mapping?.dispenserNumber ?? statusCtx?.dispenser.number ?? pumpId;
@@ -386,10 +388,11 @@ class PositionBuilder {
       // Buscamos el estado dinámico (si existe)
       final hoseStat = statusByNozzle[nozzleNum];
 
+      final fallbackStr = "${mapping.dispenserNumber}-${mapping.hoseNumber}";
       final hose = HosePhysical(
         nozzleNumber: nozzleNum,
-        hoseKey: mapping.hoseKey,
-        fuel: _fuelFrom(hose: hoseStat),
+        hoseKey: fallbackStr,
+        fuel: _fuelFromGrade(mapping.grade, mapping.hoseNumber),
         status: hoseStat?.status ?? 'unknown',
         dispenserNumber: dispenserNum,
         totalVolume: hoseStat?.totalVolume,
@@ -424,6 +427,21 @@ class PositionBuilder {
     }
 
     return result;
+  }
+
+  static Fuel _fuelFromGrade(String grade, int hoseNumber) {
+    final g = grade.toLowerCase();
+    if (g.contains('regular')) {
+      return const Fuel(name: 'Regular', color: Color(0xFFec1c24));
+    } else if (g.contains('super')) {
+      return const Fuel(name: 'Super', color: Color(0xFFb634b8));
+    } else if (g.contains('diesel')) {
+      return const Fuel(name: 'Diesel', color: Color(0xFF1dbd4a));
+    } else if (g.contains('exonerado')) {
+      return const Fuel(name: 'Exonerado', color: Color(0xFF0078D4));
+    }
+    return Fuel(
+        name: grade.isNotEmpty ? grade : 'Combustible', color: Colors.teal);
   }
 }
 

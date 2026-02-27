@@ -7,7 +7,6 @@ import 'package:tester/Providers/usuario_provider.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/tranascciones_provider.dart';
 
-import 'package:tester/Providers/experimental/alt_despachos_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/map_provider.dart';
@@ -21,7 +20,6 @@ class ResetHelper {
     _tryRead<UsuarioProvider>(context)?.reset();
     _tryRead<CierreActivoProvider>(context)?.reset();
     _tryRead<TransaccionesProvider>(context)?.reset();
-    _tryRead<AltDespachosProvider>(context)?.reset();
     _tryRead<FacturasProvider>(context)?.reset();
     _tryRead<ClienteProvider>(context)?.reset();
     _tryRead<MapProvider>(context)?.reset();

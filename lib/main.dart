@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/clientes_provider.dart';
-import 'package:tester/Providers/experimental/alt_despachos_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/Providers/printer_provider.dart';
 import 'package:tester/Providers/tranascciones_provider.dart';
 import 'package:tester/Providers/usuario_provider.dart';
+import 'package:tester/Providers/experimental/active_dispatch_manager.dart';
 
 import 'package:tester/Screens/logIn/login_screen.dart';
 
@@ -23,11 +23,13 @@ void main() {
         ChangeNotifierProvider(create: (_) => PrinterProvider()),
         ChangeNotifierProvider(create: (_) => MapProvider()),
         //  ChangeNotifierProvider(create: (_) => DespachosProvider()),
-        ChangeNotifierProxyProvider<MapProvider, AltDespachosProvider>(
-          create: (context) => AltDespachosProvider(
-            mapProvider: context.read<MapProvider>(),
-          ),
-          update: (context, map, previous) => previous!,
+        ChangeNotifierProxyProvider<MapProvider, ActiveDispatchManager>(
+          create: (_) => ActiveDispatchManager(),
+          update: (_, mapProv, manager) {
+            // Este puente asegura que el ActiveDispatchManager reaccione a la física en SignalR.
+            manager!.syncWithPhysicalState(mapProv);
+            return manager;
+          },
         ),
       ],
       child: const MyApp(),

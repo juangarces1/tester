@@ -16,9 +16,9 @@ class Constans {
     return imagenesUrl;
   }
 
-  // static String baseUrlConsole = ' http://192.168.1.46:5000/api/';
-  // static String monitoringHubUrl = ' http://192.168.1.46:5000/hubs/monitoring';
+  static String baseUrlConsole = 'http://192.168.1.3:8087/api/';
+  static String monitoringHubUrl = 'http://192.168.1.3:8087/hubs/monitoring';
 
-  static String baseUrlConsole = 'http://10.0.2.2:5000/api/';
-  static String monitoringHubUrl = 'http://10.0.2.2:5000/hubs/monitoring';
+  // static String baseUrlConsole = 'http://10.0.2.2:5000/api/';
+  // static String monitoringHubUrl = 'http://10.0.2.2:5000/hubs/monitoring';
 }

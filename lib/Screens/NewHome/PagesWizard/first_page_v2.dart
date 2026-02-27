@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Screens/NewHome/Components/dispatch_card.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/faces_list_page.dart';
-import 'package:tester/Providers/experimental/alt_despachos_provider.dart';
-import 'package:tester/Providers/experimental/alt_dispatch_control.dart';
+import 'package:tester/Providers/experimental/active_dispatch_manager.dart';
+import 'package:tester/Providers/experimental/dispatch_session.dart';
 
 import 'package:tester/constans.dart';
 
@@ -23,22 +23,18 @@ class _FirstPageV2State extends State<FirstPageV2> {
     });
   }
 
-  bool _isVisible(AltDispatchControl d) {
-    return d.stage == DispatchStage.authorizing ||
-        d.stage == DispatchStage.authorized ||
-        d.stage == DispatchStage.dispatching ||
-        d.stage == DispatchStage.unpaid ||
-        d.canRetry;
+  bool _isVisible(DispatchSession d) {
+    return !d.isCompleted; // Todo lo que no ha sido cerrado manualmente
   }
 
-  bool _canDelete(AltDispatchControl d) {
-    return d.stage == DispatchStage.readyToAuthorize || d.canRetry;
+  bool _canDelete(DispatchSession d) {
+    return d.canRetryOrDiscard;
   }
 
   @override
   Widget build(BuildContext context) {
-    final despachosProv = Provider.of<AltDespachosProvider>(context);
-    final all = despachosProv.despachos;
+    final manager = Provider.of<ActiveDispatchManager>(context);
+    final all = manager.activeSessions;
     final despachos = all.where(_isVisible).toList();
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
@@ -233,7 +229,7 @@ class _FirstPageV2State extends State<FirstPageV2> {
     );
   }
 
-  Widget _buildDispatchItem(BuildContext context, AltDispatchControl d) {
+  Widget _buildDispatchItem(BuildContext context, DispatchSession d) {
     return Dismissible(
       key: ObjectKey(d),
       direction:
@@ -252,7 +248,7 @@ class _FirstPageV2State extends State<FirstPageV2> {
           children: [
             Icon(Icons.delete_outline, color: kNewred),
             SizedBox(width: 8),
-            Text('Eliminar',
+            Text('Cancelar',
                 style: TextStyle(color: kNewred, fontWeight: FontWeight.w600)),
           ],
         ),
@@ -263,19 +259,19 @@ class _FirstPageV2State extends State<FirstPageV2> {
               context: context,
               builder: (_) => AlertDialog(
                 backgroundColor: kNewsurface,
-                title: const Text('Eliminar despacho',
+                title: const Text('Cancelar despacho',
                     style: TextStyle(color: Colors.white)),
                 content: const Text(
-                    '¿Seguro que quieres eliminar este despacho?',
+                    '¿Seguro que quieres cancelar este despacho antes de que inicie?',
                     style: TextStyle(color: Colors.white70)),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(_, false),
-                      child: const Text('Cancelar',
+                      child: const Text('Volver',
                           style: TextStyle(color: Colors.white54))),
                   TextButton(
                       onPressed: () => Navigator.pop(_, true),
-                      child: const Text('Eliminar',
+                      child: const Text('Cancelar',
                           style: TextStyle(color: kNewred))),
                 ],
               ),
@@ -283,44 +279,22 @@ class _FirstPageV2State extends State<FirstPageV2> {
             false;
       },
       onDismissed: (_) {
-        final prov = Provider.of<AltDespachosProvider>(context, listen: false);
-        prov.removeDispatch(d);
+        final prov = Provider.of<ActiveDispatchManager>(context, listen: false);
+        // Si se implementa un endpoint de cancelación, llamarlo aquí.
+        prov.finishSession(d.id);
       },
       child: DispatchCard(d: d),
     );
   }
 
   Future<void> _startNewFlow(BuildContext ctx) async {
-    final despachosProv = Provider.of<AltDespachosProvider>(ctx, listen: false);
-    final dispatchId = DateTime.now().millisecondsSinceEpoch.toString();
-
-    final dispatch = AltDispatchControl(
-      id: dispatchId,
-      onComplete: () {
-        despachosProv.removeById(dispatchId);
-      },
-    );
-
-    despachosProv.addDispatch(dispatch);
-
+    // Al iniciar el flujo, simplemente navegamos a FacesListPage
+    // No creamos ninguna sesión todavía, porque el usuario aún no ha seleccionado nada.
     await Navigator.push(
       ctx,
       MaterialPageRoute(
-        builder: (_) => FacesListPage(dispatchId: dispatch.id),
+        builder: (_) => const FacesListPage(),
       ),
     );
-
-    final keepStages = {
-      DispatchStage.readyToAuthorize,
-      DispatchStage.authorizing,
-      DispatchStage.authorized,
-      DispatchStage.dispatching,
-      DispatchStage.completed,
-      DispatchStage.unpaid,
-    };
-
-    if (!keepStages.contains(dispatch.stage)) {
-      despachosProv.removeById(dispatch.id);
-    }
   }
 }

@@ -4,7 +4,6 @@ import 'package:signalr_netcore/signalr_client.dart';
 import '../ViewModels/new_map.dart';
 import '../Models/FuelRed/nozzle_mapping.dart';
 import '../Models/SignalR/nozzle_status_dto.dart';
-import '../ConsoleModels/dispensersstatusresponse.dart';
 import '../helpers/api_helper.dart';
 import '../helpers/constans.dart';
 
@@ -33,6 +32,14 @@ class MapProvider extends ChangeNotifier {
   /// Índice rápido: nozzleCode (ej. "01") → NozzleMapping
   // Map<String, NozzleMapping> _mappingByCode = {};
 
+  // ── Precios de Combustible ──────────────────────────────────────────────────
+  /// Precios cargados al iniciar sesión (ej: "super": 750, "regular": 730)
+  Map<String, double> _fuelPrices = {};
+
+  /// Devuelve el precio por litro del producto especificado (por nombre).
+  double getPriceForFuel(String grade) =>
+      _fuelPrices[grade.toLowerCase()] ?? 0.0;
+
   // ── Visualización en vivo ───────────────────────────────────────────────────
   /// Litros actuales por nozzleCode (solo mangueras activas).
   final Map<String, double> _currentLiters = {};
@@ -45,6 +52,12 @@ class MapProvider extends ChangeNotifier {
 
   /// Tag ID actual por nozzleCode (si existe).
   final Map<String, String?> _currentTags = {};
+
+  // -- Getters públicos para estado individual en vivo --
+  double? getLiters(String nozzleCode) => _currentLiters[nozzleCode];
+  double? getCash(String nozzleCode) => _currentCash[nozzleCode];
+  String? getTag(String nozzleCode) => _currentTags[nozzleCode];
+  String? getStatus(String nozzleCode) => _currentStatus[nozzleCode];
 
   // ── Compatibilidad con AltDespachosProvider (stubs vacíos) ─────────────────
   /// Ya no se usa polling, pero se mantienen para no romper código existente.
@@ -66,6 +79,7 @@ class MapProvider extends ChangeNotifier {
     try {
       // 1. Cargar mappings desde la API REST (solo una vez)
       await _loadMappings();
+      await _loadFuelPrices();
 
       // 2. Construir conexión SignalR
       final httpOptions = HttpConnectionOptions(
@@ -183,7 +197,9 @@ class MapProvider extends ChangeNotifier {
     // Actualizar cache con datos de visualización
     for (final v in visualizations) {
       _currentLiters[v.nozzleCode] = v.currentLiters;
-      _currentCash[v.nozzleCode] = v.currentCash;
+      // Multiplicar el cash por 100 tal como requiere el hardware
+      _currentCash[v.nozzleCode] =
+          v.currentCash != null ? v.currentCash! * 100 : null;
 
       if (v.tagId != null) {
         _currentTags[v.nozzleCode] = v.tagId;
@@ -211,12 +227,20 @@ class MapProvider extends ChangeNotifier {
       // Estado actual o 'unknown' si no ha llegado nada
       final statusStr = _currentStatus[code] ?? 'unknown';
 
+      // DEBUGLOG: Inspeccionamos cada manguera
+      debugPrint(
+          '🛠️ [MapProvider] RebuildMap -> H:${mapping.hoseNumber} | Code:$code | D:${mapping.dispenserNumber} | Status:$statusStr');
+
+      final fuel = _resolveFuel(mapping);
+      final price = getPriceForFuel(fuel.name);
+
       final hose = HosePhysical(
         nozzleNumber: mapping.hoseNumber,
-        hoseKey: mapping.hoseKey,
-        fuel: _resolveFuel(mapping),
+        hoseKey: code,
+        fuel: fuel,
         status: statusStr,
         dispenserNumber: mapping.dispenserNumber,
+        unitPriceCash: price > 0 ? price : null,
         totalVolume: _currentLiters[code],
         totalAmount: _currentCash[code],
         tagId: _currentTags[code],
@@ -274,6 +298,23 @@ class MapProvider extends ChangeNotifier {
         '📋 [MapProvider] Mappings cargados: ${_cachedMappings!.length} mangueras');
   }
 
+  /// Carga el catálogo de precios de combustible.
+  Future<void> _loadFuelPrices() async {
+    final resp = await ApiHelper.getFuelPrices();
+    if (!resp.isSuccess) {
+      debugPrint('⚠️ [MapProvider] Error al cargar precios: ${resp.message}');
+      return;
+    }
+
+    // Convertir keys a minúsculas para comparaciones más fáciles
+    final Map<String, double> rawPrices =
+        resp.result as Map<String, double>? ?? {};
+    _fuelPrices =
+        rawPrices.map((key, value) => MapEntry(key.toLowerCase(), value));
+
+    debugPrint('💰 [MapProvider] Catálogo de precios cargado: $_fuelPrices');
+  }
+
   /// Construye el mapa inicial desde los mappings con estado 'unknown'.
   /// Se llama justo después de conectar al hub, antes de recibir el primer
   /// ReceiveStatus. Así el wizard muestra los dispensadores de inmediato.
@@ -288,14 +329,17 @@ class MapProvider extends ChangeNotifier {
     final Map<int, List<_HoseEntry>> groups = {};
 
     for (final mapping in _cachedMappings!) {
+      final code = _nozzleNumberToCode(mapping.hoseNumber);
+      final fuel = _resolveFuel(mapping);
+      final price = getPriceForFuel(fuel.name);
+
       final hose = HosePhysical(
         nozzleNumber: mapping.hoseNumber,
-        hoseKey: mapping.hoseKey,
-        fuel: const Fuel(name: 'Combustible', color: Colors.teal),
-        // Inicializamos como 'available' para no bloquear el flujo
-        // hasta que llegue el primer reporte real del hub.
+        hoseKey: code,
+        fuel: fuel,
         status: 'available',
         dispenserNumber: mapping.dispenserNumber,
+        unitPriceCash: price > 0 ? price : null,
         totalVolume: null,
         totalAmount: null,
       );
@@ -351,6 +395,22 @@ class MapProvider extends ChangeNotifier {
     _toastShown = true;
   }
 
+  Fuel _resolveFuel(NozzleMapping mapping) {
+    final grade = mapping.grade.toLowerCase();
+    if (grade.contains('regular')) {
+      return const Fuel(name: 'Regular', color: Color(0xFFec1c24));
+    } else if (grade.contains('super')) {
+      return const Fuel(name: 'Super', color: Color(0xFFb634b8));
+    } else if (grade.contains('diesel')) {
+      return const Fuel(name: 'Diesel', color: Color(0xFF1dbd4a));
+    } else if (grade.contains('exonerado')) {
+      return const Fuel(name: 'Exonerado', color: Color(0xFF0078D4));
+    }
+    // Fallback: usar el grade tal cual viene del backend
+    return Fuel(name: mapping.grade.isNotEmpty ? mapping.grade : 'Combustible',
+        color: Colors.teal);
+  }
+
   // ── Reset ───────────────────────────────────────────────────────────────────
 
   /// Limpia todo el estado y desconecta SignalR.
@@ -376,24 +436,6 @@ class MapProvider extends ChangeNotifier {
   void dispose() {
     disconnect();
     super.dispose();
-  }
-
-  Fuel _resolveFuel(NozzleMapping mapping) {
-    // FALLBACK TEMPORAL: Mapeo fijo por número de manguera
-    // Asumimos orden: 1=Regular, 2=Super, 3=Diesel
-    // El hoseNumber es global (1..32), así que usamos el residuo.
-    final index = (mapping.hoseNumber - 1) % 3;
-
-    switch (index) {
-      case 0: // 1, 4, 7...
-        return const Fuel(name: 'Regular', color: Color(0xFFec1c24)); // Rojo
-      case 1: // 2, 5, 8...
-        return const Fuel(name: 'Super', color: Color(0xFFb634b8)); // Morado
-      case 2: // 3, 6, 9...
-        return const Fuel(name: 'Diesel', color: Color(0xFF1dbd4a)); // Verde
-      default:
-        return const Fuel(name: 'Combustible', color: Colors.teal);
-    }
   }
 }
 

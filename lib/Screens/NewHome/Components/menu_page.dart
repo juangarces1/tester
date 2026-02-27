@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:tester/Providers/experimental/alt_despachos_provider.dart';
-import 'package:tester/Providers/experimental/alt_dispatch_control.dart';
+import 'package:tester/Providers/experimental/active_dispatch_manager.dart';
+import 'package:tester/Providers/experimental/dispatch_session.dart';
 
 import 'package:tester/Screens/NewHome/Components/dispatch_card.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/faces_list_page.dart';
@@ -9,14 +9,14 @@ import 'package:tester/Screens/NewHome/PagesWizard/faces_list_page.dart';
 class MenuPage extends StatelessWidget {
   const MenuPage({super.key});
 
-  bool _canDelete(AltDispatchControl d) {
-    return d.hoseStatusEnum != HoseStatus.authorized;
+  bool _canDelete(DispatchSession d) {
+    return d.canRetryOrDiscard;
   }
 
   @override
   Widget build(BuildContext context) {
-    final despachosProv = Provider.of<AltDespachosProvider>(context);
-    final despachos = despachosProv.despachos;
+    final despachosProv = Provider.of<ActiveDispatchManager>(context);
+    final despachos = despachosProv.activeSessions;
 
     return SafeArea(
       child: Scaffold(
@@ -103,7 +103,7 @@ class MenuPage extends StatelessWidget {
                       return confirmed == true;
                     },
                     onDismissed: (_) {
-                      despachosProv.removeDispatch(d);
+                      despachosProv.finishSession(d.id);
                       ScaffoldMessenger.of(ctx).showSnackBar(
                         const SnackBar(content: Text('Despacho eliminado')),
                       );
@@ -131,21 +131,10 @@ class MenuPage extends StatelessWidget {
   }
 
   Future<void> _startNewFlow(BuildContext ctx) async {
-    final despachosProv = Provider.of<AltDespachosProvider>(ctx, listen: false);
-    final dispatchId = DateTime.now().millisecondsSinceEpoch.toString();
-
-    final dispatch = AltDispatchControl(
-      id: dispatchId,
-      onComplete: () {
-        // Remover el despacho cuando se marque como completado
-        despachosProv.removeById(dispatchId);
-      },
-    );
-    despachosProv.addDispatch(dispatch);
     Navigator.push(
       ctx,
       MaterialPageRoute(
-        builder: (_) => FacesListPage(dispatchId: dispatch.id),
+        builder: (_) => const FacesListPage(),
       ),
     );
   }

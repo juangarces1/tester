@@ -3,14 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Providers/map_provider.dart';
-import 'package:tester/Providers/experimental/alt_despachos_provider.dart';
-import 'package:tester/Providers/experimental/alt_dispatch_control.dart';
 import 'package:tester/ViewModels/new_map.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/position_hoses_page.dart';
 
 class FacesListPage extends StatefulWidget {
-  final String dispatchId;
-  const FacesListPage({required this.dispatchId, super.key});
+  const FacesListPage({super.key});
 
   @override
   State<FacesListPage> createState() => _FacesListPageState();
@@ -50,49 +47,6 @@ class _FacesListPageState extends State<FacesListPage> {
   @override
   Widget build(BuildContext context) {
     final mapProv = context.watch<MapProvider>();
-    final despachosProv = context.watch<AltDespachosProvider>();
-    final AltDispatchControl? dispatch =
-        despachosProv.getById(widget.dispatchId);
-
-    // If dispatch is null, the dispatch was removed or provider was reset
-    if (dispatch == null) {
-      return Scaffold(
-        backgroundColor: const Color(0xFF121212),
-        appBar: AppBar(
-          title: const Text('Error',
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          iconTheme: const IconThemeData(color: Colors.white),
-        ),
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline,
-                  size: 64, color: Colors.redAccent),
-              const SizedBox(height: 16),
-              const Text(
-                'El despacho ya no existe',
-                style: TextStyle(color: Colors.white70, fontSize: 18),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Por favor, regresa e intenta de nuevo',
-                style: TextStyle(color: Colors.white54, fontSize: 14),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Regresar'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
 
     final map = mapProv.stationMap;
     // Lista base de posiciones
@@ -204,13 +158,10 @@ class _FacesListPageState extends State<FacesListPage> {
                               enabled: isAvailable,
                               onTap: () {
                                 if (!isAvailable) return;
-                                dispatch.selectPosition(position);
-                                despachosProv.refresh();
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) => PositionHosesPage(
-                                      dispatchId: widget.dispatchId,
                                       positionNumber: position.number,
                                       pumpId: position.pumpId,
                                       faceIndex: position.faceIndex,

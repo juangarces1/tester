@@ -77,12 +77,15 @@ class NozzleStatusDto {
   });
 
   factory NozzleStatusDto.fromJson(Map<String, dynamic> json) {
-    final rawStatus = json['status'];
+    final rawStatus = json['status'] ?? json['Status'];
     final status = rawStatus is int
         ? NozzleStatus.fromInt(rawStatus)
         : NozzleStatus.unknown;
+
+    final code = json['nozzleCode'] ?? json['NozzleCode'] as String? ?? '';
+
     return NozzleStatusDto(
-      nozzleCode: (json['nozzleCode'] as String? ?? '').trim(),
+      nozzleCode: code.trim(),
       status: status,
     );
   }
@@ -106,15 +109,20 @@ class NozzleVisualizationDto {
   });
 
   factory NozzleVisualizationDto.fromJson(Map<String, dynamic> json) {
-    final rawStatus = json['status'];
+    final rawStatus = json['status'] ?? json['Status'];
     final status = rawStatus is int ? NozzleStatus.fromInt(rawStatus) : null;
 
+    final code = json['nozzleCode'] ?? json['NozzleCode'] as String? ?? '';
+    final liters = json['currentLiters'] ?? json['CurrentLiters'] as num? ?? 0;
+    final cash = json['currentCash'] ?? json['CurrentCash'] as num?;
+    final tag = json['tagId'] ?? json['TagId'] as String?;
+
     return NozzleVisualizationDto(
-      nozzleCode: (json['nozzleCode'] as String? ?? '').trim(),
-      currentLiters: (json['currentLiters'] as num? ?? 0).toDouble(),
-      currentCash: (json['currentCash'] as num?)?.toDouble(),
+      nozzleCode: code.trim(),
+      currentLiters: liters.toDouble(),
+      currentCash: cash?.toDouble(),
       status: status,
-      tagId: json['tagId'] as String?,
+      tagId: tag,
     );
   }
 }

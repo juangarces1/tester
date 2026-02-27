@@ -370,14 +370,53 @@ class ApiHelper {
 
       List<NozzleMapping> nozzleMappings = [];
       var decodedJson = jsonDecode(body);
-      if (decodedJson != null) {
-        for (var item in decodedJson) {
-          nozzleMappings.add(NozzleMapping.fromJson(item));
+      if (decodedJson != null && decodedJson is List) {
+        for (var i = 0; i < decodedJson.length; i++) {
+          var item = decodedJson[i];
+          try {
+            nozzleMappings.add(NozzleMapping.fromJson(item));
+          } catch (e, stack) {
+            debugPrint(
+                '❌ [ApiHelper] Error parseando mapping index $i: $e \n Item content: $item \n Stack: $stack');
+          }
         }
       }
       return Response(isSuccess: true, result: nozzleMappings);
     } catch (e) {
       debugPrint('❌ [ApiHelper] Exception fetching map: $e');
+      return Response(isSuccess: false, message: e.toString());
+    }
+  }
+
+  static Future<Response> getFuelPrices() async {
+    // NUEVO ENDPOINT a ser creado en backend
+    var url = Uri.parse('${Constans.getAPIUrl()}/api/Shifts/GetFuelPrices');
+    try {
+      debugPrint('🔍 [ApiHelper] GET $url');
+      var response = await http.get(
+        url,
+        headers: {
+          'content-type': 'application/json',
+          'accept': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode >= 400) {
+        return Response(
+            isSuccess: false,
+            message: 'Status ${response.statusCode}: ${response.body}');
+      }
+
+      var decodedJson = jsonDecode(response.body);
+      // Asumimos que devuelve un Diccionario {"Super": 750, "Regular": 730}
+      Map<String, double> prices = {};
+      decodedJson.forEach((key, value) {
+        prices[key.toString()] = double.tryParse(value.toString()) ?? 0.0;
+      });
+
+      return Response(isSuccess: true, result: prices);
+    } catch (e) {
+      debugPrint('❌ [ApiHelper] Exception fetching fuel prices: $e');
       return Response(isSuccess: false, message: e.toString());
     }
   }
@@ -817,6 +856,36 @@ class ApiHelper {
     if (decodedJson != null) {
       Product product = Product.fromJson(decodedJson);
 
+      return Response(isSuccess: true, result: product);
+    } else {
+      return Response(isSuccess: false, message: 'Error al decodificar');
+    }
+  }
+
+  /// Consulta la última transacción registrada para un dispensador
+  /// con fecha igual o posterior a [fecha].
+  /// GET api/TransaccionesApi/GetUltimaTransaccion/{dispensador}?fecha={iso8601}
+  /// Retorna un [Product] listo para facturar.
+  static Future<Response> getUltimaTransaccion(
+      int dispensador, DateTime fecha) async {
+    final fechaStr = fecha.toIso8601String().split('.').first;
+    var url = Uri.parse(
+        '${Constans.getAPIUrl()}/api/TransaccionesApi/GetUltimaTransaccion/$dispensador?fecha=$fechaStr');
+    var response = await http.get(
+      url,
+      headers: {
+        'content-type': 'application/json',
+        'accept': 'application/json',
+      },
+    );
+    var body = response.body;
+    if (response.statusCode >= 400) {
+      return Response(isSuccess: false, message: body);
+    }
+
+    var decodedJson = jsonDecode(body);
+    if (decodedJson != null) {
+      Product product = Product.fromJson(decodedJson);
       return Response(isSuccess: true, result: product);
     } else {
       return Response(isSuccess: false, message: 'Error al decodificar');

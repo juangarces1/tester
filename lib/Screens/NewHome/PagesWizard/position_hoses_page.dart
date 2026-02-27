@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/ViewModels/new_map.dart';
-import 'package:tester/Providers/experimental/alt_despachos_provider.dart';
-import 'package:tester/Providers/experimental/alt_dispatch_control.dart';
 import 'package:tester/Components/loader_component.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/preset_kind_page.dart';
 
@@ -11,12 +9,11 @@ class PositionHosesPage extends StatefulWidget {
   final int positionNumber; // solo para el título
   final int pumpId;
   final int faceIndex;
-  final String dispatchId;
+
   const PositionHosesPage({
     required this.positionNumber,
     required this.pumpId,
     required this.faceIndex,
-    required this.dispatchId,
     super.key,
   });
 
@@ -42,33 +39,6 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
   @override
   Widget build(BuildContext context) {
     final mapProv = context.watch<MapProvider>();
-    final despachosProv = context.watch<AltDespachosProvider>();
-    final AltDispatchControl? dispatch =
-        despachosProv.getById(widget.dispatchId);
-
-    // Si el despacho fue eliminado, mostramos pantalla de error
-    if (dispatch == null) {
-      return Scaffold(
-        backgroundColor: const Color(0xFF121212),
-        appBar: AppBar(
-          title: const Text('Error', style: TextStyle(color: Colors.white)),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ),
-        body: const Center(
-          child: Text(
-            'El despacho ya no existe.\nPudo haber sido eliminado.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70, fontSize: 16),
-          ),
-        ),
-      );
-    }
-
     final map = mapProv.stationMap;
     PositionPhysical? position;
     List<HosePhysical> hoses = <HosePhysical>[];
@@ -102,15 +72,6 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
         hoses.where((h) => h.status.toLowerCase() == 'available').length;
 
     final titleText = 'POS ${widget.positionNumber.toString().padLeft(2, '0')}';
-    // final subtitleParts = <String>[];
-    // if (position?.pumpName.isNotEmpty == true) subtitleParts.add(position!.pumpName);
-    // final faceLabel = position != null && position.faceLabel.isNotEmpty
-    //     ? 'Posición ${position.faceLabel}'
-    //     : '';
-    // if (faceLabel.isNotEmpty) subtitleParts.add(faceLabel);
-    // if ((position?.faceDescription.trim().isNotEmpty ?? false)) {
-    //   subtitleParts.add(position!.faceDescription.trim());
-    // }
     final subtitleText = position?.pumpName ?? '';
 
     return Scaffold(
@@ -157,7 +118,7 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
               : position == null
                   ? _NoPositionSelected(
                       message:
-                          'No encontramos la posición seleccionada. Intenta recargar.',
+                          'No encontramos la posici?n seleccionada. Intenta recargar.',
                       onRetry: _refreshMap,
                     )
                   : RefreshIndicator(
@@ -194,9 +155,9 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
                                     onTap: () {
                                       if (!isAvailable) return;
                                       if (position == null) return;
-                                      dispatch.selectHose(
-                                          pos: position, hose: hose);
-                                      despachosProv.refresh();
+
+                                      debugPrint(
+                                          '👇 [UI] Usuario seleccionó Manguera FÍSICA #${hose.nozzleNumber} (Combustible: ${hose.fuel.name}) en el Surtidor ${hose.dispenserNumber}');
 
                                       final fuelName =
                                           hose.fuel.name.toLowerCase();
@@ -207,7 +168,8 @@ class _PositionHosesPageState extends State<PositionHosesPage> {
                                         context,
                                         MaterialPageRoute(
                                           builder: (_) => UnifiedPresetPage(
-                                            dispatchId: widget.dispatchId,
+                                            position: position!,
+                                            hose: hose,
                                             initialMode: isExonerado
                                                 ? PresetMode.volume
                                                 : PresetMode.amount,

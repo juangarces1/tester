@@ -3,90 +3,79 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
 import 'package:tester/Models/FuelRed/product.dart';
-import 'package:tester/Models/FuelRed/response.dart';
-import 'package:tester/Providers/cierre_activo_provider.dart';
 
+import 'package:tester/Models/SignalR/nozzle_status_dto.dart';
+import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
+import 'package:tester/Providers/map_provider.dart';
+import 'package:tester/Providers/experimental/active_dispatch_manager.dart';
+import 'package:tester/Providers/experimental/dispatch_session.dart';
 import 'package:tester/Screens/Peddlers/peddlers_add_screen.dart';
 import 'package:tester/Screens/checkout/checkount.dart';
 import 'package:tester/Screens/credito/credit_process_screen.dart';
 import 'package:tester/Screens/tickets/ticket_screen.dart';
-import 'package:tester/Providers/experimental/alt_dispatch_control.dart';
-import 'package:tester/helpers/api_helper.dart';
+
+import 'package:tester/helpers/console_api_helper.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
 class DispatchCard extends StatefulWidget {
   const DispatchCard({super.key, required this.d});
-  final AltDispatchControl d;
+  final DispatchSession d;
 
   @override
   State<DispatchCard> createState() => _DispatchCardState();
 }
 
-class _DispatchCardState extends State<DispatchCard>
-    with TickerProviderStateMixin {
-  // ----------------- helpers visuales -----------------
-  Color _statusColor(AltDispatchControl dc) {
-    if (dc.stage == DispatchStage.readyToAuthorize && dc.authorizationExpired) {
-      return Colors.red; // o un ámbar si prefieres
-    }
-    final s = dc.hoseStatusEnum;
-    switch (dc.stage) {
-      case DispatchStage.authorizing:
-        return Colors.teal.shade700;
-      case DispatchStage.authorized:
-        return Colors.green;
-      case DispatchStage.dispatching:
+class _DispatchCardState extends State<DispatchCard> {
+  // ----------------- helpers visuales basados en NozzleStatus -----------------
+  Color _statusColor(NozzleStatus status, DispatchSession d) {
+    // Prioridad: estado derivado de la sesión > estado crudo de SignalR
+    if (d.needsSettlement) return Colors.purple;
+    if (d.isCompleted) return Colors.orange;
+    if (d.canRetryOrDiscard) return Colors.deepOrange;
+
+    switch (status) {
+      case NozzleStatus.fueling:
         return Colors.blue;
-      case DispatchStage.completed:
-        return Colors.orange;
-      case DispatchStage.unpaid:
-        return Colors.purple;
+      case NozzleStatus.ready:
+        return Colors.teal.shade700;
+      case NozzleStatus.waiting:
+        return Colors.amber;
+      case NozzleStatus.error:
+      case NozzleStatus.failure:
+        return Colors.red;
+      case NozzleStatus.busy:
+        return Colors.grey;
       default:
-        {
-          return switch (s) {
-            HoseStatus.available => Colors.teal,
-            HoseStatus.authorized => Colors.teal,
-            HoseStatus.fueling => Colors.blue,
-            HoseStatus.busy => Colors.grey,
-            HoseStatus.stopped => Colors.grey,
-            HoseStatus.unpaid => Colors.orange,
-            HoseStatus.finished => Colors.purple,
-            _ => Colors.blueGrey,
-          };
-        }
+        return Colors.blueGrey;
     }
   }
 
-  String _statusLabel(AltDispatchControl dc) {
-    if (dc.stage == DispatchStage.readyToAuthorize && dc.authorizationExpired) {
-      return 'Expiró';
-    }
-    final s = dc.hoseStatusEnum;
-    switch (dc.stage) {
-      case DispatchStage.authorizing:
-        return 'Autorizando…';
-      case DispatchStage.authorized:
-        return 'Autorizado';
-      case DispatchStage.dispatching:
+  String _statusLabel(NozzleStatus status, DispatchSession d) {
+    if (d.needsSettlement) return 'Sin pagar';
+    if (d.isCompleted) return 'Completado';
+    if (d.canRetryOrDiscard) return 'Cancelada';
+
+    switch (status) {
+      case NozzleStatus.available:
+        return 'Libre';
+      case NozzleStatus.blocked:
+        return 'Bloqueada';
+      case NozzleStatus.fueling:
         return 'Despachando';
-      case DispatchStage.completed:
-        return 'Completado';
-      case DispatchStage.unpaid:
-        return 'Sin pagar';
-      default:
-        {
-          return switch (s) {
-            HoseStatus.available => 'Disponible',
-            HoseStatus.authorized => 'Autorizado',
-            HoseStatus.fueling => 'Despachando',
-            HoseStatus.busy => 'Cerrando…',
-            HoseStatus.stopped => 'Detenida',
-            HoseStatus.unpaid => 'Sin pagar',
-            HoseStatus.finished => 'Finalizado',
-            _ => '—',
-          };
-        }
+      case NozzleStatus.ready:
+        return 'Pronto';
+      case NozzleStatus.waiting:
+        return 'Esperando';
+      case NozzleStatus.error:
+      case NozzleStatus.failure:
+        return 'Error';
+      case NozzleStatus.busy:
+        return 'Ocupada';
+      case NozzleStatus.notConfigured:
+        return 'Sin config';
+      case NozzleStatus.unknown:
+        return 'Desconocido';
     }
   }
 
@@ -95,238 +84,195 @@ class _DispatchCardState extends State<DispatchCard>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: widget.d,
-      builder: (_, __) {
-        final color = _statusColor(widget.d);
-        final label = _statusLabel(widget.d);
+    final mapProv = context.watch<MapProvider>();
+    final d = widget.d;
+    final status = d.currentStatus;
+    final mVolume = mapProv.getLiters(d.nozzleCode) ?? 0.0;
+    final mAmount = mapProv.getCash(d.nozzleCode) ?? 0.0;
+    final mTag = mapProv.getTag(d.nozzleCode) ?? '';
 
-        return Card(
-          color: const Color(0xFF151515),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: AnimatedSize(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    final color = _statusColor(status, d);
+    final label = _statusLabel(status, d);
+
+    return Card(
+      color: const Color(0xFF151515),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ---------- HEADER ----------
+              Row(
                 children: [
-                  // ---------- HEADER ----------
-                  Row(
-                    children: [
-                      // avatar combustible
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundColor: widget.d.fuel?.color ?? Colors.white24,
-                        child: const Icon(Icons.local_gas_station,
-                            color: Colors.white),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.d.fuel?.name ?? '—',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              widget.d.selectedPosition != null &&
-                                      widget.d.selectedHose != null
-                                  ? 'POS ${widget.d.selectedPosition!.number} · MANG ${widget.d.selectedHose!.nozzleNumber}'
-                                  : '—',
-                              style: const TextStyle(
-                                  color: Color.fromARGB(227, 255, 255, 255),
-                                  fontSize: 15),
-                            ),
-                          ],
-                        ),
-                      ),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: Chip(
-                          key: ValueKey(
-                              '${widget.d.stage}-${widget.d.hoseStatus}'),
-                          label: Text(
-                            label,
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 14),
-                          ),
-                          backgroundColor: color,
-                        ),
-                      ),
-                    ],
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: d.fuel.color,
+                    child: const Icon(Icons.local_gas_station,
+                        color: Colors.white),
                   ),
-
-                  const SizedBox(height: 8),
-                  const Divider(height: 1, color: Colors.white12),
-                  const SizedBox(height: 8),
-
-                  // ───────── RESUMEN PRESET / TANQUE (CONDICIONAL) ─────────
-                  if (widget.d.stage == DispatchStage.authorizing ||
-                      widget.d.stage == DispatchStage.authorized ||
-                      widget.d.stage == DispatchStage.readyToAuthorize ||
-                      widget.d.stage == DispatchStage.dispatching) ...[
-                    Row(
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          widget.d.tankFull
-                              ? Icons.water_drop
-                              : (widget.d.preset.isVolume
-                                  ? Icons.local_gas_station
-                                  : Icons.attach_money),
-                          size: 24,
-                          color: Colors.white70,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            widget.d.tankFull
-                                ? 'Tanque lleno'
-                                : (widget.d.preset.isVolume
-                                    ? 'Preset: ${(widget.d.preset.volume ?? 0).toStringAsFixed(2)} L'
-                                    : 'Preset: ${_fmtMoney((widget.d.preset.amount ?? 0))}'),
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 20),
-                            overflow: TextOverflow.ellipsis,
+                        Text(
+                          d.fuel.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
                           ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          'POS ${d.position.number} · MANG ${d.nozzleCode}',
+                          style: const TextStyle(
+                              color: Color.fromARGB(227, 255, 255, 255),
+                              fontSize: 15),
                         ),
                       ],
                     ),
-                  ],
-
-                  // ---------- ESTADO DE DESPACHO ----------
-                  if (widget.d.stage == DispatchStage.dispatching)
-                    _dispatchingIndicator(),
-
-                  // ---------- SINCRONIZACIÓN / RESUMEN FINAL ----------
-                  if (widget.d.stage == DispatchStage.unpaid ||
-                      widget.d.stage == DispatchStage.completed)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 10),
-                      child: widget.d.loadingLastSale
-                          ? _syncIndicator('Sincronizando con consola...')
-                          : widget.d.persistingTx
-                              ? _syncIndicator('Esperando confirmación...')
-                              : _finalSummary(widget.d),
-                    ),
-
-                  const SizedBox(height: 12),
-
-                  // ---------- FACTURACIÓN (editable en paralelo) + ACCIONES ----------
-                  Row(
-                    children: [
-                      if (widget.d.canEditInvoiceType) ...[
-                        _invoiceTypePill(context),
-                        const SizedBox(width: 12),
-                      ],
-                      // Botón de finalizar despacho (solo visible antes de despachar)
-                      if (widget.d.stage == DispatchStage.readyToAuthorize ||
-                          widget.d.stage == DispatchStage.authorizing ||
-                          widget.d.stage == DispatchStage.authorized)
-                        IconButton(
-                          onPressed: () => _confirmEndDispatch(context),
-                          icon: const Icon(Icons.delete_outline),
-                          color: Colors.redAccent,
-                          tooltip: 'Finalizar despacho',
-                          style: IconButton.styleFrom(
-                            backgroundColor: Colors.red.withOpacity(0.15),
-                          ),
-                        ),
-                      Expanded(child: Container()),
-                      // Botones contextuales mínimos
-                      if (widget.d.stage == DispatchStage.authorizing)
-                        _miniBtn(context, icon: Icons.close, label: 'Cancelar',
-                            onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text(
-                                    'Cancelar autorización (pendiente de implementar)')),
-                          );
-                        }),
-                      if (widget.d.stage == DispatchStage.dispatching)
-                        _miniBtn(context, icon: Icons.stop, label: 'Detener',
-                            onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text(
-                                    'Detener despacho (pendiente de implementar)')),
-                          );
-                        }),
-                      if (widget.d.stage == DispatchStage.completed ||
-                          widget.d.stage == DispatchStage.unpaid)
-                        _miniBtn(context,
-                            icon: Icons.receipt_long,
-                            label: 'Facturar', onTap: () {
-                          _goFacturacion(widget.d);
-                        }),
-
-                      if (widget.d.stage == DispatchStage.completed ||
-                          widget.d.stage == DispatchStage.unpaid)
-                        _miniBtn(context,
-                            icon: Icons.settings, label: 'Procesar', onTap: () {
-                          widget.d.markCompleted();
-                        }),
-
-                      // _miniBtn(
-                      //   context,
-                      //   icon: Icons.warning_amber_rounded,
-                      //   label: 'Forzar Sin pagar',
-                      //   onTap: () {
-                      //     widget.d.markUnpaid();
-                      //     ScaffoldMessenger.of(context).showSnackBar(
-                      //       const SnackBar(content: Text('markUnpaid() ejecutado')),
-                      //     );
-                      //   },
-                      // ),
-                    ],
                   ),
-                  if (widget.d.canRetry)
-                    _miniBtn(
-                      context,
-                      icon: Icons.refresh,
-                      label: 'Reintentar',
-                      onTap: () async {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Reintentando autorización…')),
-                        );
-                        final ok = await widget.d.retryAuthorize();
-
-                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text(ok
-                                  ? 'Autorizado nuevamente ✅'
-                                  : 'No se pudo autorizar ❌')),
-                        );
-                      },
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: Chip(
+                      key: ValueKey('${status.name}-${d.hasFueled}'),
+                      label: Text(
+                        label,
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 14),
+                      ),
+                      backgroundColor: color,
                     ),
+                  ),
                 ],
               ),
-            ),
+
+              const SizedBox(height: 8),
+              const Divider(height: 1, color: Colors.white12),
+              const SizedBox(height: 8),
+
+              // ───────── RESUMEN PRESET / TANQUE ─────────
+              if (d.isWaiting || d.isDispensing) ...[
+                Row(
+                  children: [
+                    Icon(
+                      d.isTankFull
+                          ? Icons.water_drop
+                          : (d.preset.isVolume
+                              ? Icons.local_gas_station
+                              : Icons.attach_money),
+                      size: 24,
+                      color: Colors.white70,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        d.isTankFull
+                            ? 'Tanque lleno'
+                            : (d.preset.isVolume
+                                ? 'Preset: ${(d.preset.volume ?? 0).toStringAsFixed(2)} L'
+                                : 'Preset: ${_fmtMoney((d.preset.amount ?? 0))}'),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 20),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+
+              // ---------- ESTADO DE DESPACHO EN VIVO ----------
+              if (d.isDispensing)
+                _dispatchingIndicator(
+                    amount: mAmount, volume: mVolume, tag: mTag),
+
+              // ---------- SINCRONIZACIÓN / RESUMEN FINAL ----------
+              if (d.needsSettlement || d.isCompleted)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: d.syncedProduct == null
+                      ? _syncIndicator('Sincronizando con consola...')
+                      : _finalSummary(d),
+                ),
+
+              const SizedBox(height: 12),
+
+              // ---------- ACCIONES ----------
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.start,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  // Pill de facturación (solo si necesita cierre)
+                  if (d.needsSettlement || d.isCompleted)
+                    _invoiceTypePill(context),
+                  // Botón de cancelar/descartar (antes de despachar o si no despachó)
+                  if (d.canRetryOrDiscard || d.isWaiting)
+                    IconButton(
+                      onPressed: () => _confirmEndDispatch(context),
+                      icon: const Icon(Icons.delete_outline),
+                      color: Colors.redAccent,
+                      tooltip: 'Cancelar despacho',
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.red.withOpacity(0.15),
+                      ),
+                    ),
+                  // Reintentar si no despachó y la manguera volvió a reposo
+                  if (d.canRetryOrDiscard)
+                    _miniBtn(context, icon: Icons.refresh, label: 'Reintentar',
+                        onTap: () {
+                      _retryDispatch(context, d);
+                    }),
+                  // Detener despacho en curso
+                  if (d.isDispensing)
+                    _miniBtn(context, icon: Icons.stop, label: 'Detener',
+                        onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                'Detener despacho (pendiente de integrar API de parada)')),
+                      );
+                    }),
+                  // Facturar / Cerrar si necesita settlement
+                  if (d.needsSettlement || d.isCompleted) ...[
+                    _miniBtn(context,
+                        icon: Icons.receipt_long, label: 'Facturar', onTap: () {
+                      _goFacturacion(d);
+                    }),
+                    _miniBtn(context, icon: Icons.settings, label: 'Cerrar',
+                        onTap: () {
+                      context.read<ActiveDispatchManager>().finishSession(d.id);
+                    }),
+                  ],
+                  // Error de hardware -> ofrecer reintentar
+                  if (d.currentStatus == NozzleStatus.error ||
+                      d.currentStatus == NozzleStatus.failure)
+                    _miniBtn(context, icon: Icons.refresh, label: 'Reintentar',
+                        onTap: () {
+                      _retryDispatch(context, d);
+                    }),
+                ],
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  Widget _finalSummary(AltDispatchControl d) {
-    // Preferimos la transacción de consola si ya está sincronizada
-    final tx = d.consoleTx;
+  Widget _finalSummary(DispatchSession d) {
+    final prod = d.syncedProduct;
+    if (prod == null) return const SizedBox.shrink();
 
-    final volume = tx?.totalVolume ?? d.consoleTx?.totalVolume ?? 0;
-    final total = tx?.totalValue ?? d.consoleTx?.totalValue ?? 0;
-    final unit = tx?.unitPrice ?? d.price ?? 0;
-
-    final isSync = tx != null;
+    final volume = prod.cantidad;
+    final total = prod.total;
+    final unit = prod.precioUnit;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -337,18 +283,18 @@ class _DispatchCardState extends State<DispatchCard>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
               Icon(
-                isSync ? Icons.check_circle : Icons.sync,
-                color: isSync ? Colors.greenAccent : Colors.orangeAccent,
+                Icons.check_circle,
+                color: Colors.greenAccent,
                 size: 18,
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Text(
-                isSync ? 'Sincronizado con consola' : 'Sincronizando valores…',
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold),
+                'Producto sincronizado',
+                style:
+                    TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -373,13 +319,10 @@ class _DispatchCardState extends State<DispatchCard>
             spacing: 10,
             runSpacing: 6,
             children: [
-              if (tx?.saleNumber != null && tx!.saleNumber != 0)
-                _pill('Venta #${tx.saleNumber}'),
-              if (tx?.nozzleNumber != null) _pill('M${tx!.nozzleNumber}'),
-              if (tx?.duration != null) _pill('Duración ${tx!.duration}s'),
-              if (tx?.fuelCode != null && tx!.fuelCode != 0)
-                _pill('Prod ${tx.fuelCode}'),
-              if (d.tankFull) _pill('Tanque lleno'),
+              if (prod.transaccion > 0) _pill('Tx #${prod.transaccion}'),
+              if (prod.dispensador > 0) _pill('Disp ${prod.dispensador}'),
+              if (prod.detalle.isNotEmpty) _pill(prod.detalle),
+              if (d.isTankFull) _pill('Tanque lleno'),
             ],
           ),
         ],
@@ -423,12 +366,11 @@ class _DispatchCardState extends State<DispatchCard>
     );
   }
 
-  Widget _dispatchingIndicator() {
-    final hose = widget.d.selectedHose;
-    final amount = hose?.totalAmount ?? 0;
-    final volume = hose?.totalVolume ?? 0;
-    final tag = hose?.tagId;
-
+  Widget _dispatchingIndicator({
+    required num amount,
+    required num volume,
+    required String? tag,
+  }) {
     return Container(
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.all(16),
@@ -462,7 +404,6 @@ class _DispatchCardState extends State<DispatchCard>
             ],
           ),
           const SizedBox(height: 16),
-          // Valores en vivo
           Row(
             children: [
               Expanded(
@@ -569,19 +510,15 @@ class _DispatchCardState extends State<DispatchCard>
     );
   }
 
-  Widget _invoiceTypePill(
-    BuildContext context,
-  ) {
-    final current = widget.d.invoiceType?.name.toUpperCase() ?? 'TIPO';
+  Widget _invoiceTypePill(BuildContext context) {
+    final current = widget.d.invoiceType.name.toUpperCase();
     return InkWell(
       onTap: () => _pickInvoiceType(context),
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
         decoration: BoxDecoration(
-          color: current == 'TIPO'
-              ? Colors.deepPurple
-              : widget.d.invoiceType!.color,
+          color: widget.d.invoiceType.color,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -639,7 +576,9 @@ class _DispatchCardState extends State<DispatchCard>
       },
     );
     if (result != null) {
-      widget.d.setInvoiceType(result);
+      setState(() {
+        widget.d.invoiceType = result;
+      });
     }
   }
 
@@ -664,7 +603,6 @@ class _DispatchCardState extends State<DispatchCard>
     );
   }
 
-  /// Muestra un diálogo de confirmación para finalizar el despacho
   Future<void> _confirmEndDispatch(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -672,7 +610,7 @@ class _DispatchCardState extends State<DispatchCard>
         backgroundColor: const Color(0xFF1E1E1E),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
-          'Finalizar despacho',
+          'Cancelar autorización',
           style: TextStyle(color: Colors.white),
         ),
         content: const Text(
@@ -689,7 +627,7 @@ class _DispatchCardState extends State<DispatchCard>
             style: TextButton.styleFrom(
               backgroundColor: Colors.red.withValues(alpha: 0.2),
             ),
-            child: const Text('Sí, finalizar',
+            child: const Text('Sí, cancelar',
                 style: TextStyle(color: Colors.redAccent)),
           ),
         ],
@@ -699,77 +637,23 @@ class _DispatchCardState extends State<DispatchCard>
     if (confirmed != true) return;
     if (!mounted) return;
 
-    final dispenserId = widget.d.selectedPosition?.number;
-    if (dispenserId == null) {
-      Fluttertoast.showToast(msg: 'No hay dispensador seleccionado');
-      return;
-    }
-
-    // El nuevo API no expone un endpoint de finalización manual.
-    // El estado se actualiza automáticamente vía SignalR.
-    widget.d.markCompleted();
-    Fluttertoast.showToast(msg: 'Despacho finalizado ✅');
+    context.read<ActiveDispatchManager>().finishSession(widget.d.id);
+    Fluttertoast.showToast(msg: 'Despacho cancelado localmente');
   }
 
-  void _goFacturacion(AltDispatchControl control) async {
-    final type = control.invoiceType;
-    final tx = control.tx;
+  void _goFacturacion(DispatchSession d) async {
+    final type = d.invoiceType;
+    final prod = d.syncedProduct;
 
-    // CASO ESPECIAL: producto exonerado (idproducto == 4)
-    // ==========================================================
-    if (tx?.idproducto == 4) {
-      try {
-        // Actualiza el estado a Exonerado en el backend (si aplica)
-        final cp = Provider.of<CierreActivoProvider>(context, listen: false);
-
-        //Si la transaccion es de exonerado no se factura se procesa y se marcha completado el despacho
-
-        tx!.estado = "Exonerado";
-        tx.idcierre = cp.cierreFinal!.idcierre!;
-        Response response = await ApiHelper.put(
-            "TransaccionesApi", tx.idtransaccion.toString(), tx.toJson());
-
-        if (!response.isSuccess) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content:
-                    Text('Error al exonerar transacción: ${response.message}')),
-          );
-          return;
-        } else {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Transacción exonerada exitosamente')),
-          );
-          control.markCompleted();
-          return;
-        }
-
-        // Finaliza el proceso visualmente
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al exonerar transacción: $e')),
-        );
-      }
-      return;
-    }
-
-    if (type == null) {
+    if (prod == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Selecciona el tipo de factura para continuar')),
-      );
-      return;
-    }
-    if (tx == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No hay transacción para facturar')),
+            content: Text('No hay producto sincronizado para facturar')),
       );
       return;
     }
 
-    // 1) Crear factura base (sin agregar aún)
+    // 1) Crear factura base
     final factProv = context.read<FacturasProvider>();
     final cierreFinal = context.read<CierreActivoProvider>().cierreFinal;
     final empleado = context.read<CierreActivoProvider>().usuario;
@@ -777,44 +661,90 @@ class _DispatchCardState extends State<DispatchCard>
     final invoice = factProv.newInvoice(
         type: type, cliente: null, cierre: cierreFinal, empleado: empleado);
 
-    // Asegura lista mutable
     invoice.detail = (invoice.detail ?? const <Product>[]).toList();
 
-    Response response =
-        await ApiHelper.getTransaccionAsProductById(tx.idtransaccion);
-
-    if (!mounted) return;
-
-    if (!response.isSuccess) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Error al obtener producto: ${response.message}')),
-      );
-      return;
-    }
-
-    final prod = response.result as Product;
-
+    // 2) Agregar el producto sincronizado directamente a la factura
     invoice.detail!.add(prod);
 
-    // 5) Reaplicar flags por si tu modelo usa booleans
     type.applyFlagsTo(invoice);
 
-    // 6) Agregar al provider y obtener índice
     final index = factProv.addInvoice(invoice);
-    widget.d.markCompleted();
-    // 7) Navegar pasando índice + control
+
+    d.markAsFinished();
+
     Navigator.of(context).push(
       MaterialPageRoute(
-          builder: (_) => type.screenForWith(index: index, control: control)),
+          builder: (_) => type.screenForWith(index: index, session: d)),
     );
+  }
+
+  Future<void> _retryDispatch(
+      BuildContext context, DispatchSession session) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: Colors.blueAccent),
+      ),
+    );
+
+    bool isSuccess = false;
+    final nozzleCode = session.nozzleCode;
+    final tagId = session.userIdentifier;
+
+    try {
+      if (session.isTankFull) {
+        isSuccess = await ConsoleApiHelper.presetTankFull(
+            nozzleCode: nozzleCode, tagId: tagId);
+      } else if (session.preset.isVolume) {
+        isSuccess = await ConsoleApiHelper.presetByVolume(
+            nozzleCode: nozzleCode,
+            liters: session.preset.volume!,
+            tagId: tagId);
+      } else if (session.preset.isAmount) {
+        isSuccess = await ConsoleApiHelper.presetByAmount(
+            nozzleCode: nozzleCode,
+            amount: session.preset.amount!,
+            tagId: tagId);
+      }
+    } catch (_) {
+      isSuccess = false;
+    }
+
+    if (!context.mounted) return;
+    Navigator.of(context, rootNavigator: true).pop();
+
+    if (isSuccess) {
+      session.currentStatus = NozzleStatus.blocked;
+      session.hasFueled = false;
+      context.read<ActiveDispatchManager>().forceRefresh();
+      Fluttertoast.showToast(
+          msg: 'Despacho re-autorizado', backgroundColor: Colors.green);
+    } else {
+      Fluttertoast.showToast(
+          msg: 'Fallo al reintentar, comunícate con la consola',
+          backgroundColor: Colors.red);
+    }
   }
 }
 
 extension InvoiceTypeNav on InvoiceType {
+  Color get color {
+    switch (this) {
+      case InvoiceType.contado:
+        return Colors.green;
+      case InvoiceType.ticket:
+        return Colors.blueAccent;
+      case InvoiceType.credito:
+        return Colors.redAccent;
+      case InvoiceType.peddler:
+        return Colors.amber;
+    }
+  }
+
   Widget screenForWith({
     required int index,
-    required AltDispatchControl control,
+    required DispatchSession session,
   }) {
     switch (this) {
       case InvoiceType.contado:

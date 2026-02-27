@@ -4,21 +4,27 @@ import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
-import 'package:tester/Providers/experimental/alt_despachos_provider.dart';
+import 'package:tester/Providers/experimental/active_dispatch_manager.dart';
+import 'package:tester/Providers/experimental/dispatch_session.dart';
+import 'package:tester/ViewModels/new_map.dart';
+import 'package:tester/helpers/console_api_helper.dart';
 import 'package:tester/helpers/varios_helpers.dart';
+import 'package:tester/Providers/map_provider.dart';
 
 enum PresetMode { amount, volume, full }
 
 class PresetStepPage extends StatelessWidget {
-  final String dispatchId;
-  const PresetStepPage({super.key, required this.dispatchId});
+  final PositionPhysical position;
+  final HosePhysical hose;
+
+  const PresetStepPage({
+    super.key,
+    required this.position,
+    required this.hose,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final despachosProv =
-        Provider.of<AltDespachosProvider>(context, listen: false);
-    final dispatch = despachosProv.getById(dispatchId)!;
-
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
@@ -42,15 +48,15 @@ class PresetStepPage extends StatelessWidget {
               icon: Icons.tune,
               color: Colors.blueAccent,
               onTap: () {
-                final fuelName =
-                    dispatch.selectedHose?.fuel.name.toLowerCase() ?? '';
+                final fuelName = hose.fuel.name.toLowerCase();
                 final isExonerado = fuelName.contains('exo');
 
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => UnifiedPresetPage(
-                      dispatchId: dispatchId,
+                      position: position,
+                      hose: hose,
                       initialMode:
                           isExonerado ? PresetMode.volume : PresetMode.amount,
                     ),
@@ -64,9 +70,13 @@ class PresetStepPage extends StatelessWidget {
               icon: Icons.water_drop,
               color: Colors.greenAccent,
               onTap: () async {
-                dispatch.setTankFull(true);
-                despachosProv.refresh();
-                await _authorizeDispatch(context, dispatchId);
+                await _authorizeDispatch(
+                  context: context,
+                  position: position,
+                  hose: hose,
+                  mode: PresetMode.full,
+                  amount: null,
+                );
               },
             ),
           ],
@@ -77,10 +87,13 @@ class PresetStepPage extends StatelessWidget {
 }
 
 class UnifiedPresetPage extends StatefulWidget {
-  final String dispatchId;
+  final PositionPhysical position;
+  final HosePhysical hose;
   final PresetMode initialMode;
+
   const UnifiedPresetPage({
-    required this.dispatchId,
+    required this.position,
+    required this.hose,
     required this.initialMode,
     super.key,
   });
@@ -187,6 +200,43 @@ class _UnifiedPresetPageState extends State<UnifiedPresetPage> {
                   FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))
                 ],
               ),
+              const SizedBox(height: 16),
+              AnimatedBuilder(
+                animation: _ctrl,
+                builder: (context, child) {
+                  final pricePerLiter = context
+                      .read<MapProvider>()
+                      .getPriceForFuel(widget.hose.fuel.name);
+                  if (pricePerLiter <= 0) return const SizedBox.shrink();
+
+                  final val =
+                      double.tryParse(_ctrl.text.replaceAll(',', '')) ?? 0.0;
+                  if (val <= 0) return const SizedBox.shrink();
+
+                  String estimation = '';
+                  if (_currentMode == PresetMode.amount) {
+                    final liters = val / pricePerLiter;
+                    estimation = '~ ${liters.toStringAsFixed(2)} Litros';
+                  } else if (_currentMode == PresetMode.volume) {
+                    final cost = val * pricePerLiter;
+                    estimation =
+                        '~ ₡ ${VariosHelpers.formattedToCurrencyValue(cost.toStringAsFixed(0))}';
+                  }
+
+                  if (estimation.isEmpty) return const SizedBox.shrink();
+
+                  return Center(
+                    child: Text(
+                      estimation,
+                      style: TextStyle(
+                        color: accentColor.withValues(alpha: 0.9),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  );
+                },
+              ),
             ] else ...[
               const SizedBox(height: 60),
               Icon(Icons.ev_station,
@@ -265,7 +315,7 @@ class _UnifiedPresetPageState extends State<UnifiedPresetPage> {
 
   Widget _quickChip(String label, VoidCallback onSelected, Color color) {
     return ActionChip(
-      backgroundColor: Colors.white.withValues(alpha: 0.05),
+      backgroundColor: Colors.white.withValues(alpha: 0.8),
       side: BorderSide(color: color, width: 1.5),
       label: Text(label,
           style: const TextStyle(
@@ -285,30 +335,22 @@ class _UnifiedPresetPageState extends State<UnifiedPresetPage> {
   }
 
   void _confirmOrder() async {
-    final despachosProv =
-        Provider.of<AltDespachosProvider>(context, listen: false);
-    final dispatch = despachosProv.getById(widget.dispatchId);
-    if (dispatch == null || dispatch.selectedHose == null) return;
-
-    final nozzle = dispatch.selectedHose!.nozzleNumber.toString();
-
-    if (_currentMode == PresetMode.full) {
-      dispatch.setTankFull(true);
-    } else {
-      final v = double.tryParse(_ctrl.text.replaceAll(',', '.'));
-      if (v == null || v <= 0) {
+    double? value;
+    if (_currentMode != PresetMode.full) {
+      value = double.tryParse(_ctrl.text.replaceAll(',', '.'));
+      if (value == null || value <= 0) {
         setState(() => _error = 'Ingresa un valor válido');
         return;
       }
-      if (_currentMode == PresetMode.amount) {
-        dispatch.setPresetByAmount(manguera: nozzle, amount: v);
-      } else {
-        dispatch.setPresetByVolume(manguera: nozzle, liters: v);
-      }
     }
 
-    despachosProv.refresh();
-    await _authorizeDispatch(context, widget.dispatchId);
+    await _authorizeDispatch(
+      context: context,
+      position: widget.position,
+      hose: widget.hose,
+      mode: _currentMode,
+      amount: value,
+    );
   }
 }
 
@@ -529,37 +571,15 @@ class _HeroButton extends StatelessWidget {
 // Función de autorización compartida (top-level)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Autoriza el despacho directamente desde la pantalla de preset,
-/// sin pasar por DispatchSummaryPage.
-Future<void> _authorizeDispatch(BuildContext context, String dispatchId) async {
-  final despachosProv =
-      Provider.of<AltDespachosProvider>(context, listen: false);
-  final dispatch = despachosProv.getById(dispatchId);
-
-  if (dispatch == null) {
-    Fluttertoast.showToast(
-      msg: 'No se encontró el despacho.',
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.CENTER,
-      backgroundColor: Colors.red,
-      textColor: Colors.white,
-    );
-    return;
-  }
-
-  // Validación previa
-  if (!dispatch.isReadyToAuthorize) {
-    final reason = dispatch.notReadyReason ?? 'No está listo para autorizar.';
-    Fluttertoast.showToast(
-      msg: reason,
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.CENTER,
-      backgroundColor: Colors.orange,
-      textColor: Colors.white,
-    );
-    return;
-  }
-
+/// Construye la intención, invoca al hardware (APIs de Consola) y si hay éxito,
+/// la registra en el ActiveDispatchManager para ser trackeada en UI.
+Future<void> _authorizeDispatch({
+  required BuildContext context,
+  required PositionPhysical position,
+  required HosePhysical hose,
+  required PresetMode mode,
+  required double? amount,
+}) async {
   // Obtener usuario del cierre activo
   final user = context.read<CierreActivoProvider>().usuario;
   final tagId = user?.attendantId ?? '';
@@ -574,7 +594,20 @@ Future<void> _authorizeDispatch(BuildContext context, String dispatchId) async {
     return;
   }
 
-  // Mostrar loading
+  // Comprobar si la manguera está disponible (de manera cruda desde la info física recibida hace un momento)
+  if (hose.status.toLowerCase() != 'available' &&
+      hose.status.toLowerCase() != 'blocked') {
+    Fluttertoast.showToast(
+      msg: 'La manguera no parece estar lista. Verifica su estado actual.',
+      toastLength: Toast.LENGTH_LONG,
+      gravity: ToastGravity.CENTER,
+      backgroundColor: Colors.orange,
+      textColor: Colors.white,
+    );
+    return;
+  }
+
+  // Mostrar loading preventivo
   if (!context.mounted) return;
   showDialog(
     context: context,
@@ -584,12 +617,56 @@ Future<void> _authorizeDispatch(BuildContext context, String dispatchId) async {
     ),
   );
 
-  final ok = await dispatch.applyPresetAndAuthorize(tagId);
+  final nozzleCode = hose.nozzleNumber.toString().padLeft(2, '0');
+  bool isSuccess = false;
+
+  // Realizar llamada al API
+  try {
+    if (mode == PresetMode.full) {
+      isSuccess = await ConsoleApiHelper.presetTankFull(
+        nozzleCode: nozzleCode,
+        tagId: tagId,
+      );
+    } else if (mode == PresetMode.volume && amount != null) {
+      isSuccess = await ConsoleApiHelper.presetByVolume(
+        nozzleCode: nozzleCode,
+        liters: amount,
+        tagId: tagId,
+      );
+    } else if (mode == PresetMode.amount && amount != null) {
+      isSuccess = await ConsoleApiHelper.presetByAmount(
+        nozzleCode: nozzleCode,
+        amount: amount,
+        tagId: tagId,
+      );
+    }
+  } catch (e) {
+    isSuccess = false;
+  }
 
   if (!context.mounted) return;
   Navigator.of(context, rootNavigator: true).pop(); // cierra loading
 
-  if (ok) {
+  if (isSuccess) {
+    // ÉXITO: Crear la nueva Session Intention y guardarla globalmente
+    final sessionId = DateTime.now().microsecondsSinceEpoch.toString();
+    final session = DispatchSession(
+      id: sessionId,
+      position: position,
+      hose: hose,
+      fuel: hose.fuel,
+      invoiceType: InvoiceType.contado,
+      preset: mode == PresetMode.amount && amount != null
+          ? PresetInfo.amount(amount)
+          : mode == PresetMode.volume && amount != null
+              ? PresetInfo.volume(amount)
+              : PresetInfo.empty(),
+      isTankFull: mode == PresetMode.full,
+      userIdentifier: tagId,
+    );
+
+    context.read<ActiveDispatchManager>().registerDispatch(session);
+
     Fluttertoast.showToast(
       msg: '✅ Despacho autorizado',
       toastLength: Toast.LENGTH_SHORT,
@@ -601,7 +678,7 @@ Future<void> _authorizeDispatch(BuildContext context, String dispatchId) async {
     Navigator.of(context).popUntil((route) => route.isFirst);
   } else {
     Fluttertoast.showToast(
-      msg: '❌ Error al autorizar. Intenta de nuevo.',
+      msg: '❌ Error al autorizar en el hardware. Intenta de nuevo.',
       toastLength: Toast.LENGTH_SHORT,
       gravity: ToastGravity.CENTER,
       backgroundColor: Colors.red,

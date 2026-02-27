@@ -6,6 +6,7 @@ import 'package:tester/Models/FuelRed/all_fact.dart';
 import 'package:tester/Models/LogIn/estado_login.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/clientes_provider.dart';
+import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/Screens/NewHome/new_home_screen.dart';
 import 'package:tester/Screens/logIn/invent_screen.dart';
 import 'package:tester/helpers/api_helper.dart';
@@ -18,12 +19,9 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  // ---------------- NUEVO: email ----------------
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _emailCtrl = TextEditingController();
-  // final String _emailError = '';
-
-  // ---------------- Actual (cédula como "password") ----------------
   String _password = '';
   String _passwordError = '';
   final TextEditingController _passwordController = TextEditingController();
@@ -33,9 +31,30 @@ class _LoginScreenState extends State<LoginScreen> {
   LogInEstado login = LogInEstado();
   int _selectedZone = 0;
 
+  late AnimationController _animCtrl;
+  late Animation<double> _fadeAnim;
+  late Animation<Offset> _slideAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _animCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _fadeAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutCubic);
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.08),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutCubic));
+    _animCtrl.forward();
+  }
+
   @override
   void dispose() {
+    _animCtrl.dispose();
     _emailCtrl.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -46,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // FIXED BACKGROUND
+          // Background
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
@@ -54,6 +73,24 @@ class _LoginScreenState extends State<LoginScreen> {
                   colors: [Color(0xFF02050A), Color(0xFF0F172A)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
+                ),
+              ),
+            ),
+          ),
+          // Sutil acento rojo arriba
+          Positioned(
+            top: -120,
+            left: -80,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFFC0102).withValues(alpha: 0.08),
+                    Colors.transparent,
+                  ],
                 ),
               ),
             ),
@@ -71,24 +108,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: IntrinsicHeight(
                       child: Center(
                         child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 450),
+                          constraints: const BoxConstraints(maxWidth: 420),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 40),
-                            child: TweenAnimationBuilder<double>(
-                              tween: Tween(begin: 0.0, end: 1.0),
-                              duration: const Duration(milliseconds: 800),
-                              curve: Curves.easeOutQuart,
-                              builder: (context, value, child) {
-                                return Opacity(
-                                  opacity: value,
-                                  child: Transform.translate(
-                                    offset: Offset(0, 20 * (1 - value)),
-                                    child: child,
-                                  ),
-                                );
-                              },
-                              child: _buildFormCard(context),
+                                horizontal: 24, vertical: 32),
+                            child: SlideTransition(
+                              position: _slideAnim,
+                              child: FadeTransition(
+                                opacity: _fadeAnim,
+                                child: _buildFormCard(context),
+                              ),
                             ),
                           ),
                         ),
@@ -106,96 +135,115 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  /* ================= NUEVO: EMAIL ================= */
-  // Widget _buildEmail() {
-  //   return _glassTextField(
-  //     controller: _emailCtrl,
-  //     hint: 'Correo electrónico',
-  //     icon: Icons.alternate_email,
-  //     keyboardType: TextInputType.emailAddress,
-  //     errorText: _emailError.isEmpty ? null : _emailError,
-  //     onChanged: (_) {
-  //       if (_emailError.isNotEmpty) setState(() => _emailError = '');
-  //     },
-  //   );
-  // }
-
-  /* ================= PASSWORD (Cédula) ================= */
-  Widget _buildPassword() {
-    return _glassTextField(
-      controller: _passwordController, // Usando el controller correcto
-      hint: 'Cédula',
-      icon: Icons.badge_outlined,
-      keyboardType: TextInputType.number,
-      obscureText: !_passwordShow,
-      errorText: _passwordError.isEmpty
-          ? null
-          : _passwordError, // Usando _passwordError
-      onChanged: (v) => _password = v,
-      suffixIcon: IconButton(
-        icon: Icon(
-          _passwordShow
-              ? Icons.visibility_outlined
-              : Icons.visibility_off_outlined,
-          color: Colors.white70,
-        ),
-        onPressed: () => setState(() => _passwordShow = !_passwordShow),
+  Widget _buildFormCard(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 40,
+            offset: const Offset(0, 16),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _Header(),
+          const SizedBox(height: 44),
+          // Zona selector
+          Text(
+            'ZONA DE TRABAJO',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 2.5,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _ZoneCardSelector(
+            selected: _selectedZone,
+            onSelect: (z) => setState(() => _selectedZone = z),
+          ),
+          const SizedBox(height: 36),
+          _buildPassword(),
+          const SizedBox(height: 40),
+          _loginButton(),
+          const SizedBox(height: 24),
+          Text(
+            'Acceso restringido a personal autorizado.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.3),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // Helper para inputs estilo Glass
-  Widget _glassTextField({
-    TextEditingController? controller,
-    required String hint,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-    bool obscureText = false,
-    String? errorText,
-    ValueChanged<String>? onChanged,
-    Widget? suffixIcon,
-  }) {
+  Widget _buildPassword() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          obscureText: obscureText,
+          controller: _passwordController,
+          keyboardType: TextInputType.number,
+          obscureText: !_passwordShow,
           style: const TextStyle(
               color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
           cursorColor: const Color(0xFFFC0102),
           decoration: InputDecoration(
-            labelText: hint,
-            labelStyle: const TextStyle(color: Colors.white70),
-            prefixIcon: Icon(icon, color: const Color(0xFFFC0102)),
-            suffixIcon: suffixIcon,
+            labelText: 'Cedula',
+            labelStyle: TextStyle(
+                color: Colors.white.withValues(alpha: 0.6), fontSize: 15),
+            prefixIcon: const Icon(Icons.badge_outlined,
+                color: Color(0xFFFC0102), size: 22),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _passwordShow
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
+                color: Colors.white38,
+                size: 20,
+              ),
+              onPressed: () => setState(() => _passwordShow = !_passwordShow),
+            ),
             filled: true,
-            fillColor: Colors.white.withValues(alpha: 0.08),
+            fillColor: Colors.white.withValues(alpha: 0.06),
             contentPadding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             floatingLabelBehavior: FloatingLabelBehavior.auto,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide.none,
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(16),
               borderSide:
-                  BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                  BorderSide(color: Colors.white.withValues(alpha: 0.08)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(24),
-              borderSide: const BorderSide(color: Color(0xFFFC0102), width: 2),
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xFFFC0102), width: 1.5),
             ),
           ),
-          onChanged: onChanged,
+          onChanged: (v) => _password = v,
         ),
-        if (errorText != null)
+        if (_passwordError.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(left: 16, top: 8),
             child: Text(
-              errorText,
+              _passwordError,
               style: const TextStyle(
                   color: Colors.orangeAccent,
                   fontSize: 13,
@@ -206,18 +254,50 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Future<void> _goNNfc() async {
-  //   Navigator.push(
-  //     context,
-  //     MaterialPageRoute(
-  //       builder: (_) => const NfcTestPage(),
-  //     ),
-  //   );
-  // }
+  Widget _loginButton() {
+    return SizedBox(
+      height: 58,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFC0102), Color(0xFFD50000)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFC0102).withValues(alpha: 0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            foregroundColor: Colors.white,
+            shadowColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          onPressed: _login,
+          child: const Text(
+            'INICIAR SESION',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   /* ================= LOGIN ================= */
   Future<void> _login() async {
-    // Validaciones comunes
     if (_selectedZone == 0) {
       Fluttertoast.showToast(
           gravity: ToastGravity.TOP, msg: 'Selecciona la Zona');
@@ -225,7 +305,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     if (_password.isEmpty) {
-      setState(() => _passwordError = 'Digita la Cédula');
+      setState(() => _passwordError = 'Digita la Cedula');
       return;
     }
 
@@ -233,7 +313,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       cedula = int.parse(_password);
     } catch (_) {
-      setState(() => _passwordError = 'La cédula debe ser numérica');
+      setState(() => _passwordError = 'La cedula debe ser numerica');
       return;
     }
 
@@ -260,7 +340,6 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // Manejo de factura
     final AllFact factura = response.result;
 
     if (factura.cierreActivo!.cierreFinal.estado!.isEmpty) {
@@ -275,6 +354,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (!mounted) return;
     context.read<CierreActivoProvider>().setFrom(factura.cierreActivo!);
+
+    context.read<MapProvider>().connect();
 
     setState(() => _showLoader = false);
     goHome();
@@ -297,81 +378,9 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-
-  Widget _buildFormCard(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const _Header(),
-          const SizedBox(height: 56),
-          const Text(
-            'ZONA DE TRABAJO',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white60,
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2.5,
-            ),
-          ),
-          const SizedBox(height: 20),
-          _ZoneSelector(
-            selected: _selectedZone,
-            onSelect: (z) => setState(() => _selectedZone = z),
-          ),
-          const SizedBox(height: 48),
-          _buildPassword(),
-          const SizedBox(height: 56),
-          _m3LoginButton(),
-          const SizedBox(height: 32),
-          const Text(
-            'Acceso restringido a personal autorizado.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                color: Colors.white38,
-                fontSize: 12,
-                fontWeight: FontWeight.w500),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _m3LoginButton() {
-    return SizedBox(
-      height: 64,
-      child: FilledButton(
-        style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFFFC0102),
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          elevation: 0,
-        ),
-        onPressed: _login,
-        child: const Text(
-          'INICIAR SESIÓN',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1,
-          ),
-        ),
-      ),
-    );
-  }
 }
 
-/* ================= WIDGETS AUX ================= */
+/* ================= HEADER ================= */
 class _Header extends StatelessWidget {
   const _Header();
 
@@ -380,35 +389,35 @@ class _Header extends StatelessWidget {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: const Color(0xFFFC0102).withValues(alpha: 0.1),
+            color: const Color(0xFFFC0102).withValues(alpha: 0.08),
             shape: BoxShape.circle,
             border: Border.all(
-                color: const Color(0xFFFC0102).withValues(alpha: 0.2),
-                width: 2),
+                color: const Color(0xFFFC0102).withValues(alpha: 0.15),
+                width: 1.5),
           ),
           child: const Icon(Icons.local_gas_station_rounded,
-              color: Color(0xFFFC0102), size: 54),
+              color: Color(0xFFFC0102), size: 48),
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: 24),
         const Text(
           'FuelRed',
           style: TextStyle(
-            fontSize: 42,
+            fontSize: 38,
             fontWeight: FontWeight.w900,
             color: Colors.white,
-            letterSpacing: -1,
+            letterSpacing: -0.5,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
-          'BIENVENIDO DE NUEVO',
+          'SISTEMA DE DESPACHO',
           style: TextStyle(
-            fontSize: 13,
-            color: Colors.white.withValues(alpha: 0.7),
-            fontWeight: FontWeight.w800,
-            letterSpacing: 2,
+            fontSize: 12,
+            color: Colors.white.withValues(alpha: 0.5),
+            fontWeight: FontWeight.w700,
+            letterSpacing: 3,
           ),
         ),
       ],
@@ -416,30 +425,66 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _ZoneSelector extends StatelessWidget {
+/* ================= ZONE CARD SELECTOR ================= */
+class _ZoneCardSelector extends StatelessWidget {
   final int selected;
   final ValueChanged<int> onSelect;
-  const _ZoneSelector({required this.selected, required this.onSelect});
+  const _ZoneCardSelector({required this.selected, required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
-    return SegmentedButton<int>(
-      segments: const [
-        ButtonSegment(
-            value: 1, label: Text('ZONA 1'), icon: Icon(Icons.map_outlined)),
-        ButtonSegment(
-            value: 2, label: Text('ZONA 2'), icon: Icon(Icons.map_rounded)),
+    return Row(
+      children: [
+        Expanded(child: _zoneCard(1, Icons.looks_one_outlined, 'Zona 1')),
+        const SizedBox(width: 12),
+        Expanded(child: _zoneCard(2, Icons.looks_two_outlined, 'Zona 2')),
       ],
-      selected: {selected},
-      onSelectionChanged: (set) => onSelect(set.first),
-      style: SegmentedButton.styleFrom(
-        backgroundColor: Colors.white.withValues(alpha: 0.05),
-        selectedBackgroundColor: const Color(0xFFFC0102),
-        selectedForegroundColor: Colors.white,
-        foregroundColor: Colors.white70,
-        textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-        side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    );
+  }
+
+  Widget _zoneCard(int zone, IconData icon, String label) {
+    final isSelected = selected == zone;
+    return GestureDetector(
+      onTap: () => onSelect(zone),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFFFC0102).withValues(alpha: 0.12)
+              : Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFFFC0102).withValues(alpha: 0.6)
+                : Colors.white.withValues(alpha: 0.08),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: 32,
+              color: isSelected
+                  ? const Color(0xFFFC0102)
+                  : Colors.white.withValues(alpha: 0.4),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label.toUpperCase(),
+              style: TextStyle(
+                color: isSelected
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.5),
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
