@@ -71,9 +71,13 @@ class DispatchSession {
   /// Una vez true, nunca vuelve a false.
   bool hasFueled = false;
 
-  /// Timestamp de cuando la manguera dejó de despachar (fueling → reposo).
-  /// Se usa para consultar la consola por transacciones posteriores a este momento.
-  DateTime? fuelingEndedAt;
+  /// true si la manguera pasó por [NozzleStatus.ready] (se levantó/calling).
+  /// Distingue "recién autorizado" de "preset expiró sin despachar".
+  bool hasBeenActivated = false;
+
+  /// Timestamp de cuando la manguera entró a fueling.
+  /// Se usa para consultar la consola por transacciones con fecha mayor a este momento.
+  DateTime? fuelingStartedAt;
 
   /// Últimos datos conocidos capturados durante el fueling (antes de que
   /// MapProvider los limpie al pasar a available).
@@ -123,9 +127,11 @@ class DispatchSession {
           currentStatus == NozzleStatus.blocked) &&
       !_completed;
 
-  /// La manguera terminó SIN despacho -> se puede reintentar o descartar.
+  /// La manguera se activó (ready) pero volvió a reposo SIN despachar.
+  /// Requiere [hasBeenActivated] para distinguir de "recién autorizado".
   bool get canRetryOrDiscard =>
       !hasFueled &&
+      hasBeenActivated &&
       !_settled &&
       (currentStatus == NozzleStatus.available ||
           currentStatus == NozzleStatus.blocked);
@@ -133,14 +139,12 @@ class DispatchSession {
   /// La manguera está activamente despachando.
   bool get isDispensing => currentStatus == NozzleStatus.fueling;
 
-  /// La sesión está en un estado intermedio (esperando que despache).
+  /// La sesión está esperando que la manguera avance en su ciclo.
+  /// Mutuamente excluyente con [canRetryOrDiscard].
   bool get isWaiting =>
       !_settled &&
       !hasFueled &&
-      (currentStatus == NozzleStatus.ready ||
-          currentStatus == NozzleStatus.waiting ||
-          currentStatus == NozzleStatus.blocked ||
-          currentStatus == NozzleStatus.available);
+      !canRetryOrDiscard;
 
   /// Marca la sesión como resuelta (sincronizada o descartada).
   void markAsSettled() {

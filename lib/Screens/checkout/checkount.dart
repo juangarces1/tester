@@ -153,8 +153,8 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          contadoColor.withOpacity(0.9),
-                          contadoColor.withOpacity(0.6),
+                          contadoColor.withValues(alpha: 0.9),
+                          contadoColor.withValues(alpha: 0.6),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -165,7 +165,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: contadoColor.withOpacity(0.4),
+                          color: contadoColor.withValues(alpha: 0.4),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -186,7 +186,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                               width: 44,
                               height: 44,
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: const Icon(
@@ -222,7 +222,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                                         vertical: 2,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
+                                        color: Colors.white.withValues(alpha: 0.2),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
@@ -249,13 +249,13 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                               ),
                               decoration: BoxDecoration(
                                 color: factura.saldo == 0
-                                    ? Colors.green.withOpacity(0.3)
-                                    : Colors.white.withOpacity(0.15),
+                                    ? Colors.green.withValues(alpha: 0.3)
+                                    : Colors.white.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                   color: factura.saldo == 0
-                                      ? Colors.greenAccent.withOpacity(0.5)
-                                      : Colors.white.withOpacity(0.2),
+                                      ? Colors.greenAccent.withValues(alpha: 0.5)
+                                      : Colors.white.withValues(alpha: 0.2),
                                 ),
                               ),
                               child: Column(
@@ -377,7 +377,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
                       borderRadius: BorderRadius.circular(18),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFF97316).withOpacity(0.4),
+                          color: const Color(0xFFF97316).withValues(alpha: 0.4),
                           blurRadius: 16,
                           offset: const Offset(0, 6),
                         ),
@@ -580,7 +580,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
         color: const Color(0xFF1E2128),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFFF97316).withOpacity(0.3),
+          color: const Color(0xFFF97316).withValues(alpha: 0.3),
         ),
       ),
       child: Row(

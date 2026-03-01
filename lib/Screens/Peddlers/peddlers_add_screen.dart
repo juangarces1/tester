@@ -149,8 +149,8 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          peddlerColor.withOpacity(0.9),
-                          peddlerColor.withOpacity(0.6),
+                          peddlerColor.withValues(alpha: 0.9),
+                          peddlerColor.withValues(alpha: 0.6),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -161,7 +161,7 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: peddlerColor.withOpacity(0.4),
+                          color: peddlerColor.withValues(alpha: 0.4),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -182,7 +182,7 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
                               width: 44,
                               height: 44,
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: const Icon(
@@ -218,7 +218,7 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
                                         vertical: 2,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
+                                        color: Colors.white.withValues(alpha: 0.2),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
@@ -244,10 +244,10 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
+                                color: Colors.white.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                 ),
                               ),
                               child: Column(
@@ -355,7 +355,7 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFF59E0B).withOpacity(0.4),
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.4),
                         blurRadius: 16,
                         offset: const Offset(0, 6),
                       ),

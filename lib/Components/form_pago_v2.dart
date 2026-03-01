@@ -196,7 +196,7 @@ class FormPagoV2State extends State<FormPagoV2> {
         border: Border.all(color: kNewborder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -228,7 +228,7 @@ class FormPagoV2State extends State<FormPagoV2> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: kNewgreen.withOpacity(0.15),
+                color: kNewgreen.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
@@ -303,7 +303,7 @@ class FormPagoV2State extends State<FormPagoV2> {
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 20),
               height: 1,
-              color: kNewborder.withOpacity(0.5),
+              color: kNewborder.withValues(alpha: 0.5),
             ),
 
           const SizedBox(height: 16),
@@ -353,7 +353,7 @@ class FormPagoV2State extends State<FormPagoV2> {
         width: 95, // Ancho fijo para todos los chips
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         decoration: BoxDecoration(
-          color: hasValue ? pm.color.withOpacity(0.25) : kNewsurfaceHi,
+          color: hasValue ? pm.color.withValues(alpha: 0.25) : kNewsurfaceHi,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: hasValue ? pm.color : kNewborder,
@@ -362,7 +362,7 @@ class FormPagoV2State extends State<FormPagoV2> {
           boxShadow: hasValue
               ? [
                   BoxShadow(
-                    color: pm.color.withOpacity(0.3),
+                    color: pm.color.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -407,7 +407,7 @@ class FormPagoV2State extends State<FormPagoV2> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -439,9 +439,9 @@ class FormPagoV2State extends State<FormPagoV2> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: kNewgreen.withOpacity(0.1),
+        color: kNewgreen.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kNewgreen.withOpacity(0.3)),
+        border: Border.all(color: kNewgreen.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -486,7 +486,7 @@ class FormPagoV2State extends State<FormPagoV2> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: pm.color.withOpacity(0.2),
+        color: pm.color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -506,7 +506,7 @@ class FormPagoV2State extends State<FormPagoV2> {
             child: Icon(
               Icons.close,
               size: 16,
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
             ),
           ),
         ],

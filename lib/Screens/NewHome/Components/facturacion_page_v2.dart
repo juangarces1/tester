@@ -129,7 +129,7 @@ class _FacturacionPageV2State extends State<FacturacionPageV2> {
         gradient: billingGradient,
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2563EB).withOpacity(0.4),
+            color: const Color(0xFF2563EB).withValues(alpha: 0.4),
             blurRadius: 20,
             offset: const Offset(0, 10),
             spreadRadius: -5,
@@ -152,7 +152,7 @@ class _FacturacionPageV2State extends State<FacturacionPageV2> {
                 child: Icon(
                   Icons.receipt_long_rounded,
                   size: 180,
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                 ),
               ),
 
@@ -166,7 +166,7 @@ class _FacturacionPageV2State extends State<FacturacionPageV2> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
                       child:
@@ -217,13 +217,13 @@ class _FacturacionPageV2State extends State<FacturacionPageV2> {
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.check_circle_outline,
-                size: 40, color: Colors.greenAccent.withOpacity(0.5)),
+                size: 40, color: Colors.greenAccent.withValues(alpha: 0.5)),
           ),
           const SizedBox(height: 16),
           Text(
             "Todo facturado",
             style: TextStyle(
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
@@ -232,7 +232,7 @@ class _FacturacionPageV2State extends State<FacturacionPageV2> {
           Text(
             "No hay comprobantes pendientes",
             style: TextStyle(
-              color: Colors.white.withOpacity(0.3),
+              color: Colors.white.withValues(alpha: 0.3),
               fontSize: 14,
             ),
           ),
@@ -257,15 +257,15 @@ class _FacturacionPageV2State extends State<FacturacionPageV2> {
                 borderRadius: BorderRadius.circular(20),
                 gradient: LinearGradient(
                   colors: [
-                    style.color.withOpacity(0.8),
-                    style.color.withOpacity(0.4),
+                    style.color.withValues(alpha: 0.8),
+                    style.color.withValues(alpha: 0.4),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: style.color.withOpacity(0.3),
+                    color: style.color.withValues(alpha: 0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -285,7 +285,7 @@ class _FacturacionPageV2State extends State<FacturacionPageV2> {
                         child: Icon(
                           style.icon,
                           size: 90,
-                          color: Colors.white.withOpacity(0.15),
+                          color: Colors.white.withValues(alpha: 0.15),
                         ),
                       ),
 
@@ -301,7 +301,7 @@ class _FacturacionPageV2State extends State<FacturacionPageV2> {
                                 Container(
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
+                                    color: Colors.white.withValues(alpha: 0.2),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(style.icon,
@@ -342,8 +342,8 @@ class _FacturacionPageV2State extends State<FacturacionPageV2> {
                                                 "${prod.cantidad.toStringAsFixed(1)} x ${prod.detalle}",
                                                 style: TextStyle(
                                                   color: Colors.white
-                                                      .withOpacity(
-                                                          0.9), // More visible
+                                                      .withValues(
+                                                          alpha: 0.9), // More visible
                                                   fontSize: 13, // Larger font
                                                   height: 1.1,
                                                 ),
@@ -355,7 +355,7 @@ class _FacturacionPageV2State extends State<FacturacionPageV2> {
                                       Text(
                                         "...",
                                         style: TextStyle(
-                                          color: Colors.white.withOpacity(0.5),
+                                          color: Colors.white.withValues(alpha: 0.5),
                                           fontSize: 10,
                                         ),
                                       ),
@@ -381,7 +381,7 @@ class _FacturacionPageV2State extends State<FacturacionPageV2> {
                                 Text(
                                   _getClientName(factura),
                                   style: TextStyle(
-                                    color: Colors.white.withOpacity(0.8),
+                                    color: Colors.white.withValues(alpha: 0.8),
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -411,7 +411,7 @@ class _FacturacionPageV2State extends State<FacturacionPageV2> {
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.close,

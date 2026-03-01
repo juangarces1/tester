@@ -9,6 +9,7 @@ import 'package:tester/Providers/experimental/dispatch_session.dart';
 import 'package:tester/ViewModels/new_map.dart';
 import 'package:tester/helpers/console_api_helper.dart';
 import 'package:tester/helpers/varios_helpers.dart';
+import 'package:tester/Models/SignalR/nozzle_status_dto.dart';
 import 'package:tester/Providers/map_provider.dart';
 
 enum PresetMode { amount, volume, full }
@@ -650,6 +651,9 @@ Future<void> _authorizeDispatch({
   if (isSuccess) {
     // ÉXITO: Crear la nueva Session Intention y guardarla globalmente
     final sessionId = DateTime.now().microsecondsSinceEpoch.toString();
+    final realStatus = NozzleStatus.fromString(
+      context.read<MapProvider>().getStatus(nozzleCode) ?? 'unknown',
+    );
     final session = DispatchSession(
       id: sessionId,
       position: position,
@@ -663,6 +667,7 @@ Future<void> _authorizeDispatch({
               : PresetInfo.empty(),
       isTankFull: mode == PresetMode.full,
       userIdentifier: tagId,
+      currentStatus: realStatus,
     );
 
     context.read<ActiveDispatchManager>().registerDispatch(session);

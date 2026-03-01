@@ -81,7 +81,7 @@ class DefaultButton extends StatelessWidget {
         style: ButtonStyle(
           backgroundColor: MaterialStateProperty.resolveWith<Color?>((states) {
             if (states.contains(MaterialState.disabled)) {
-              return fallbackColor.withOpacity(0.6);
+              return fallbackColor.withValues(alpha: 0.6);
             }
             return fallbackColor;
           }),

@@ -13,7 +13,7 @@ class Constans {
   static String imagenesUrl = 'http://10.0.2.2:80/photos';
 
   static String getImagenesUrl() {
-    return imagenesUrl;
+    return imagenesUrlLocal;
   }
 
   static String baseUrlConsole = 'http://192.168.1.3:8087/api/';

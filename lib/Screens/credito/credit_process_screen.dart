@@ -99,8 +99,8 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          creditoColor.withOpacity(0.9),
-                          creditoColor.withOpacity(0.6),
+                          creditoColor.withValues(alpha: 0.9),
+                          creditoColor.withValues(alpha: 0.6),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -111,7 +111,7 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: creditoColor.withOpacity(0.4),
+                          color: creditoColor.withValues(alpha: 0.4),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -132,7 +132,7 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
                               width: 44,
                               height: 44,
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: const Icon(
@@ -168,7 +168,7 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
                                         vertical: 2,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
+                                        color: Colors.white.withValues(alpha: 0.2),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
@@ -194,10 +194,10 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
+                                color: Colors.white.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                 ),
                               ),
                               child: Column(
@@ -325,7 +325,7 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF3B82F6).withOpacity(0.4),
+                        color: const Color(0xFF3B82F6).withValues(alpha: 0.4),
                         blurRadius: 16,
                         offset: const Offset(0, 6),
                       ),

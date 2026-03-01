@@ -220,7 +220,7 @@ class _DispatchCardState extends State<DispatchCard> {
                       color: Colors.redAccent,
                       tooltip: 'Cancelar despacho',
                       style: IconButton.styleFrom(
-                        backgroundColor: Colors.red.withOpacity(0.15),
+                        backgroundColor: Colors.red.withValues(alpha: 0.15),
                       ),
                     ),
                   // Reintentar si no despachó y la manguera volvió a reposo
@@ -375,9 +375,9 @@ class _DispatchCardState extends State<DispatchCard> {
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.15),
+        color: Colors.blue.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
@@ -428,7 +428,7 @@ class _DispatchCardState extends State<DispatchCard> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.2),
+                color: Colors.blue.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(

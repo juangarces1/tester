@@ -91,7 +91,7 @@ class _FirstPageV2State extends State<FirstPageV2> {
         gradient: kGradientHome, // Using the Red/Blue gradient
         boxShadow: [
           BoxShadow(
-            color: kPrimaryColor.withOpacity(0.4),
+            color: kPrimaryColor.withValues(alpha: 0.4),
             blurRadius: 20,
             offset: const Offset(0, 10),
             spreadRadius: -5,
@@ -114,7 +114,7 @@ class _FirstPageV2State extends State<FirstPageV2> {
                 child: Icon(
                   Icons.local_gas_station_rounded,
                   size: 180,
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                 ),
               ),
 
@@ -131,7 +131,7 @@ class _FirstPageV2State extends State<FirstPageV2> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(Icons.add,
@@ -213,12 +213,12 @@ class _FirstPageV2State extends State<FirstPageV2> {
         child: Column(
           children: [
             Icon(Icons.dashboard_outlined,
-                size: 60, color: Colors.white.withOpacity(0.1)),
+                size: 60, color: Colors.white.withValues(alpha: 0.1)),
             const SizedBox(height: 16),
             Text(
               "Sin actividad reciente",
               style: TextStyle(
-                color: Colors.white.withOpacity(0.3),
+                color: Colors.white.withValues(alpha: 0.3),
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
@@ -239,9 +239,9 @@ class _FirstPageV2State extends State<FirstPageV2> {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         decoration: BoxDecoration(
-          color: kNewred.withOpacity(0.2),
+          color: kNewred.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: kNewred.withOpacity(0.5)),
+          border: Border.all(color: kNewred.withValues(alpha: 0.5)),
         ),
         child: const Row(
           mainAxisSize: MainAxisSize.min,

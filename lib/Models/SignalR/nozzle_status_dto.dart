@@ -39,6 +39,29 @@ enum NozzleStatus {
     }
   }
 
+  static NozzleStatus fromString(String value) {
+    switch (value.toLowerCase()) {
+      case 'available':
+        return NozzleStatus.available;
+      case 'blocked':
+        return NozzleStatus.blocked;
+      case 'fueling':
+        return NozzleStatus.fueling;
+      case 'calling':
+        return NozzleStatus.ready;
+      case 'waiting':
+        return NozzleStatus.waiting;
+      case 'error':
+        return NozzleStatus.error;
+      case 'busy':
+        return NozzleStatus.busy;
+      case 'unavailable':
+        return NozzleStatus.notConfigured;
+      default:
+        return NozzleStatus.unknown;
+    }
+  }
+
   /// Convierte al string de estado que ya usa el resto de la app
   String toStatusString() {
     switch (this) {

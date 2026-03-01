@@ -135,8 +135,8 @@ class _TicketScreenState extends State<TicketScreen> {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            ticketColor.withOpacity(0.9),
-                            ticketColor.withOpacity(0.6),
+                            ticketColor.withValues(alpha: 0.9),
+                            ticketColor.withValues(alpha: 0.6),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -147,7 +147,7 @@ class _TicketScreenState extends State<TicketScreen> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: ticketColor.withOpacity(0.4),
+                            color: ticketColor.withValues(alpha: 0.4),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -168,7 +168,7 @@ class _TicketScreenState extends State<TicketScreen> {
                                 width: 44,
                                 height: 44,
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: const Icon(
@@ -204,7 +204,7 @@ class _TicketScreenState extends State<TicketScreen> {
                                           vertical: 2,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.2),
+                                          color: Colors.white.withValues(alpha: 0.2),
                                           borderRadius:
                                               BorderRadius.circular(8),
                                         ),
@@ -231,11 +231,11 @@ class _TicketScreenState extends State<TicketScreen> {
                               ),
                               decoration: BoxDecoration(
                                 color: factura.saldo == 0
-                                    ? Colors.white.withOpacity(0.25)
-                                    : Colors.white.withOpacity(0.15),
+                                    ? Colors.white.withValues(alpha: 0.25)
+                                    : Colors.white.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                 ),
                               ),
                               child: Column(
@@ -344,7 +344,7 @@ class _TicketScreenState extends State<TicketScreen> {
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF22C55E).withOpacity(0.4),
+                        color: const Color(0xFF22C55E).withValues(alpha: 0.4),
                         blurRadius: 16,
                         offset: const Offset(0, 6),
                       ),
@@ -399,7 +399,7 @@ class _TicketScreenState extends State<TicketScreen> {
         color: const Color(0xFF1E2128),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF22C55E).withOpacity(0.3),
+          color: const Color(0xFF22C55E).withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -427,71 +427,7 @@ class _TicketScreenState extends State<TicketScreen> {
   }
 
   // Método _appBar ya no se usa pero lo dejamos por compatibilidad
-  Widget _appBar(Invoice factura) {
-    return SafeArea(
-      child: Container(
-        color: const Color.fromARGB(255, 53, 130, 55),
-        child: Padding(
-          padding:
-              EdgeInsets.symmetric(horizontal: getProportionateScreenWidth(20)),
-          child: Row(
-            children: [
-              SizedBox(
-                height: getProportionateScreenHeight(38),
-                width: getProportionateScreenWidth(38),
-                child: TextButton(
-                  style: TextButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(60)),
-                    backgroundColor: Colors.white,
-                    padding: EdgeInsets.zero,
-                  ),
-                  onPressed: () {
-                    FacturaService.updateFactura(context, factura);
-                    Navigator.pop(context);
-                  },
-                  child: SvgPicture.asset(
-                    "assets/Back ICon.svg",
-                    height: 15,
-                    colorFilter: const ColorFilter.mode(
-                      Color.fromARGB(255, 17, 50, 19),
-                      BlendMode.srcIn,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Text(
-                'Ticket',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: kNewtextPri,
-                ),
-              ),
-              const Spacer(),
-              Padding(
-                padding: const EdgeInsets.only(top: 8, right: 5),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      "Saldo: ${VariosHelpers.formattedToCurrencyValue(factura.saldo.toString())}",
-                      style: const TextStyle(
-                        color: kNewtextPri,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+ 
 
   Future<void> _handleAcumulaPuntosPrint(
     Invoice facturaC,

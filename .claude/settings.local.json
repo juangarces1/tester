@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(flutter analyze:*)"
+      "Bash(flutter analyze:*)",
+      "Bash(grep -l \"apiboolresponse\\\\|api_list_response\\\\|api_response\\\\|api_response_create_predispatch\\\\|beachconfigdto\\\\|currentdispatch\\\\|dispatch\\\\.dart\\\\|dispatchcreaterequest\\\\|dispatch_response\\\\|dispenser_last_info_response\\\\|fuel_palette\\\\|hose_view\\\\|nozzle_config_response\\\\|nozzle_connection_response\\\\|nozzle_info\\\\|nozzle_status_response\\\\|price_change_request\\\\|success_response\" d:/Proyectos/tester/lib/**/*.dart)"
     ]
   }
 }

@@ -60,10 +60,23 @@ class ActiveDispatchManager extends ChangeNotifier {
 
       // Leer estado real de SignalR
       final statusStr = mapProv.getStatus(session.nozzleCode) ?? 'unknown';
-      final newStatus = _parseStatus(statusStr);
+      final newStatus = NozzleStatus.fromString(statusStr);
       final oldStatus = session.currentStatus;
 
-      // No procesar si no cambió
+      // Capturar datos en vivo mientras la manguera despacha.
+      // Se hace ANTES del early-exit porque MapProvider limpia liters/cash/tags
+      // en el mismo ciclo que cambia el status a available, y para ese momento
+      // ya es tarde. Aquí guardamos el último snapshot válido en cada tick.
+      if (newStatus == NozzleStatus.fueling) {
+        final vol = mapProv.getLiters(session.nozzleCode);
+        final amt = mapProv.getCash(session.nozzleCode);
+        final tag = mapProv.getTag(session.nozzleCode);
+        if (vol != null) session.lastVolume = vol;
+        if (amt != null) session.lastAmount = amt;
+        if (tag != null) session.lastTag = tag;
+      }
+
+      // No procesar transiciones de estado si no cambió
       if (newStatus == oldStatus) continue;
 
       debugPrint(
@@ -73,22 +86,28 @@ class ActiveDispatchManager extends ChangeNotifier {
       session.currentStatus = newStatus;
       hasChanges = true;
 
-      // Marcar hasFueled si pasa por fueling
+      // Marcar hasBeenActivated cuando la manguera se levanta (ready/calling)
+      if (newStatus == NozzleStatus.ready && !session.hasBeenActivated) {
+        session.hasBeenActivated = true;
+        debugPrint(
+            '🖐️ [ActiveDispatchManager] Despacho $id -> manguera activada (ready)');
+      }
+
+      // Marcar hasFueled y capturar timestamp cuando entra a fueling
       if (newStatus == NozzleStatus.fueling && !session.hasFueled) {
         session.hasFueled = true;
+        session.fuelingStartedAt = DateTime.now();
         debugPrint(
-            '⛽ [ActiveDispatchManager] Despacho $id -> hasFueled = true');
+            '⛽ [ActiveDispatchManager] Despacho $id -> hasFueled = true (stamp: ${session.fuelingStartedAt})');
       }
 
       // Evaluar si la manguera volvió a reposo (available o blocked)
       if (newStatus == NozzleStatus.available ||
           newStatus == NozzleStatus.blocked) {
         if (session.hasFueled && !session.isSyncing && !session.isSettled) {
-          // Capturar datos finales ANTES de que MapProvider los limpie
-          session.fuelingEndedAt = DateTime.now();
-          session.lastVolume = mapProv.getLiters(session.nozzleCode);
-          session.lastAmount = mapProv.getCash(session.nozzleCode);
-          session.lastTag = mapProv.getTag(session.nozzleCode);
+          // Los datos (lastVolume, lastAmount, lastTag) ya fueron capturados
+          // progresivamente durante fueling. El timestamp (fuelingStartedAt)
+          // se capturó al entrar a fueling.
 
           // Marcar como sincronizando (evita re-entrada) pero NO como settled
           // para que needsSettlement siga true y la UI muestre el indicador.
@@ -97,7 +116,13 @@ class ActiveDispatchManager extends ChangeNotifier {
               '💳 [ActiveDispatchManager] Despacho $id finalizado con éxito. '
               'Vol: ${session.lastVolume}, Monto: ${session.lastAmount}, Tag: ${session.lastTag}. '
               'Sincronizando...');
-          _processCompletedDispatch(session);
+          _processCompletedDispatch(session).catchError((e, st) {
+            session.markAsSettled();
+            debugPrint(
+                '❌ [ActiveDispatchManager] Error inesperado sincronizando '
+                'despacho ${session.id}: $e');
+            notifyListeners();
+          });
         }
         // Si !hasFueled, dejamos la sesión visible para que el usuario
         // decida reintentar o descartar (canRetryOrDiscard == true).
@@ -112,7 +137,11 @@ class ActiveDispatchManager extends ChangeNotifier {
     }
 
     if (hasChanges) {
-      notifyListeners();
+      // Diferir la notificación al siguiente microtask para no llamar
+      // notifyListeners() durante la fase de build de Flutter.
+      // syncWithPhysicalState se invoca desde el `update` del
+      // ChangeNotifierProxyProvider, que corre DENTRO del build phase.
+      Future.microtask(() => notifyListeners());
     }
   }
 
@@ -128,7 +157,7 @@ class ActiveDispatchManager extends ChangeNotifier {
     const intervalo = Duration(seconds: 1);
 
     final dispensador = session.hose.dispenserNumber ?? 0;
-    final fecha = session.fuelingEndedAt ?? DateTime.now();
+    final fecha = session.fuelingStartedAt ?? DateTime.now();
 
     if (dispensador == 0) {
       debugPrint(
@@ -178,30 +207,6 @@ class ActiveDispatchManager extends ChangeNotifier {
         '❌ [ActiveDispatchManager] Se agotaron los $maxIntentos intentos '
         'para despacho ${session.id}. El worker no subió la transacción.');
     notifyListeners();
-  }
-
-  /// Convierte el string de estado de SignalR al enum NozzleStatus.
-  NozzleStatus _parseStatus(String status) {
-    switch (status.toLowerCase()) {
-      case 'available':
-        return NozzleStatus.available;
-      case 'blocked':
-        return NozzleStatus.blocked;
-      case 'fueling':
-        return NozzleStatus.fueling;
-      case 'calling':
-        return NozzleStatus.ready;
-      case 'waiting':
-        return NozzleStatus.waiting;
-      case 'error':
-        return NozzleStatus.error;
-      case 'busy':
-        return NozzleStatus.busy;
-      case 'unavailable':
-        return NozzleStatus.notConfigured;
-      default:
-        return NozzleStatus.unknown;
-    }
   }
 
   // -- Reset --

@@ -235,7 +235,7 @@ class _NewHomeScreenState extends State<NewHomeScreen> {
           gradient: kGradientHome,
           boxShadow: [
             BoxShadow(
-              color: kPrimaryColor.withOpacity(0.3),
+              color: kPrimaryColor.withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -263,7 +263,7 @@ class _NewHomeScreenState extends State<NewHomeScreen> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFF97316).withOpacity(0.4),
+                          color: const Color(0xFFF97316).withValues(alpha: 0.4),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -314,10 +314,10 @@ class _NewHomeScreenState extends State<NewHomeScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
+                          color: Colors.white.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
+                            color: Colors.white.withValues(alpha: 0.3),
                           ),
                         ),
                         child: Row(
@@ -355,9 +355,9 @@ class _NewHomeScreenState extends State<NewHomeScreen> {
                   height: 44,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                     ),
                   ),
                   child: ClipOval(
