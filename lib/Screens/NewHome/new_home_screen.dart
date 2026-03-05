@@ -10,6 +10,7 @@ import 'package:tester/Screens/NewHome/Components/admin_hub_screen.dart';
 import 'package:tester/Screens/NewHome/Components/facturacion_page_v2.dart';
 // import 'package:tester/Screens/NewHome/PagesWizard/first_page.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/first_page_v2.dart';
+import 'package:tester/fuelred/fuelred_page.dart';
 
 import '../../constans.dart';
 
@@ -39,6 +40,7 @@ class _NewHomeScreenState extends State<NewHomeScreen> {
   Widget build(BuildContext context) {
     final pages = <Widget>[
       const FirstPageV2(), // Cambio a V2 con Action Hub
+      const FuelRedPage(), // FuelRed P4S — órdenes de flotillas
       const FacturacionPageV2(), // Cambio a V2 (Sin FABs, Con Hub)
       const AdminCenterPage(),
     ];
@@ -74,12 +76,17 @@ class _NewHomeScreenState extends State<NewHomeScreen> {
                   GButton(
                     iconSize: 25,
                     icon: Icons.ev_station,
-                    text: 'Despachos',
+                    text: 'Desp',
+                  ),
+                  GButton(
+                    iconSize: 25,
+                    icon: Icons.local_shipping_rounded,
+                    text: 'P4S',
                   ),
                   GButton(
                     iconSize: 25,
                     icon: Icons.receipt_long,
-                    text: 'Facturación',
+                    text: 'Fact',
                   ),
                   GButton(
                     iconSize: 25,

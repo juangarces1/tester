@@ -64,6 +64,11 @@ class DispatchSession {
   final bool isTankFull;
   final String userIdentifier;
 
+  // -- FuelRed P4S (si viene de una orden de flotilla)
+  final int? fuelRedTxId;
+  final Map<String, dynamic>? metadata;
+  bool get isFuelRed => fuelRedTxId != null;
+
   // -- Estado real de SignalR (fuente de verdad)
   NozzleStatus currentStatus;
 
@@ -78,6 +83,10 @@ class DispatchSession {
   /// Timestamp de cuando la manguera entró a fueling.
   /// Se usa para consultar la consola por transacciones con fecha mayor a este momento.
   DateTime? fuelingStartedAt;
+
+  /// Último momento en que se envió progreso WS al backend.
+  /// Se usa para throttlear a ~2 s.
+  DateTime? lastProgressSent;
 
   /// Últimos datos conocidos capturados durante el fueling (antes de que
   /// MapProvider los limpie al pasar a available).
@@ -115,6 +124,8 @@ class DispatchSession {
     required this.isTankFull,
     required this.userIdentifier,
     this.currentStatus = NozzleStatus.blocked,
+    this.fuelRedTxId,
+    this.metadata,
   }) : nozzleCode = hose.nozzleNumber.toString().padLeft(2, '0');
 
   // -- Helpers de estado derivado --
@@ -155,6 +166,12 @@ class DispatchSession {
   /// Marca que el proceso de sincronización inició.
   void startSyncing() {
     _syncing = true;
+  }
+
+  /// Marca que el sync falló (agotó intentos o error).
+  /// Permite reintentar desde la UI.
+  void syncFailed() {
+    _syncing = false;
   }
 
   /// Marca este despacho como completamente cerrado (facturado y terminado).

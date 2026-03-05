@@ -1,21 +1,16 @@
 // lib/data/api/card_auth_api.dart
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart' hide Response;
 import 'package:tester/Models/FuelRed/empleado.dart';
-import 'package:tester/helpers/constans.dart';
-
+import 'package:tester/helpers/dio_client.dart';
 
 class CardAuthApi {
-  final http.Client _client;
-  CardAuthApi({http.Client? client}) : _client = client ?? http.Client();
-
-  Uri _u(String path) => Uri.parse('${Constans.getAPIUrl()}$path');
+  final Dio _dio;
+  CardAuthApi({Dio? dio}) : _dio = dio ?? DioClient.main;
 
   Future<void> assignCard({required int cedula, required String uid}) async {
-    final resp = await _client.post(
-      _u('/api/users/$cedula/cards'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'uid': uid}),
+    final resp = await _dio.post(
+      '/api/users/$cedula/cards',
+      data: {'uid': uid},
     );
     if (resp.statusCode == 204) return;
     if (resp.statusCode == 409) {
@@ -27,20 +22,18 @@ class CardAuthApi {
     if (resp.statusCode == 403) {
       throw Exception('403: Tarjeta revocada/perdida');
     }
-    throw Exception('HTTP ${resp.statusCode}: ${resp.body}');
+    throw Exception('HTTP ${resp.statusCode}: ${resp.data}');
   }
 
   Future<Empleado> loginByCard({required String uid}) async {
-    final resp = await _client.post(
-      _u('/api/users/login-card'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'uid': uid}),
+    final resp = await _dio.post(
+      '/api/users/login-card',
+      data: {'uid': uid},
     );
     if (resp.statusCode == 200) {
-      final json = jsonDecode(resp.body) as Map<String, dynamic>;
+      final json = resp.data as Map<String, dynamic>;
       final emp = json['empleado'] as Map<String, dynamic>;
       return Empleado.fromApi(emp);
-      // Si NO quieres modelo, devuelve: return emp;
     }
     if (resp.statusCode == 404) {
       throw Exception('Tarjeta no registrada o inactiva (404)');
@@ -48,6 +41,6 @@ class CardAuthApi {
     if (resp.statusCode == 403) {
       throw Exception('Tarjeta revocada (403)');
     }
-    throw Exception('HTTP ${resp.statusCode}: ${resp.body}');
+    throw Exception('HTTP ${resp.statusCode}: ${resp.data}');
   }
 }

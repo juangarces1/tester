@@ -1,9 +1,6 @@
-import 'dart:convert';
-
+import 'package:dio/dio.dart' hide Response;
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
-import 'package:tester/Models/FuelRed/product.dart';
-import 'package:tester/helpers/constans.dart';
+import 'package:tester/helpers/dio_client.dart';
 
 /// Modelo de request para el endpoint /api/pump/preset-with-tag
 class PresetWithTagRequest {
@@ -41,17 +38,9 @@ class PresetWithTagRequest {
 }
 
 class ConsoleApiHelper {
-  static String get _base => Constans.baseUrlConsole;
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Preset con tag RFID — endpoint único para monto, volumen y tanque lleno
-  // POST /api/pump/preset-with-tag
-  // ─────────────────────────────────────────────────────────────────────────
+  static Dio get _dio => DioClient.console;
 
   /// Autoriza un preset por **monto** (₡) en la manguera indicada.
-  /// [nozzleCode] debe ser "01".."48" (string con cero a la izquierda).
-  /// [amount] en colones, valor directo (ej: 5000.0).
-  /// [tagId] identificador RFID del frentista (16 chars hex).
   static Future<bool> presetByAmount({
     required String nozzleCode,
     required double amount,
@@ -65,11 +54,10 @@ class ConsoleApiHelper {
         authorize: authorize,
         presetValue: amount,
         timeoutSeconds: timeoutSeconds,
-        presetType: 0, // Monto
+        presetType: 0,
       ));
 
   /// Autoriza un preset por **volumen** (litros) en la manguera indicada.
-  /// [liters] en litros, valor directo (ej: 20.0).
   static Future<bool> presetByVolume({
     required String nozzleCode,
     required double liters,
@@ -83,11 +71,10 @@ class ConsoleApiHelper {
         authorize: authorize,
         presetValue: liters,
         timeoutSeconds: timeoutSeconds,
-        presetType: 1, // Volumen
+        presetType: 1,
       ));
 
   /// Autoriza **tanque lleno** en la manguera indicada.
-  /// Envía presetValue=0 que el concentrador interpreta como sin límite.
   static Future<bool> presetTankFull({
     required String nozzleCode,
     required String tagId,
@@ -100,94 +87,69 @@ class ConsoleApiHelper {
         authorize: authorize,
         presetValue: 0,
         timeoutSeconds: timeoutSeconds,
-        presetType: 0, // Monto con 0 = tanque lleno
+        presetType: 0,
       ));
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Interno
-  // ─────────────────────────────────────────────────────────────────────────
+  /// Obtiene los precios actuales de combustible desde /api/Prices/current.
+  /// Requiere login previo (`DioClient.loginConsole()`).
+  /// Retorna Map<String, double> donde key = nombre del producto en minúscula.
+  static Future<Map<String, double>> getCurrentPrices() async {
+    try {
+      if (!DioClient.isConsoleAuthenticated) {
+        await DioClient.loginConsole();
+      }
+
+      final authDio = DioClient.consoleAuth;
+      if (authDio == null) return {};
+
+      final res = await authDio.get('Prices/current');
+
+      if (res.statusCode == 200 && res.data is List) {
+        final Map<String, double> prices = {};
+        for (final item in res.data as List) {
+          final name = (item['productName'] as String?)?.toLowerCase() ?? '';
+          final price = (item['currentPrice'] as num?)?.toDouble() ?? 0.0;
+          if (name.isNotEmpty) prices[name] = price;
+        }
+        debugPrint('💰 [ConsoleApi] Precios actuales: $prices');
+        return prices;
+      }
+
+      debugPrint('❌ [ConsoleApi] getCurrentPrices failed: ${res.statusCode}');
+      return {};
+    } catch (e) {
+      debugPrint('❌ [ConsoleApi] getCurrentPrices exception: $e');
+      return {};
+    }
+  }
 
   static Future<bool> _sendPreset(PresetWithTagRequest req) async {
-    final uri = Uri.parse('${_base}pump/preset-with-tag');
-    final body = jsonEncode(req.toJson());
+    final body = req.toJson();
 
-    debugPrint('🚀 [ConsoleApi] POST $uri');
+    debugPrint('🚀 [ConsoleApi] POST pump/preset-with-tag');
+    debugPrint('   baseUrl: ${_dio.options.baseUrl}');
+    debugPrint('   headers: ${_dio.options.headers}');
     debugPrint('   body: $body');
 
     try {
-      final res = await http
-          .post(
-            uri,
-            headers: {'Content-Type': 'application/json'},
-            body: body,
-          )
-          .timeout(const Duration(seconds: 15));
+      final res = await _dio.post('pump/preset-with-tag', data: body);
+
+      debugPrint('   statusCode: ${res.statusCode}');
+      debugPrint('   responseHeaders: ${res.headers}');
+      debugPrint('   responseData: ${res.data}');
 
       if (res.statusCode == 200) {
         debugPrint('✅ [ConsoleApi] preset-with-tag OK');
         return true;
       } else {
         debugPrint('❌ [ConsoleApi] preset-with-tag FAILED: ${res.statusCode}');
-        debugPrint('   response: ${res.body}');
         return false;
       }
-    } catch (e) {
+    } catch (e, st) {
       debugPrint('❌ [ConsoleApi] preset-with-tag EXCEPTION: $e');
+      debugPrint('   stackTrace: $st');
       return false;
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Última venta por manguera — POST /api/pump/last-sale
-  // ─────────────────────────────────────────────────────────────────────────
-
-  /// Consulta la última venta registrada en la consola para [nozzleCode].
-  /// [since] filtra solo transacciones con fecha ≥ ese instante.
-  /// Retorna un `Product` listo para facturar, o `null` si no hay resultados.
-  static Future<Product?> getLastSaleByNozzle(
-    String nozzleCode, {
-    DateTime? since,
-  }) async {
-    final uri = Uri.parse('${_base}pump/last-sale');
-
-    final Map<String, dynamic> body = {
-      'nozzleCode': nozzleCode,
-      if (since != null) 'since': since.toUtc().toIso8601String(),
-    };
-
-    debugPrint('🔍 [ConsoleApi] POST $uri');
-    debugPrint('   body: ${jsonEncode(body)}');
-
-    try {
-      final res = await http
-          .post(
-            uri,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(body),
-          )
-          .timeout(const Duration(seconds: 15));
-
-      if (res.statusCode == 200) {
-        final decoded = jsonDecode(res.body);
-        // El response puede ser { data: {...} }, { result: {...} } o directamente el objeto
-        final Map<String, dynamic>? prodJson =
-            decoded is Map<String, dynamic> ? decoded : null;
-
-        if (prodJson == null || prodJson.isEmpty) {
-          debugPrint('⚠️ [ConsoleApi] last-sale: respuesta vacía');
-          return null;
-        }
-
-        debugPrint('✅ [ConsoleApi] last-sale OK para manguera $nozzleCode');
-        return Product.fromJson(prodJson);
-      } else {
-        debugPrint(
-            '❌ [ConsoleApi] last-sale FAILED: ${res.statusCode} → ${res.body}');
-        return null;
-      }
-    } catch (e) {
-      debugPrint('❌ [ConsoleApi] last-sale EXCEPTION: $e');
-      return null;
-    }
-  }
 }

@@ -1,9 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart' hide Response;
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:tester/ConsoleModels/dispensersstatusresponse.dart';
 import 'package:tester/Models/FuelRed/nozzle_mapping.dart';
 import 'package:tester/Models/LogIn/inventory_item.dart';
@@ -31,252 +30,166 @@ import 'package:tester/Models/FuelRed/viatico.dart';
 
 import 'package:tester/helpers/constans.dart';
 import 'package:tester/helpers/varios_helpers.dart';
+import 'package:tester/helpers/dio_client.dart';
 
 class ApiHelper {
-  static Future<Response> getCierre(String cierre) async {
-    var url = Uri.parse('${Constans.getAPIUrl()}/api/Caja/$cierre');
-    // try {
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
+  static Dio get _dio => DioClient.main;
 
-    // Check for 200 OK response
+  static Future<Response> getCierre(String cierre) async {
+    final response = await _dio.get('/api/Caja/$cierre');
+
     if (response.statusCode == 200) {
-      var decodedJson = jsonDecode(response.body);
       return Response(
-          isSuccess: true, result: CierreCajaGeneral.fromJson(decodedJson));
+          isSuccess: true,
+          result: CierreCajaGeneral.fromJson(response.data));
     } else if (response.statusCode == 204) {
-      // No content
       return Response(isSuccess: true, message: '', result: []);
     } else {
-      // Handle other statuses, maybe something went wrong
-      return Response(isSuccess: false, message: "Error: ${response.body}");
+      return Response(
+          isSuccess: false, message: "Error: ${response.data}");
     }
   }
 
   static Future<Response> getCierreActivo(String cierre) async {
-    var url =
-        Uri.parse('${Constans.getAPIUrl()}/api/Caja/GetCierreActivo/$cierre');
-    // try {
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
+    final response =
+        await _dio.get('/api/Caja/GetCierreActivo/$cierre');
 
-    // Check for 200 OK response
     if (response.statusCode == 200) {
-      var decodedJson = jsonDecode(response.body);
       return Response(
-          isSuccess: true, result: CierreCajaGeneral.fromJson(decodedJson));
+          isSuccess: true,
+          result: CierreCajaGeneral.fromJson(response.data));
     } else if (response.statusCode == 204) {
-      // No content
       return Response(isSuccess: true, message: '', result: []);
     } else {
-      // Handle other statuses, maybe something went wrong
-      return Response(isSuccess: false, message: "Error: ${response.body}");
+      return Response(
+          isSuccess: false, message: "Error: ${response.data}");
     }
   }
 
   static Future<Response> preCierre(String cierre) async {
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/Facturacion/SranbyCierre/$cierre');
-    // try {
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
+    final response =
+        await _dio.get('/api/Facturacion/SranbyCierre/$cierre');
 
-    // Check for 200 OK response
     if (response.statusCode == 200) {
-      return Response(isSuccess: true, result: response.body);
+      return Response(isSuccess: true, result: response.data);
     } else if (response.statusCode == 204) {
-      // No content
       return Response(isSuccess: true, message: '', result: []);
     } else {
-      // Handle other statuses, maybe something went wrong
-      return Response(isSuccess: false, message: "Error: ${response.body}");
+      return Response(
+          isSuccess: false, message: "Error: ${response.data}");
     }
   }
 
   static Future<Response> setCierre(String cierre) async {
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/Facturacion/CrearCierre/$cierre');
-    // try {
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
+    final response =
+        await _dio.get('/api/Facturacion/CrearCierre/$cierre');
 
-    // Check for 200 OK response
     if (response.statusCode == 200) {
-      return Response(isSuccess: true, result: response.body);
+      return Response(isSuccess: true, result: response.data);
     } else if (response.statusCode == 204) {
-      // No content
       return Response(isSuccess: true, message: '', result: []);
     } else {
-      // Handle other statuses, maybe something went wrong
-      return Response(isSuccess: false, message: "Error: ${response.body}");
+      return Response(
+          isSuccess: false, message: "Error: ${response.data}");
     }
   }
 
   static Future<Response> getLogIn(int? zona, int? cedula) async {
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/users/GetLogInOpen/$zona-$cedula');
     try {
-      var response = await http.get(
-        url,
-        headers: {
-          'content-type': 'application/json',
-          'accept': 'application/json',
-        },
-      );
+      final response =
+          await _dio.get('/api/users/GetLogInOpen/$zona-$cedula');
 
-      // Check for 200 OK response
       if (response.statusCode == 200) {
-        var decodedJson = jsonDecode(response.body);
-        return Response(isSuccess: true, result: AllFact.fromJson(decodedJson));
+        return Response(
+            isSuccess: true, result: AllFact.fromJson(response.data));
       } else if (response.statusCode == 204) {
-        // No content
         return Response(isSuccess: true, message: '', result: []);
       } else {
-        // Handle other statuses, maybe something went wrong
-        return Response(isSuccess: false, message: "Error: ${response.body}");
+        return Response(
+            isSuccess: false, message: "Error: ${response.data}");
       }
     } catch (e) {
-      // Catch any other errors, like JSON parsing errors
-
-      return Response(isSuccess: false, message: "Exception: ${e.toString()}");
+      return Response(
+          isSuccess: false, message: "Exception: ${e.toString()}");
     }
   }
 
   static Future<Response> getLogInNuevo(int? zona, int? cedula) async {
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/users/GetLogInNuevo/$zona-$cedula');
     try {
-      var response = await http.get(
-        url,
-        headers: {
-          'content-type': 'application/json',
-          'accept': 'application/json',
-        },
-      );
+      final response =
+          await _dio.get('/api/users/GetLogInNuevo/$zona-$cedula');
 
-      // Check for 200 OK response
       if (response.statusCode == 200) {
-        var decodedJson = jsonDecode(response.body);
-        return Response(isSuccess: true, result: AllFact.fromJson(decodedJson));
+        return Response(
+            isSuccess: true, result: AllFact.fromJson(response.data));
       } else if (response.statusCode == 204) {
-        // No content
         return Response(isSuccess: true, message: '', result: []);
       } else {
-        // Handle other statuses, maybe something went wrong
-        return Response(isSuccess: false, message: "Error: ${response.body}");
+        return Response(
+            isSuccess: false, message: "Error: ${response.data}");
       }
     } catch (e) {
-      // Catch any other errors, like JSON parsing errors
-
-      return Response(isSuccess: false, message: "Exception: ${e.toString()}");
+      return Response(
+          isSuccess: false, message: "Exception: ${e.toString()}");
     }
   }
 
   static Future<Response> getInventarioInicial(int? zona) async {
-    var url =
-        Uri.parse('${Constans.getAPIUrl()}/api/users/GetInventInicial/$zona');
     try {
-      var response = await http.get(
-        url,
-        headers: {
-          'content-type': 'application/json',
-          'accept': 'application/json',
-        },
-      );
+      final response =
+          await _dio.get('/api/users/GetInventInicial/$zona');
 
-      // Check for 200 OK response
-      var body = response.body;
-      if (response.statusCode >= 400) {
-        return Response(isSuccess: false, message: body);
+      if (response.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: response.data?.toString() ?? '');
       }
       List<InventoryItem> inventario = [];
-      var decodedJson = jsonDecode(body);
-      if (decodedJson != null) {
-        for (var item in decodedJson) {
+      if (response.data != null) {
+        for (var item in response.data) {
           inventario.add(InventoryItem.fromJson(item));
         }
       }
       return Response(isSuccess: true, result: inventario);
     } catch (e) {
-      // Catch any other errors, like JSON parsing errors
-
-      return Response(isSuccess: false, message: "Exception: ${e.toString()}");
+      return Response(
+          isSuccess: false, message: "Exception: ${e.toString()}");
     }
   }
 
   static Future<Response> getFactura(String id) async {
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/Facturacion/GetFacturaByNum/$id');
-
     try {
-      var response = await http.get(
-        url,
-        headers: {
-          'content-type': 'application/json',
-          'accept': 'application/json',
-        },
-      );
+      final response =
+          await _dio.get('/api/Facturacion/GetFacturaByNum/$id');
 
-      // Check for 200 OK response
       if (response.statusCode == 200) {
-        var decodedJson = jsonDecode(response.body);
-
         return Response(
             isSuccess: true,
             message: 'Ok',
-            result: Factura.fromJson(decodedJson));
+            result: Factura.fromJson(response.data));
       } else if (response.statusCode == 404) {
-        // No content
         return Response(isSuccess: true, message: '', result: []);
       } else {
-        // Handle other statuses, maybe something went wrong
         return Response(
-            isSuccess: false, message: "Error: ${response.statusCode}");
+            isSuccess: false,
+            message: "Error: ${response.statusCode}");
       }
     } catch (e) {
-      // Catch any other errors, like JSON parsing errors
-      return Response(isSuccess: false, message: "Exception: ${e.toString()}");
+      return Response(
+          isSuccess: false, message: "Exception: ${e.toString()}");
     }
   }
 
   static Future<Response> getClientesCredito() async {
-    var url = Uri.parse('${Constans.getAPIUrl()}/api/Clientes/GetClientsYam');
+    final response =
+        await _dio.get('/api/Clientes/GetClientsYam');
 
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<Cliente> clientes = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         try {
           clientes.add(Cliente.fromJson(item));
         } catch (e) {
@@ -288,60 +201,41 @@ class ApiHelper {
   }
 
   static Future<Response> getCierresByDia(DateTime dia) async {
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/Caja/GetCierreByDia/${VariosHelpers.formatYYYYmmDD(dia)}');
-
     try {
-      var response = await http.get(
-        url,
-        headers: {
-          'content-type': 'application/json',
-          'accept': 'application/json',
-        },
-      );
+      final response = await _dio.get(
+          '/api/Caja/GetCierreByDia/${VariosHelpers.formatYYYYmmDD(dia)}');
 
-      // Check for 200 OK response
       if (response.statusCode == 200) {
-        var body = response.body;
         List<CierreActivo> cierres = [];
-        var decodedJson = jsonDecode(body);
-        if (decodedJson != null) {
-          for (var item in decodedJson) {
+        if (response.data != null) {
+          for (var item in response.data) {
             cierres.add(CierreActivo.fromJson(item));
           }
         }
         return Response(isSuccess: true, result: cierres);
       } else if (response.statusCode == 204) {
-        // No content
         return Response(isSuccess: true, message: '', result: []);
       } else {
-        // Handle other statuses, maybe something went wrong
-        return Response(isSuccess: false, message: "Error: ${response.body}");
+        return Response(
+            isSuccess: false, message: "Error: ${response.data}");
       }
     } catch (e) {
-      // Catch any other errors, like JSON parsing errors
-      return Response(isSuccess: false, message: "Exception: ${e.toString()}");
+      return Response(
+          isSuccess: false, message: "Exception: ${e.toString()}");
     }
   }
 
   static Future<Response> getTransacciones(int? zona) async {
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/TransaccionesApi/GetTransaccionesByZona/$zona');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response = await _dio.get(
+        '/api/TransaccionesApi/GetTransaccionesByZona/$zona');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<Transaccion> transacciones = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         transacciones.add(Transaccion.fromJson(item));
       }
     }
@@ -349,30 +243,26 @@ class ApiHelper {
   }
 
   static Future<Response> getMapHoseDispenser() async {
-    // Revertido a la API original porque el endpoint no existe en el nuevo Console (404)
-    var url = Uri.parse('${Constans.getAPIUrl()}/api/Shifts/GetHoseKeyMap/');
     try {
-      debugPrint('🔍 [ApiHelper] GET $url');
-      var response = await http.get(
-        url,
-        headers: {
-          'content-type': 'application/json',
-          'accept': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 10));
+      debugPrint(
+          '🔍 [ApiHelper] GET ${Constans.getAPIUrl()}/api/Shifts/GetHoseKeyMap/');
+      final response = await _dio.get(
+        '/api/Shifts/GetHoseKeyMap/',
+        options: Options(receiveTimeout: const Duration(seconds: 10)),
+      );
 
-      var body = response.body;
-      if (response.statusCode >= 400) {
-        debugPrint('❌ [ApiHelper] Error ${response.statusCode}: $body');
+      if (response.statusCode! >= 400) {
+        debugPrint(
+            '❌ [ApiHelper] Error ${response.statusCode}: ${response.data}');
         return Response(
-            isSuccess: false, message: 'Status ${response.statusCode}: $body');
+            isSuccess: false,
+            message: 'Status ${response.statusCode}: ${response.data}');
       }
 
       List<NozzleMapping> nozzleMappings = [];
-      var decodedJson = jsonDecode(body);
-      if (decodedJson != null && decodedJson is List) {
-        for (var i = 0; i < decodedJson.length; i++) {
-          var item = decodedJson[i];
+      if (response.data != null && response.data is List) {
+        for (var i = 0; i < response.data.length; i++) {
+          var item = response.data[i];
           try {
             nozzleMappings.add(NozzleMapping.fromJson(item));
           } catch (e, stack) {
@@ -389,28 +279,22 @@ class ApiHelper {
   }
 
   static Future<Response> getFuelPrices() async {
-    // NUEVO ENDPOINT a ser creado en backend
-    var url = Uri.parse('${Constans.getAPIUrl()}/api/Shifts/GetFuelPrices');
     try {
-      debugPrint('🔍 [ApiHelper] GET $url');
-      var response = await http.get(
-        url,
-        headers: {
-          'content-type': 'application/json',
-          'accept': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 10));
+      debugPrint(
+          '🔍 [ApiHelper] GET ${Constans.getAPIUrl()}/api/Shifts/GetFuelPrices');
+      final response = await _dio.get(
+        '/api/Shifts/GetFuelPrices',
+        options: Options(receiveTimeout: const Duration(seconds: 10)),
+      );
 
-      if (response.statusCode >= 400) {
+      if (response.statusCode! >= 400) {
         return Response(
             isSuccess: false,
-            message: 'Status ${response.statusCode}: ${response.body}');
+            message: 'Status ${response.statusCode}: ${response.data}');
       }
 
-      var decodedJson = jsonDecode(response.body);
-      // Asumimos que devuelve un Diccionario {"Super": 750, "Regular": 730}
       Map<String, double> prices = {};
-      decodedJson.forEach((key, value) {
+      (response.data as Map).forEach((key, value) {
         prices[key.toString()] = double.tryParse(value.toString()) ?? 0.0;
       });
 
@@ -422,79 +306,50 @@ class ApiHelper {
   }
 
   static Future<Response> getFacturasByCierre(int? cierre) async {
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/Facturacion/GetFacturasByCierre/$cierre');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response = await _dio.get(
+        '/api/Facturacion/GetFacturasByCierre/$cierre');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<Factura> facturas = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         facturas.add(Factura.fromJson(item));
       }
     }
-
-    // for (var fact in facturas) {
-    //    for (var element in fact.detalles) {
-    //       element.images.add(element.imageUrl);
-    //    }
-    // }
-
     return Response(isSuccess: true, result: facturas);
   }
 
   static Future<Response> getEmailsBy(String codigo) async {
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/Users/GetEmailsByCodigo/$codigo');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response =
+        await _dio.get('/api/Users/GetEmailsByCodigo/$codigo');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<String> emails = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         emails.add(item);
       }
     }
-
     return Response(isSuccess: true, result: emails);
   }
 
   static Future<Response> getFacturasByCliente(String id) async {
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/Facturacion/GetFacturasByCliente/$id');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response = await _dio.get(
+        '/api/Facturacion/GetFacturasByCliente/$id');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<Factura> facturas = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         facturas.add(Factura.fromJson(item));
       }
     }
@@ -509,23 +364,16 @@ class ApiHelper {
   }
 
   static Future<Response> getFacturasCredito(int? cierre) async {
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/Facturacion/GetFacturasCreditByCierre/$cierre');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response = await _dio.get(
+        '/api/Facturacion/GetFacturasCreditByCierre/$cierre');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<Factura> facturas = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         facturas.add(Factura.fromJson(item));
       }
     }
@@ -533,23 +381,16 @@ class ApiHelper {
   }
 
   static Future<Response> getTransaccionesByCierre(int? cierre) async {
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/TransaccionesApi/GetTransaccionesByCierre/$cierre');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response = await _dio.get(
+        '/api/TransaccionesApi/GetTransaccionesByCierre/$cierre');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<Transaccion> transacciones = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         transacciones.add(Transaccion.fromJson(item));
       }
     }
@@ -557,22 +398,15 @@ class ApiHelper {
   }
 
   static Future<Response> getPeddlersByCierre(int? cierre) async {
-    var url = Uri.parse('${Constans.getAPIUrl()}/api/Peddler/$cierre');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response = await _dio.get('/api/Peddler/$cierre');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<Peddler> peddlers = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         peddlers.add(Peddler.fromJson(item));
       }
     }
@@ -580,22 +414,16 @@ class ApiHelper {
   }
 
   static Future<Response> getCierresDatafonos(int cierre) async {
-    var url = Uri.parse('${Constans.getAPIUrl()}/api/CierreDatafonos/$cierre');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response =
+        await _dio.get('/api/CierreDatafonos/$cierre');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<CierreDatafono> cierres = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         cierres.add(CierreDatafono.fromJson(item));
       }
     }
@@ -603,23 +431,16 @@ class ApiHelper {
   }
 
   static Future<Response> getViaticosByCierre(int cierre) async {
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/Viaticos/GetViaticoByCierre/$cierre');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response = await _dio.get(
+        '/api/Viaticos/GetViaticoByCierre/$cierre');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<Viatico> viaticos = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         viaticos.add(Viatico.fromJson(item));
       }
     }
@@ -627,22 +448,15 @@ class ApiHelper {
   }
 
   static Future<Response> getCashBacks(int cierre) async {
-    var url = Uri.parse('${Constans.getAPIUrl()}/api/Cashbacks/$cierre');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response = await _dio.get('/api/Cashbacks/$cierre');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<Cashback> cashbacks = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         cashbacks.add(Cashback.fromJson(item));
       }
     }
@@ -650,22 +464,15 @@ class ApiHelper {
   }
 
   static Future<Response> getSinpes(int cierre) async {
-    var url = Uri.parse('${Constans.getAPIUrl()}/api/Sinpes/$cierre');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response = await _dio.get('/api/Sinpes/$cierre');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<Sinpe> sinpes = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         sinpes.add(Sinpe.fromJson(item));
       }
     }
@@ -673,22 +480,15 @@ class ApiHelper {
   }
 
   static Future<Response> getDepositos(int cierre) async {
-    var url = Uri.parse('${Constans.getAPIUrl()}/api/Depositos/$cierre');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response = await _dio.get('/api/Depositos/$cierre');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<Deposito> depositos = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         depositos.add(Deposito.fromJson(item));
       }
     }
@@ -696,22 +496,16 @@ class ApiHelper {
   }
 
   static Future<Response> getBanks() async {
-    var url = Uri.parse('${Constans.getAPIUrl()}/api/Cashbacks/GetBanks');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response =
+        await _dio.get('/api/Cashbacks/GetBanks');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<Bank> banks = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         banks.add(Bank.fromJson(item));
       }
     }
@@ -719,23 +513,16 @@ class ApiHelper {
   }
 
   static Future<Response> getDatafonos() async {
-    var url =
-        Uri.parse('${Constans.getAPIUrl()}/api/CierreDatafonos/GetDatafonos');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response =
+        await _dio.get('/api/CierreDatafonos/GetDatafonos');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<Datafono> datafonos = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         datafonos.add(Datafono.fromJson(item));
       }
     }
@@ -743,22 +530,16 @@ class ApiHelper {
   }
 
   static Future<Response> getMoneys() async {
-    var url = Uri.parse('${Constans.getAPIUrl()}/api/Depositos/GetMoneys');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response =
+        await _dio.get('/api/Depositos/GetMoneys');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<Money> moneys = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         moneys.add(Money.fromJson(item));
       }
     }
@@ -766,23 +547,16 @@ class ApiHelper {
   }
 
   static Future<Response> getTransfes() async {
-    var url =
-        Uri.parse('${Constans.getAPIUrl()}/api/Transferencias/GetTransfers');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response =
+        await _dio.get('/api/Transferencias/GetTransfers');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<Transferview> transfers = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         transfers.add(Transferview.fromJson(item));
       }
     }
@@ -790,23 +564,16 @@ class ApiHelper {
   }
 
   static Future<Response> getTransfesByCierre(int cierre) async {
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/Transferencias/GetTransfersByCierre/$cierre');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response = await _dio.get(
+        '/api/Transferencias/GetTransfersByCierre/$cierre');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<TransParcial> transfers = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         transfers.add(TransParcial.fromJson(item));
       }
     }
@@ -814,23 +581,16 @@ class ApiHelper {
   }
 
   static Future<Response> getTransaccionesAsProduct(int? zona) async {
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/TransaccionesApi/GetTransaccionesByZonaAsProducts/$zona');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response = await _dio.get(
+        '/api/TransaccionesApi/GetTransaccionesByZonaAsProducts/$zona');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<Product> transacciones = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         transacciones.add(Product.fromJson(item));
       }
     }
@@ -838,78 +598,69 @@ class ApiHelper {
   }
 
   static Future<Response> getTransaccionAsProductById(int? id) async {
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/TransaccionesApi/GetTransaccionByIdAsProducts/$id');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response = await _dio.get(
+        '/api/TransaccionesApi/GetTransaccionByIdAsProducts/$id');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
 
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      Product product = Product.fromJson(decodedJson);
-
+    if (response.data != null) {
+      Product product = Product.fromJson(response.data);
       return Response(isSuccess: true, result: product);
     } else {
       return Response(isSuccess: false, message: 'Error al decodificar');
     }
   }
 
-  /// Consulta la última transacción registrada para un dispensador
-  /// con fecha igual o posterior a [fecha].
-  /// GET api/TransaccionesApi/GetUltimaTransaccion/{dispensador}?fecha={iso8601}
-  /// Retorna un [Product] listo para facturar.
   static Future<Response> getUltimaTransaccion(
       int dispensador, DateTime fecha) async {
     final fechaStr = fecha.toIso8601String().split('.').first;
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/TransaccionesApi/GetUltimaTransaccion/$dispensador?fecha=$fechaStr');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
-    }
+    final url = '/api/TransaccionesApi/GetUltimaTransaccion/$dispensador';
+    debugPrint('🔍 [ApiHelper] GET $url?fecha=$fechaStr');
+    debugPrint('   baseUrl: ${_dio.options.baseUrl}');
 
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      Product product = Product.fromJson(decodedJson);
-      return Response(isSuccess: true, result: product);
-    } else {
-      return Response(isSuccess: false, message: 'Error al decodificar');
+    try {
+      final response = await _dio.get(url,
+          queryParameters: {'fecha': fechaStr});
+
+      debugPrint('   statusCode: ${response.statusCode}');
+      debugPrint('   responseType: ${response.data.runtimeType}');
+      debugPrint('   responseData: ${response.data}');
+
+      if (response.statusCode! >= 400) {
+        debugPrint('   ❌ HTTP error ${response.statusCode}');
+        return Response(
+            isSuccess: false, message: 'HTTP ${response.statusCode}: ${response.data}');
+      }
+
+      if (response.data != null) {
+        Product product = Product.fromJson(response.data);
+        debugPrint('   ✅ Product parsed: detalle=${product.detalle}, vol=${product.cantidad}, total=${product.total}');
+        return Response(isSuccess: true, result: product);
+      } else {
+        debugPrint('   ⚠️ response.data is null');
+        return Response(isSuccess: false, message: 'response.data is null');
+      }
+    } catch (e, st) {
+      debugPrint('   ❌ EXCEPTION: $e');
+      debugPrint('   stackTrace: $st');
+      return Response(isSuccess: false, message: e.toString());
     }
   }
 
   static Future<Response> getProducts(int? zona) async {
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/TransaccionesApi/GetProducts/$zona');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response = await _dio.get(
+        '/api/TransaccionesApi/GetProducts/$zona');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<Product> products = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         products.add(Product.fromJson(item));
       }
     }
@@ -917,23 +668,16 @@ class ApiHelper {
   }
 
   static Future<Response> getClienteContado() async {
-    var url =
-        Uri.parse('${Constans.getAPIUrl()}/api/Clientes/GetClientsContado');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response =
+        await _dio.get('/api/Clientes/GetClientsContado');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<Cliente> clientes = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         clientes.add(Cliente.fromJson(item));
       }
     }
@@ -946,54 +690,42 @@ class ApiHelper {
     int? minId,
   }) async {
     try {
-      var queryParams = {
-        'page': page.toString(),
-        'pageSize': pageSize.toString(),
+      final queryParams = <String, dynamic>{
+        'page': page,
+        'pageSize': pageSize,
       };
 
       if (minId != null && minId > 0) {
-        queryParams['minId'] = minId.toString();
+        queryParams['minId'] = minId;
       }
 
-      var url = Uri.parse(
-              '${Constans.getAPIUrl()}/api/Clientes/GetClientsContadoPaged')
-          .replace(queryParameters: queryParams);
+      debugPrint(
+          '🌐 API Call: /api/Clientes/GetClientsContadoPaged $queryParams');
 
-      debugPrint('🌐 API Call: $url');
-
-      var response = await http.get(
-        url,
-        headers: {
-          'content-type': 'application/json',
-          'accept': 'application/json',
-        },
-      ).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          debugPrint('⏱️ Request timeout after 30 seconds');
-          throw TimeoutException('La petición tardó demasiado tiempo');
-        },
+      final response = await _dio.get(
+        '/api/Clientes/GetClientsContadoPaged',
+        queryParameters: queryParams,
+        options: Options(receiveTimeout: const Duration(seconds: 30)),
       );
 
       debugPrint('📡 Response Status: ${response.statusCode}');
 
-      var body = response.body;
-      if (response.statusCode >= 400) {
-        debugPrint('❌ Error Response: $body');
-        return Response(isSuccess: false, message: body);
+      if (response.statusCode! >= 400) {
+        debugPrint('❌ Error Response: ${response.data}');
+        return Response(
+            isSuccess: false, message: response.data?.toString() ?? '');
       }
 
-      var decodedJson = jsonDecode(body);
+      final decodedJson = response.data;
       if (decodedJson == null) {
         debugPrint('❌ Response body is null');
         return Response(
             isSuccess: false, message: 'Respuesta vacía del servidor');
       }
 
-      debugPrint('📦 Response structure: ${decodedJson.keys.toList()}');
+      debugPrint(
+          '📦 Response structure: ${(decodedJson as Map).keys.toList()}');
 
-      // El endpoint devuelve PagedResult<ClienteApi> con estructura:
-      // { "data": [...], "page": 1, "pageSize": 50, "totalRecords": 150, "totalPages": 3 }
       List<Cliente> clientes = [];
       var dataList = decodedJson['data'];
 
@@ -1021,28 +753,22 @@ class ApiHelper {
     } catch (e, stackTrace) {
       debugPrint('💥 Exception in getClienteContadoPaged: $e');
       debugPrint('Stack trace: $stackTrace');
-      return Response(isSuccess: false, message: 'Exception: ${e.toString()}');
+      return Response(
+          isSuccess: false, message: 'Exception: ${e.toString()}');
     }
   }
 
   static Future<Response> getClientesTransfer() async {
-    var url =
-        Uri.parse('${Constans.getAPIUrl()}/api/Otros/GetClientesSanGerardo');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response =
+        await _dio.get('/api/Otros/GetClientesSanGerardo');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<Cliente> clientes = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         clientes.add(Cliente.fromJson(item));
       }
     }
@@ -1050,133 +776,127 @@ class ApiHelper {
   }
 
   static Future<Response> getClientFrec(String codigo) async {
-    // 1) Validación básica
     final trimmed = codigo.trim();
     if (trimmed.isEmpty) {
       return Response(isSuccess: false, message: 'El código está vacío.');
     }
 
-    // 2) Construcción segura de la URL (evita // y hace encoding)
-    final base = Constans.getAPIUrl(); // ojo: ¿"Constans" es intencional?
-    final uri = Uri.parse(base).replace(
-      path:
-          '${Uri.parse(base).path}/api/Clientes/GetClientFrecuenteByCodigoFrecuente/$trimmed',
-    );
-
-    final client = http.Client();
     try {
-      final resp = await client.get(
-        uri,
-        headers: const {
-          'accept': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 15));
+      final resp = await _dio.get(
+        '/api/Clientes/GetClientFrecuenteByCodigoFrecuente/$trimmed',
+        options: Options(
+          receiveTimeout: const Duration(seconds: 15),
+          headers: {'accept': 'application/json'},
+        ),
+      );
 
-      // 3) Manejo de status codes
       if (resp.statusCode == 204) {
         return Response(isSuccess: false, message: 'Sin contenido (204).');
       }
-      if (resp.statusCode < 200 || resp.statusCode >= 300) {
-        // intenta extraer mensaje legible si el backend lo manda en JSON
-        final msg = _bestEffortMessage(resp.body);
+      if (resp.statusCode! < 200 || resp.statusCode! >= 300) {
+        final msg = _bestEffortMessage(resp.data);
         return Response(
-            isSuccess: false, message: 'HTTP ${resp.statusCode}: $msg');
+            isSuccess: false,
+            message: 'HTTP ${resp.statusCode}: $msg');
       }
 
-      // 4) Cuerpo vacío / no JSON
-      if (resp.body.isEmpty) {
+      if (resp.data == null ||
+          (resp.data is String && (resp.data as String).isEmpty)) {
         return Response(
             isSuccess: false, message: 'Respuesta vacía del servidor.');
       }
 
-      // 5) Parseo tolerante
-      final decoded = jsonDecode(resp.body);
-
-      // Permite backend que devuelva objeto o lista con un solo objeto
       final dynamic obj =
-          (decoded is List && decoded.isNotEmpty) ? decoded.first : decoded;
+          (resp.data is List && (resp.data as List).isNotEmpty)
+              ? resp.data.first
+              : resp.data;
 
       if (obj == null || obj is! Map<String, dynamic>) {
         return Response(
-            isSuccess: false, message: 'Formato inesperado de respuesta.');
+            isSuccess: false,
+            message: 'Formato inesperado de respuesta.');
       }
 
       final cliente = Cliente.fromJson(obj);
       return Response(isSuccess: true, result: cliente);
-    } on TimeoutException {
-      return Response(isSuccess: false, message: 'Tiempo de espera agotado.');
-    } on SocketException {
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return Response(
+            isSuccess: false, message: 'Tiempo de espera agotado.');
+      }
+      if (e.error is SocketException) {
+        return Response(
+            isSuccess: false,
+            message: 'Sin conexión a Internet o host no alcanzable.');
+      }
       return Response(
-          isSuccess: false,
-          message: 'Sin conexión a Internet o host no alcanzable.');
+          isSuccess: false, message: 'Error inesperado: $e');
     } on FormatException catch (e) {
-      return Response(isSuccess: false, message: 'JSON inválido: ${e.message}');
-    } on HttpException catch (e) {
-      return Response(isSuccess: false, message: 'Error HTTP: ${e.message}');
+      return Response(
+          isSuccess: false, message: 'JSON inválido: ${e.message}');
     } catch (e) {
-      return Response(isSuccess: false, message: 'Error inesperado: $e');
-    } finally {
-      client.close();
+      return Response(
+          isSuccess: false, message: 'Error inesperado: $e');
     }
   }
 
-  static String _bestEffortMessage(String body) {
+  static String _bestEffortMessage(dynamic data) {
     try {
-      final d = jsonDecode(body);
-      if (d is Map && d['message'] is String) return d['message'] as String;
-      if (d is Map && d['error'] is String) return d['error'] as String;
-    } catch (_) {
-      // body no era JSON; devolvemos texto plano truncado
-    }
-    final plain = body.replaceAll(RegExp(r'\s+'), ' ');
-    return plain.length > 300 ? '${plain.substring(0, 300)}…' : plain;
+      if (data is Map) {
+        if (data['message'] is String) return data['message'] as String;
+        if (data['error'] is String) return data['error'] as String;
+      }
+      if (data is String) {
+        final plain = data.replaceAll(RegExp(r'\s+'), ' ');
+        return plain.length > 300 ? '${plain.substring(0, 300)}…' : plain;
+      }
+    } catch (_) {}
+    return data.toString();
   }
 
   static Future<Response> getClienteFromHacienda(String document) async {
     final doc = document.trim();
     if (doc.isEmpty) {
-      return Response(isSuccess: false, message: 'Debe indicar un documento.');
+      return Response(
+          isSuccess: false, message: 'Debe indicar un documento.');
     }
 
     try {
-      final url = Uri.parse('${Constans.getAPIUrl()}/api/Clientes/buscar/$doc');
-      final resp = await http.get(
-        url,
-        headers: const {
-          'accept': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 20));
+      final resp = await _dio.get(
+        '/api/Clientes/buscar/$doc',
+        options: Options(
+          receiveTimeout: const Duration(seconds: 20),
+          headers: {'accept': 'application/json'},
+        ),
+      );
 
-      final status = resp.statusCode;
-      final body = resp.body;
+      final status = resp.statusCode!;
 
-      // Errores HTTP
       if (status >= 400) {
         String message;
         try {
-          final j = jsonDecode(body);
-          // intenta sacar "message" del JSON si existe, si no, usa el body tal cual
+          final j = resp.data;
           message = (j is Map && j['message'] is String)
               ? j['message'] as String
-              : (body.isEmpty ? 'Error $status' : body);
+              : (resp.data == null ? 'Error $status' : resp.data.toString());
         } catch (_) {
-          message = body.isEmpty ? 'Error $status' : body;
+          message = resp.data?.toString() ?? 'Error $status';
         }
         return Response(isSuccess: false, message: message);
       }
 
-      if (body.isEmpty) {
+      if (resp.data == null) {
         return Response(
             isSuccess: false, message: 'Respuesta vacía del servidor.');
       }
 
-      final decoded = jsonDecode(body);
-      if (decoded == null || decoded is! Map<String, dynamic>) {
-        return Response(isSuccess: false, message: 'Formato JSON inválido.');
+      final decoded = resp.data;
+      if (decoded is! Map<String, dynamic>) {
+        return Response(
+            isSuccess: false, message: 'Formato JSON inválido.');
       }
 
-      // Compatibilidad: si viene de Hacienda (tipoIdentificacion) usa fromHaciendaJson,
-      // si viene como ClienteApi (con llaves de tu dominio), usa fromJson.
       late Cliente cliente;
       if (decoded.containsKey('tipoIdentificacion')) {
         cliente = Cliente.fromHaciendaJson(decoded);
@@ -1184,125 +904,99 @@ class ApiHelper {
         cliente = Cliente.fromJson(decoded);
       }
 
-      // Asegura documento (el backend podría no retornarlo)
       cliente.documento = doc;
-
-      // El backend no trae email/teléfono en este paso: los dejas vacíos para completar luego
-      cliente.email = cliente.email; // por si fromJson lo trae vacío
+      cliente.email = cliente.email;
       cliente.telefono = cliente.telefono;
 
       return Response(isSuccess: true, result: cliente);
-    } on TimeoutException {
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return Response(
+            isSuccess: false,
+            message:
+                'Tiempo de espera agotado al consultar el servicio.');
+      }
       return Response(
-          isSuccess: false,
-          message: 'Tiempo de espera agotado al consultar el servicio.');
+          isSuccess: false, message: 'Error inesperado: $e');
     } catch (e) {
-      return Response(isSuccess: false, message: 'Error inesperado: $e');
+      return Response(
+          isSuccess: false, message: 'Error inesperado: $e');
     }
   }
 
   static Future<Response> editEmail(
       String id, Map<String, dynamic> request) async {
-    var url = Uri.parse('${Constans.getAPIUrl()}/api/Users/$id');
-    var response = await http.put(url,
-        headers: {
-          'content-type': 'application/json',
-          'accept': 'application/json',
-        },
-        body: jsonEncode(request));
+    final response =
+        await _dio.put('/api/Users/$id', data: request);
 
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: response.body);
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     return Response(isSuccess: true);
   }
 
   static Future<Response> put(
       String controller, String id, Map<String, dynamic> request) async {
-    var url = Uri.parse('${Constans.getAPIUrl()}/api/$controller/$id');
-    var response = await http.put(url,
-        headers: {
-          'content-type': 'application/json',
-          'accept': 'application/json',
-        },
-        body: jsonEncode(request));
+    final response =
+        await _dio.put('/api/$controller/$id', data: request);
 
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: response.body);
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     return Response(isSuccess: true);
   }
 
   static Future<Response> post(
       String controller, Map<String, dynamic> request) async {
-    var url = Uri.parse('${Constans.getAPIUrl()}/$controller');
-    var response = await http.post(url,
-        headers: {
-          'content-type': 'application/json',
-          'accept': 'application/json',
-        },
-        body: jsonEncode(request));
+    final response =
+        await _dio.post('/$controller', data: request);
 
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: response.body);
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     return Response(
       isSuccess: true,
-      result: response.body,
+      result: response.data,
     );
   }
 
   static Future<Response> postNoRequest(String controller) async {
-    var url = Uri.parse('${Constans.getAPIUrl()}/$controller');
-    var response = await http.post(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
+    final response = await _dio.post('/$controller');
 
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: response.body);
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
-    return Response(isSuccess: true, result: response.body);
+    return Response(isSuccess: true, result: response.data);
   }
 
   static Future<Response> delete(String controller, String id) async {
-    var url = Uri.parse('${Constans.getAPIUrl()}$controller$id');
-    var response = await http.delete(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
+    final response =
+        await _dio.delete('$controller$id');
 
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: response.body);
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
 
     return Response(isSuccess: true);
   }
 
   static Future<Response> getClientesPromo() async {
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/TransaccionesApi/GetClientesPromo');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-    );
-    var body = response.body;
-    if (response.statusCode >= 400) {
-      return Response(isSuccess: false, message: body);
+    final response = await _dio.get(
+        '/api/TransaccionesApi/GetClientesPromo');
+
+    if (response.statusCode! >= 400) {
+      return Response(
+          isSuccess: false, message: response.data?.toString() ?? '');
     }
     List<ClientePromo> clientes = [];
-    var decodedJson = jsonDecode(body);
-    if (decodedJson != null) {
-      for (var item in decodedJson) {
+    if (response.data != null) {
+      for (var item in response.data) {
         try {
           clientes.add(ClientePromo.fromJson(item));
         } catch (e) {
@@ -1315,101 +1009,85 @@ class ApiHelper {
 
   static Future<Response> syncActividades(String documento,
       {String tipoCliente = "Contado"}) async {
-    var url = Uri.parse(
-        '${Constans.getAPIUrl()}/api/Clientes/actividades/sincronizar');
-
     final body = {
       "numeroDocumento": documento,
       "tipoCliente": tipoCliente,
     };
 
     try {
-      final response = await http.post(
-        url,
-        headers: {
-          'content-type': 'application/json',
-          'accept': 'application/json',
-        },
-        body: jsonEncode(body),
+      final response = await _dio.post(
+        '/api/Clientes/actividades/sincronizar',
+        data: body,
       );
 
-      if (response.statusCode >= 400) {
-        return Response(isSuccess: false, message: response.body);
+      if (response.statusCode! >= 400) {
+        return Response(
+            isSuccess: false,
+            message: response.data?.toString() ?? '');
       }
 
-      var decodedJson = jsonDecode(response.body);
-      Cliente cliente = Cliente.fromJson(decodedJson);
-
+      Cliente cliente = Cliente.fromJson(response.data);
       return Response(isSuccess: true, result: cliente);
     } catch (e) {
-      return Response(isSuccess: false, message: "Exception: ${e.toString()}");
+      return Response(
+          isSuccess: false, message: "Exception: ${e.toString()}");
     }
   }
 
-  static String get _base => Constans.getAPIUrl();
-
   static Future<Response> syncActividadesCredito(String documento) async {
     final doc = Uri.encodeComponent(documento.trim());
-    final url =
-        Uri.parse('$_base/api/Clientes/clientes/$doc/actividades/credito');
 
     try {
-      final resp = await http.post(
-        url,
-        headers: const {
-          'content-type': 'application/json',
-          'accept': 'application/json',
-        },
+      final resp = await _dio.post(
+        '/api/Clientes/clientes/$doc/actividades/credito',
       );
 
-      if (resp.statusCode >= 400) {
+      if (resp.statusCode! >= 400) {
         String msg;
         try {
-          final body = jsonDecode(resp.body);
+          final body = resp.data;
           msg = body is Map && body['message'] is String
               ? body['message']
-              : resp.body;
+              : resp.data.toString();
         } catch (_) {
-          msg = resp.body;
+          msg = resp.data.toString();
         }
         return Response(isSuccess: false, message: msg);
       }
 
-      final decoded = jsonDecode(resp.body);
-      final cliente = Cliente.fromJson(decoded);
+      final cliente = Cliente.fromJson(resp.data);
       return Response(isSuccess: true, result: cliente);
     } catch (e) {
-      return Response(isSuccess: false, message: "Exception: ${e.toString()}");
+      return Response(
+          isSuccess: false, message: "Exception: ${e.toString()}");
     }
   }
 
   static Future<Response> getFuelingPoints() async {
-    var url = Uri.parse('${Constans.getAPIUrl()}/api/Shifts/GetFuelingPoints');
     try {
-      debugPrint('🔍 [ApiHelper] GET $url');
-      var response = await http.get(
-        url,
-        headers: {
-          'content-type': 'application/json',
-          'accept': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 10));
+      debugPrint(
+          '🔍 [ApiHelper] GET ${Constans.getAPIUrl()}/api/Shifts/GetFuelingPoints');
+      final response = await _dio.get(
+        '/api/Shifts/GetFuelingPoints',
+        options: Options(receiveTimeout: const Duration(seconds: 10)),
+      );
 
-      var body = response.body;
-      if (response.statusCode >= 400) {
-        debugPrint('❌ [ApiHelper] Error ${response.statusCode}: $body');
+      if (response.statusCode! >= 400) {
+        debugPrint(
+            '❌ [ApiHelper] Error ${response.statusCode}: ${response.data}');
         return Response(
-            isSuccess: false, message: 'Status ${response.statusCode}: $body');
+            isSuccess: false,
+            message: 'Status ${response.statusCode}: ${response.data}');
       }
 
-      var decodedJson = jsonDecode(body);
-      if (decodedJson != null) {
-        final data = DispensersStatusResponse.fromJson(decodedJson);
+      if (response.data != null) {
+        final data = DispensersStatusResponse.fromJson(response.data);
         return Response(isSuccess: true, result: data);
       }
       return Response(isSuccess: false, message: 'Respuesta vacía');
     } catch (e) {
-      debugPrint('❌ [ApiHelper] Exception fetching fueling points: $e');
+      debugPrint(
+          '❌ [ApiHelper] Exception fetching fueling points: $e');
       return Response(isSuccess: false, message: e.toString());
     }
   }

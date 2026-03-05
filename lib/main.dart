@@ -8,6 +8,7 @@ import 'package:tester/Providers/printer_provider.dart';
 import 'package:tester/Providers/tranascciones_provider.dart';
 import 'package:tester/Providers/usuario_provider.dart';
 import 'package:tester/Providers/experimental/active_dispatch_manager.dart';
+import 'package:tester/fuelred/fuelred_provider.dart';
 
 import 'package:tester/Screens/logIn/login_screen.dart';
 
@@ -31,6 +32,8 @@ void main() {
             return manager;
           },
         ),
+        ChangeNotifierProvider(
+            create: (_) => FuelRedProvider()..initialize()),
       ],
       child: const MyApp(),
     ),
@@ -47,6 +50,12 @@ class MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    // Inyectar WS service al dispatch manager para progreso en vivo
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final fuelRedProv = context.read<FuelRedProvider>();
+      final dispatchMgr = context.read<ActiveDispatchManager>();
+      dispatchMgr.fuelRedWs = fuelRedProv.wsService;
+    });
   }
 
   @override

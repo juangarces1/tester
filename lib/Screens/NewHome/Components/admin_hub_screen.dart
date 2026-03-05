@@ -28,7 +28,7 @@ class AdminCenterPage extends StatefulWidget {
 }
 
 class _AdminCenterPageState extends State<AdminCenterPage> {
-  _AdminFilter _filter = _AdminFilter.cash;
+  _AdminFilter _filter = _AdminFilter.ops;
 
   @override
   Widget build(BuildContext context) {
@@ -243,7 +243,7 @@ class _IconWithBadge extends StatelessWidget {
 
 typedef CounterFn = int Function(BuildContext);
 
-enum _AdminFilter { cash, billing, ops, session }
+enum _AdminFilter { ops, cash, billing, session }
 
 class _AdminAction {
   const _AdminAction({

@@ -119,21 +119,54 @@ class _DispatchCardState extends State<DispatchCard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          d.fuel.name,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                        Row(
+                          children: [
+                            if (d.isFuelRed) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFF3B3B),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'P4S',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            Expanded(
+                              child: Text(
+                                d.fuel.name,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                         Text(
-                          'POS ${d.position.number} · MANG ${d.nozzleCode}',
+                          d.isFuelRed
+                              ? '${d.metadata?['driver_name'] ?? ''} · ${d.metadata?['plate'] ?? ''}'
+                              : 'POS ${d.position.number} · MANG ${d.nozzleCode}',
                           style: const TextStyle(
                               color: Color.fromARGB(227, 255, 255, 255),
                               fontSize: 15),
                         ),
+                        if (d.isFuelRed)
+                          Text(
+                            'POS ${d.position.number} · MANG ${d.nozzleCode}',
+                            style: const TextStyle(
+                                color: Colors.white54, fontSize: 13),
+                          ),
                       ],
                     ),
                   ),
@@ -182,6 +215,21 @@ class _DispatchCardState extends State<DispatchCard> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    // Litros estimados cuando el preset es por monto
+                    if (d.preset.isAmount && !d.isTankFull) ...[
+                      Builder(builder: (_) {
+                        final price = mapProv.getPriceForFuel(d.fuel.name);
+                        if (price <= 0) return const SizedBox.shrink();
+                        final estLiters = (d.preset.amount ?? 0) / price;
+                        return Text(
+                          '≈ ${estLiters.toStringAsFixed(1)} L',
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 16,
+                          ),
+                        );
+                      }),
+                    ],
                   ],
                 ),
               ],

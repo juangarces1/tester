@@ -5,6 +5,7 @@ import '../ViewModels/new_map.dart';
 import '../Models/FuelRed/nozzle_mapping.dart';
 import '../Models/SignalR/nozzle_status_dto.dart';
 import '../helpers/api_helper.dart';
+import '../helpers/console_api_helper.dart';
 import '../helpers/constans.dart';
 
 class MapProvider extends ChangeNotifier {
@@ -52,6 +53,9 @@ class MapProvider extends ChangeNotifier {
 
   /// Tag ID actual por nozzleCode (si existe).
   final Map<String, String?> _currentTags = {};
+
+  /// nozzleCode → nombre de combustible (para calcular litros desde monto).
+  final Map<String, String> _nozzleFuelIndex = {};
 
   // -- Getters públicos para estado individual en vivo --
   double? getLiters(String nozzleCode) => _currentLiters[nozzleCode];
@@ -196,10 +200,19 @@ class MapProvider extends ChangeNotifier {
     // Actualizar litros/monto en caché
     // Actualizar cache con datos de visualización
     for (final v in visualizations) {
-      _currentLiters[v.nozzleCode] = v.currentLiters;
       // Multiplicar el cash por 100 tal como requiere el hardware
-      _currentCash[v.nozzleCode] =
-          v.currentCash != null ? v.currentCash! * 100 : null;
+      final cash = v.currentCash != null ? v.currentCash! * 100 : null;
+      _currentCash[v.nozzleCode] = cash;
+
+      // El hardware solo manda monto, no litros.
+      // Calcular litros = monto / precio_por_litro.
+      if (v.currentLiters > 0) {
+        _currentLiters[v.nozzleCode] = v.currentLiters;
+      } else if (cash != null && cash > 0) {
+        final fuelName = _nozzleFuelIndex[v.nozzleCode];
+        final price = fuelName != null ? getPriceForFuel(fuelName) : 0.0;
+        _currentLiters[v.nozzleCode] = price > 0 ? cash / price : 0;
+      }
 
       if (v.tagId != null) {
         _currentTags[v.nozzleCode] = v.tagId;
@@ -292,27 +305,42 @@ class MapProvider extends ChangeNotifier {
     _cachedMappings =
         (mappingResp.result as List<NozzleMapping>? ?? const <NozzleMapping>[]);
 
-    // Construir índice rápido por nozzleCode (ej. "01", "02")
+    // Construir índice nozzleCode → fuelName para calcular litros
+    _nozzleFuelIndex.clear();
+    for (final m in _cachedMappings!) {
+      final code = _nozzleNumberToCode(m.hoseNumber);
+      _nozzleFuelIndex[code] = _resolveFuel(m).name;
+    }
 
     debugPrint(
         '📋 [MapProvider] Mappings cargados: ${_cachedMappings!.length} mangueras');
   }
 
   /// Carga el catálogo de precios de combustible.
+  /// Intenta primero desde Console API (/api/Prices/current, requiere auth),
+  /// con fallback al endpoint legacy (/api/Shifts/GetFuelPrices, sin auth).
   Future<void> _loadFuelPrices() async {
+    // Intentar Console API (8087) con auth
+    final consolePrices = await ConsoleApiHelper.getCurrentPrices();
+    if (consolePrices.isNotEmpty) {
+      _fuelPrices = consolePrices;
+      debugPrint('💰 [MapProvider] Precios cargados desde Console API: $_fuelPrices');
+      return;
+    }
+
+    // Fallback al endpoint legacy (puerto 80, sin auth)
     final resp = await ApiHelper.getFuelPrices();
     if (!resp.isSuccess) {
       debugPrint('⚠️ [MapProvider] Error al cargar precios: ${resp.message}');
       return;
     }
 
-    // Convertir keys a minúsculas para comparaciones más fáciles
     final Map<String, double> rawPrices =
         resp.result as Map<String, double>? ?? {};
     _fuelPrices =
         rawPrices.map((key, value) => MapEntry(key.toLowerCase(), value));
 
-    debugPrint('💰 [MapProvider] Catálogo de precios cargado: $_fuelPrices');
+    debugPrint('💰 [MapProvider] Precios cargados desde legacy API: $_fuelPrices');
   }
 
   /// Construye el mapa inicial desde los mappings con estado 'unknown'.
@@ -426,6 +454,7 @@ class MapProvider extends ChangeNotifier {
     _cachedMappings = null;
     _currentLiters.clear();
     _currentCash.clear();
+    _nozzleFuelIndex.clear();
     _currentStatus.clear();
     _cachedMappings = null;
     _currentTags.clear();

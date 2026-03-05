@@ -3,12 +3,18 @@ import 'package:tester/Models/FuelRed/product.dart';
 import 'package:tester/Models/SignalR/nozzle_status_dto.dart';
 import 'package:tester/Providers/experimental/dispatch_session.dart';
 import 'package:tester/Providers/map_provider.dart';
+import 'package:tester/fuelred/fuelred_api_helper.dart';
+import 'package:tester/fuelred/fuelred_ws_service.dart';
 import 'package:tester/helpers/api_helper.dart';
 
 /// ActiveDispatchManager es la única fuente de verdad para intenciones de despacho.
 /// El estado físico (litros, monto) lo sigue teniendo MapProvider.
 /// Aquí solo trackeamos la sesión y su progreso basándonos en NozzleStatus de SignalR.
 class ActiveDispatchManager extends ChangeNotifier {
+  /// Referencia al WS service de la estación para enviar progreso al backend.
+  /// Se inyecta desde main.dart después de crear FuelRedProvider.
+  FuelRedWsService? fuelRedWs;
+
   final Map<String, DispatchSession> _sessions = {};
 
   Map<String, DispatchSession> get sessions => _sessions;
@@ -74,6 +80,21 @@ class ActiveDispatchManager extends ChangeNotifier {
         if (vol != null) session.lastVolume = vol;
         if (amt != null) session.lastAmount = amt;
         if (tag != null) session.lastTag = tag;
+
+        // Enviar progreso FuelRed al backend cada ~2s
+        if (session.isFuelRed && fuelRedWs != null) {
+          final now = DateTime.now();
+          final last = session.lastProgressSent;
+          if (last == null || now.difference(last).inSeconds >= 2) {
+            session.lastProgressSent = now;
+            fuelRedWs!.sendDispatchProgress(
+              transactionId: session.fuelRedTxId!,
+              liters: session.lastVolume ?? 0,
+              amount: session.lastAmount ?? 0,
+              status: 'fueling',
+            );
+          }
+        }
       }
 
       // No procesar transiciones de estado si no cambió
@@ -153,8 +174,8 @@ class ActiveDispatchManager extends ChangeNotifier {
   ///  3. Si la obtiene como Product, lo asigna a [session.syncedProduct].
   ///  4. Notifica a la UI para que actualice la tarjeta.
   Future<void> _processCompletedDispatch(DispatchSession session) async {
-    const maxIntentos = 10;
-    const intervalo = Duration(seconds: 1);
+    const maxIntentos = 20;
+    const intervalo = Duration(seconds: 2);
 
     final dispensador = session.hose.dispenserNumber ?? 0;
     final fecha = session.fuelingStartedAt ?? DateTime.now();
@@ -163,12 +184,13 @@ class ActiveDispatchManager extends ChangeNotifier {
       debugPrint(
           '❌ [ActiveDispatchManager] No se puede sincronizar despacho ${session.id}: '
           'dispenserNumber es null/0');
+      session.syncFailed();
       notifyListeners();
       return;
     }
 
     // Delay inicial para dar tiempo al worker del backend
-    await Future.delayed(const Duration(seconds: 3));
+    await Future.delayed(const Duration(seconds: 2));
 
     debugPrint(
         '🔍 [ActiveDispatchManager] Iniciando polling para despacho ${session.id} '
@@ -178,9 +200,14 @@ class ActiveDispatchManager extends ChangeNotifier {
       await Future.delayed(intervalo);
 
       debugPrint('🔄 [ActiveDispatchManager] Intento $intento/$maxIntentos '
-          'para despacho ${session.id}');
+          'para despacho ${session.id} | dispensador=$dispensador | fecha=$fecha | '
+          'fechaStr=${fecha.toIso8601String().split('.').first}');
 
       final response = await ApiHelper.getUltimaTransaccion(dispensador, fecha);
+
+      debugPrint('   → isSuccess=${response.isSuccess}, '
+          'hasResult=${response.result != null}, '
+          'message=${response.message}');
 
       if (response.isSuccess && response.result != null) {
         // ✅ Encontró la transacción
@@ -196,17 +223,49 @@ class ActiveDispatchManager extends ChangeNotifier {
             'total=${product.total}, '
             'dispensador=${product.dispensador}');
 
+        // Reportar a Flotilla si es despacho FuelRed (fire-and-forget)
+        if (session.isFuelRed) {
+          FuelRedApiHelper.completeDispatch(
+            dispatchId: session.fuelRedTxId!,
+            liters: product.cantidad,
+            amount: product.total.toInt(),
+          ).then((_) {
+            debugPrint(
+                '✅ [ActiveDispatchManager] Complete reportado a Flotilla para TX ${session.fuelRedTxId}');
+          }).catchError((e) {
+            debugPrint(
+                '⚠️ [ActiveDispatchManager] Error reportando complete a Flotilla: $e');
+          });
+        }
+
         notifyListeners();
         return;
       }
     }
 
-    // Agotó los intentos
-    session.markAsSettled();
+    // Agotó los intentos — NO marcar como settled, permitir retry
+    session.syncFailed();
     debugPrint(
         '❌ [ActiveDispatchManager] Se agotaron los $maxIntentos intentos '
         'para despacho ${session.id}. El worker no subió la transacción.');
     notifyListeners();
+  }
+
+  /// Reintenta la sincronización de un despacho que falló.
+  void retrySync(String id) {
+    final session = _sessions[id];
+    if (session == null || session.isSyncing || session.isSettled) return;
+    if (!session.hasFueled) return;
+
+    session.startSyncing();
+    notifyListeners();
+    debugPrint('🔁 [ActiveDispatchManager] Reintentando sync para $id');
+
+    _processCompletedDispatch(session).catchError((e, st) {
+      session.syncFailed();
+      debugPrint('❌ [ActiveDispatchManager] Retry falló para $id: $e');
+      notifyListeners();
+    });
   }
 
   // -- Reset --

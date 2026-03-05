@@ -1,12 +1,10 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
-import 'package:tester/helpers/constans.dart';
+import 'package:tester/helpers/dio_client.dart';
 
 
 
@@ -191,11 +189,9 @@ class _NfcTestPageState extends State<NfcTestPage> {
 
     _safeSet(() => _assigning = true);
     try {
-      final uri = Uri.parse('${Constans.getAPIUrl()}/api/users/$cedula/cards');
-      final resp = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'uid': uid}),
+      final resp = await DioClient.main.post(
+        '/api/users/$cedula/cards',
+        data: {'uid': uid},
       );
 
       if (resp.statusCode == 204) {
@@ -203,16 +199,16 @@ class _NfcTestPageState extends State<NfcTestPage> {
         _addLog('Asignación OK', {'cedula': cedula, 'uid': uid});
       } else if (resp.statusCode == 409) {
         Fluttertoast.showToast(msg: 'Tarjeta ya asignada a otro empleado (409)');
-        _addLog('Asignación conflicto', resp.body);
+        _addLog('Asignación conflicto', resp.data);
       } else if (resp.statusCode == 400) {
         Fluttertoast.showToast(msg: 'Solicitud inválida (400)');
-        _addLog('Asignación inválida', resp.body);
+        _addLog('Asignación inválida', resp.data);
       } else if (resp.statusCode == 403) {
         Fluttertoast.showToast(msg: 'Tarjeta revocada/perdida (403)');
-        _addLog('Asignación denegada', resp.body);
+        _addLog('Asignación denegada', resp.data);
       } else {
         Fluttertoast.showToast(msg: 'Error ${resp.statusCode}');
-        _addLog('Asignación error', {'status': resp.statusCode, 'body': resp.body});
+        _addLog('Asignación error', {'status': resp.statusCode, 'body': resp.data});
       }
     } catch (e) {
       _addLog('Asignación exception', e.toString());
@@ -233,15 +229,13 @@ class _NfcTestPageState extends State<NfcTestPage> {
 
     _safeSet(() => _testingLogin = true);
     try {
-      final uri = Uri.parse('${Constans.getAPIUrl()}/api/users/login-card');
-      final resp = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'uid': uid}),
+      final resp = await DioClient.main.post(
+        '/api/users/login-card',
+        data: {'uid': uid},
       );
 
       if (resp.statusCode == 200) {
-        final data = jsonDecode(resp.body) as Map<String, dynamic>;
+        final data = resp.data as Map<String, dynamic>;
         _addLog('Login OK', data);
         _showEmpleadoDialog(data['empleado'] as Map<String, dynamic>?);
       } else if (resp.statusCode == 404) {

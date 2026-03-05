@@ -19,6 +19,11 @@ class Constans {
   static String baseUrlConsole = 'http://192.168.1.3:8087/api/';
   static String monitoringHubUrl = 'http://192.168.1.3:8087/hubs/monitoring';
 
-  // static String baseUrlConsole = 'http://10.0.2.2:5000/api/';
-  // static String monitoringHubUrl = 'http://10.0.2.2:5000/hubs/monitoring';
+  // ── FuelRed P4S ──────────────────────────────────────────────
+  static String fuelRedApiUrl =
+      'https://flotilla-fuelred-p4s-production.up.railway.app/api/v1/station-api';
+  static String fuelRedWsUrl =
+      'wss://flotilla-fuelred-p4s-production.up.railway.app/api/v1/ws/station';
+  static String fuelRedApiKey =
+      '3f1c9c91841e3d5172c2ea3a4b9b084a5e70514d85897b6ea96b8f7f529a8ca7';
 }
