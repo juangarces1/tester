@@ -374,6 +374,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.6.1"
+  flutter_ringtone_player:
+    dependency: "direct main"
+    description:
+      name: flutter_ringtone_player
+      sha256: ae4a2caab2cfd14902f3ee5fe0307c454b396f0077fa34700238d6c4bd99cfec
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.0+4"
   flutter_riverpod:
     dependency: "direct main"
     description:
@@ -880,6 +888,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.1"
+  shimmer:
+    dependency: "direct main"
+    description:
+      name: shimmer
+      sha256: "5f88c883a22e9f9f299e5ba0e4f7e6054857224976a5d9f839d4ebdc94a14ac9"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.0"
   signalr_netcore:
     dependency: "direct main"
     description:

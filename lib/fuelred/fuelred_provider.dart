@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:provider/provider.dart';
 import 'package:tester/Models/SignalR/nozzle_status_dto.dart';
 import 'package:tester/Providers/cierre_activo_provider.dart';
@@ -10,6 +11,7 @@ import 'package:tester/Providers/map_provider.dart';
 import 'package:tester/fuelred/fuelred_api_helper.dart';
 import 'package:tester/fuelred/fuelred_ws_service.dart';
 import 'package:tester/helpers/console_api_helper.dart';
+import 'package:tester/Components/state/state_widgets.dart';
 
 /// Estado central de la integración FuelRed P4S.
 ///
@@ -17,7 +19,7 @@ import 'package:tester/helpers/console_api_helper.dart';
 ///   - Mantiene las listas de transacciones esperando y despachos pendientes
 ///   - Escucha WebSocket y actualiza en tiempo real
 ///   - Expone acciones REST (acknowledge, start, complete, cancel, verify)
-class FuelRedProvider extends ChangeNotifier {
+class FuelRedProvider extends ChangeNotifier with ViewStateMixin {
   final FuelRedWsService _ws = FuelRedWsService();
 
   /// Acceso al WS service para inyectarlo en ActiveDispatchManager.
@@ -31,11 +33,33 @@ class FuelRedProvider extends ChangeNotifier {
 
   final List<StreamSubscription> _subs = [];
 
+  /// Extrae el ID de una transacción (WS usa transaction_id, REST usa id).
+  int _txId(Map<String, dynamic> t) =>
+      t['transaction_id'] as int? ?? t['id'] as int? ?? 0;
+
+  /// Centraliza la decisión de qué ViewState mostrar y notifica una sola vez.
+  void _refreshState() {
+    if (waitingTransactions.isEmpty && pendingDispatches.isEmpty) {
+      if (viewState != ViewState.empty) {
+        setEmpty();
+        return;
+      }
+    } else {
+      if (viewState != ViewState.content) {
+        setContent();
+        return;
+      }
+    }
+    // El estado no cambió pero la data sí — notificar para rebuild.
+    notifyListeners();
+  }
+
   // ── Inicialización ──────────────────────────────────────────
   /// Llamar una sola vez después de tener API key configurada.
   Future<void> initialize() async {
     if (_initialized) return;
     _initialized = true;
+    setLoading();
 
     // Suscribirse a streams del WS
     _subs.add(_ws.onConnectionStatus.listen((connected) {
@@ -44,33 +68,44 @@ class FuelRedProvider extends ChangeNotifier {
     }));
 
     _subs.add(_ws.onTransactionWaiting.listen((data) {
-      // Agregar al inicio de la lista
+      final newId = data['transaction_id'] as int? ?? 0;
+      // Evitar duplicados (REST puede haberlo cargado antes con key 'id')
+      waitingTransactions.removeWhere((t) => _txId(t) == newId);
       waitingTransactions.insert(0, data);
-      notifyListeners();
+      _refreshState();
+      FlutterRingtonePlayer().playNotification();
       debugPrint(
           '[FuelRedProvider] Nueva transacción esperando: ${data['transaction_id']}');
     }));
 
     _subs.add(_ws.onDispatchReady.listen((data) {
-      // Mover de waiting a pending
-      final txId = data['transaction_id'];
-      waitingTransactions.removeWhere((t) => t['transaction_id'] == txId);
+      final txId = data['transaction_id'] as int? ?? 0;
+      debugPrint('[FuelRedProvider] dispatch:ready txId=$txId, waiting=${waitingTransactions.map((t) => '${t['id']}/${t['transaction_id']}').toList()}');
+      waitingTransactions.removeWhere((t) => _txId(t) == txId);
       pendingDispatches.insert(0, data);
-      notifyListeners();
-      debugPrint('[FuelRedProvider] Despacho listo: $txId');
+      _refreshState();
+      FlutterRingtonePlayer().playNotification();
+      debugPrint('[FuelRedProvider] Despacho listo: $txId, waiting restante: ${waitingTransactions.length}');
+    }));
+
+    _subs.add(_ws.onTransactionCancelled.listen((data) {
+      final txId = data['transaction_id'] as int? ?? 0;
+      waitingTransactions.removeWhere((t) => _txId(t) == txId);
+      _refreshState();
+      FlutterRingtonePlayer().playNotification();
     }));
 
     _subs.add(_ws.onDispatchUpdate.listen((data) {
-      final txId = data['transaction_id'];
+      final txId = data['transaction_id'] as int? ?? 0;
       final status = data['dispatch_status'] as String?;
       debugPrint('[FuelRedProvider] Dispatch update: $txId → $status');
+      FlutterRingtonePlayer().playNotification();
 
       // Actualizar en la lista de pending o remover si terminó
       if (status == 'dispensed' || status == 'cancelled') {
-        pendingDispatches.removeWhere((d) => d['transaction_id'] == txId);
+        pendingDispatches.removeWhere((d) => _txId(d) == txId);
       } else {
-        final idx = pendingDispatches
-            .indexWhere((d) => d['transaction_id'] == txId);
+        final idx = pendingDispatches.indexWhere((d) => _txId(d) == txId);
         if (idx >= 0) {
           pendingDispatches[idx] = {
             ...pendingDispatches[idx],
@@ -78,7 +113,7 @@ class FuelRedProvider extends ChangeNotifier {
           };
         }
       }
-      notifyListeners();
+      _refreshState();
     }));
 
     // Callback al reconectar: re-sincronizar desde REST
@@ -93,16 +128,24 @@ class FuelRedProvider extends ChangeNotifier {
 
   // ── Sincronización REST ─────────────────────────────────────
   Future<void> syncFromRest() async {
-    final results = await Future.wait([
-      FuelRedApiHelper.getWaitingTransactions(),
-      FuelRedApiHelper.getPendingDispatches(),
-    ]);
-    waitingTransactions = results[0];
-    pendingDispatches = results[1];
-    notifyListeners();
-    debugPrint(
-        '[FuelRedProvider] Sync REST: ${waitingTransactions.length} waiting, '
-        '${pendingDispatches.length} pending');
+    try {
+      // Solo loading si no hay datos previos (no borrar pantalla en re-sync)
+      if (waitingTransactions.isEmpty && pendingDispatches.isEmpty) {
+        setLoading();
+      }
+
+      final results = await Future.wait([
+        FuelRedApiHelper.getWaitingTransactions(),
+        FuelRedApiHelper.getPendingDispatches(),
+      ]);
+      waitingTransactions = results[0];
+      pendingDispatches = results[1];
+      _refreshState();
+      debugPrint('[FuelRedProvider] Sync REST OK');
+    } catch (e) {
+      setError('Error al sincronizar: $e');
+      debugPrint('[FuelRedProvider] Sync REST error: $e');
+    }
   }
 
   // ── Acciones ────────────────────────────────────────────────
@@ -111,18 +154,17 @@ class FuelRedProvider extends ChangeNotifier {
   Future<Map<String, dynamic>?> verifyVehicle({
     required int transactionId,
     required String rfidTag,
-    required String pisteroId,
+    required String pisteroCode,
   }) async {
     final result = await FuelRedApiHelper.verifyVehicle(
       transactionId: transactionId,
       rfidTag: rfidTag,
-      pisteroId: pisteroId,
+      pisteroCode: pisteroCode,
     );
     if (result != null) {
       // Remover de waiting (pasará a pending cuando llegue dispatch:ready por WS)
-      waitingTransactions
-          .removeWhere((t) => t['transaction_id'] == transactionId);
-      notifyListeners();
+      waitingTransactions.removeWhere((t) => _txId(t) == transactionId);
+      _refreshState();
     }
     return result;
   }
@@ -157,8 +199,8 @@ class FuelRedProvider extends ChangeNotifier {
       completedAt: completedAt,
     );
     if (result != null) {
-      pendingDispatches.removeWhere((d) => d['transaction_id'] == dispatchId);
-      notifyListeners();
+      pendingDispatches.removeWhere((d) => _txId(d) == dispatchId);
+      _refreshState();
     }
     return result;
   }
@@ -173,8 +215,9 @@ class FuelRedProvider extends ChangeNotifier {
       reason: reason,
     );
     if (ok) {
-      pendingDispatches.removeWhere((d) => d['transaction_id'] == dispatchId);
-      notifyListeners();
+      pendingDispatches.removeWhere((d) => _txId(d) == dispatchId);
+      waitingTransactions.removeWhere((t) => _txId(t) == dispatchId);
+      _refreshState();
     }
     return ok;
   }
@@ -188,15 +231,20 @@ class FuelRedProvider extends ChangeNotifier {
   }) async {
     // 1. Extraer datos de Flotilla
     final txId = dispatch['transaction_id'] as int? ?? dispatch['id'] as int? ?? 0;
-    final hoseLabel = dispatch['hose_label'] as String? ?? dispatch['hose_number']?.toString() ?? '0';
-    final hoseNumber = int.tryParse(hoseLabel) ?? 0;
+    final rawHoseLabel = dispatch['hose_label'] as String? ?? dispatch['hose_number']?.toString() ?? '0';
+    // hose_label puede venir como "09 (Dispensador 3)" — extraer solo los dígitos del inicio
+    final hoseDigits = RegExp(r'^\d+').firstMatch(rawHoseLabel)?.group(0) ?? '0';
+    final hoseNumber = int.tryParse(hoseDigits) ?? 0;
     final amount = (dispatch['amount'] as num? ?? 0).toDouble();
+    debugPrint('[AuthDispatch] 1. txId=$txId hoseLabel=$hoseNumber hoseNumber=$hoseNumber amount=$amount');
+    debugPrint('[AuthDispatch] 1. dispatch=$dispatch');
 
     // 2. Buscar posición/manguera en MapProvider
     final mapProv = context.read<MapProvider>();
     final posIndex = mapProv.positionIndexForNozzle(hoseNumber);
+    debugPrint('[AuthDispatch] 2. posIndex=$posIndex stationMap=${mapProv.stationMap != null}');
     if (posIndex == null || mapProv.stationMap == null) {
-      debugPrint('[FuelRedProvider] No se encontró posición para manguera $hoseNumber');
+      debugPrint('[AuthDispatch] ✗ No se encontró posición para manguera $hoseNumber');
       return false;
     }
     final position = mapProv.stationMap![posIndex]!;
@@ -208,16 +256,20 @@ class FuelRedProvider extends ChangeNotifier {
     // 3. Validar estado de manguera
     final nozzleCode = hoseNumber.toString().padLeft(2, '0');
     final status = mapProv.getStatus(nozzleCode) ?? 'unknown';
+    debugPrint('[AuthDispatch] 3. nozzleCode=$nozzleCode status=$status');
     if (status != 'available' && status != 'blocked') {
-      debugPrint('[FuelRedProvider] Manguera $nozzleCode en estado $status, no se puede autorizar');
+      debugPrint('[AuthDispatch] ✗ Manguera $nozzleCode en estado $status');
       return false;
     }
 
-    // 4. Acknowledge a Flotilla
+    // 4. Acknowledge + Start a Flotilla
+    debugPrint('[AuthDispatch] 4. Acknowledge + Start txId=$txId');
     await acknowledgeDispatch(txId);
+    await startDispatch(txId);
 
     // 5. Preset al hardware
     final tagId = context.read<CierreActivoProvider>().usuario?.attendantId ?? '';
+    debugPrint('[AuthDispatch] 5. Preset nozzle=$nozzleCode amount=$amount tagId=$tagId');
     final ok = await ConsoleApiHelper.presetByAmount(
       nozzleCode: nozzleCode,
       amount: amount,
@@ -225,9 +277,10 @@ class FuelRedProvider extends ChangeNotifier {
     );
 
     if (!ok) {
-      debugPrint('[FuelRedProvider] Fallo preset al hardware para manguera $nozzleCode');
+      debugPrint('[AuthDispatch] ✗ Fallo preset al hardware');
       return false;
     }
+    debugPrint('[AuthDispatch] 5. Preset OK');
 
     // 6. Crear DispatchSession con fuelRedTxId
     final session = DispatchSession(
@@ -253,8 +306,8 @@ class FuelRedProvider extends ChangeNotifier {
     context.read<ActiveDispatchManager>().registerDispatch(session);
 
     // 8. Quitar de pendingDispatches
-    pendingDispatches.removeWhere((d) => d['transaction_id'] == txId);
-    notifyListeners();
+    pendingDispatches.removeWhere((d) => _txId(d) == txId);
+    _refreshState();
 
     debugPrint('[FuelRedProvider] Despacho FuelRed TX#$txId autorizado → DispatchSession ${session.id}');
     return true;
@@ -263,14 +316,13 @@ class FuelRedProvider extends ChangeNotifier {
   // ── Helpers ─────────────────────────────────────────────────
 
   void _updateDispatchStatus(int dispatchId, String status) {
-    final idx = pendingDispatches
-        .indexWhere((d) => d['transaction_id'] == dispatchId);
+    final idx = pendingDispatches.indexWhere((d) => _txId(d) == dispatchId);
     if (idx >= 0) {
       pendingDispatches[idx] = {
         ...pendingDispatches[idx],
         'dispatch_status': status,
       };
-      notifyListeners();
+      _refreshState();
     }
   }
 

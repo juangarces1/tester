@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 import 'package:provider/provider.dart';
+import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/constans.dart';
+import 'package:tester/Components/overlay/app_overlay.dart';
+import 'package:tester/Components/state/state_widgets.dart';
 import 'package:tester/fuelred/fuelred_provider.dart';
 
 /// Tab FuelRed P4S — muestra transacciones esperando + despachos autorizados.
@@ -9,60 +14,56 @@ class FuelRedPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<FuelRedProvider>(
-      builder: (context, prov, _) {
-        return CustomScrollView(
-          slivers: [
-            // ── Action Hub ────────────────────────────────────────
-            SliverToBoxAdapter(child: _buildActionHub(context, prov)),
-
-            // ── Transacciones esperando (Sello 1 ok) ─────────────
-            if (prov.waitingTransactions.isNotEmpty) ...[
-              SliverToBoxAdapter(
-                child: _buildSectionHeader(
-                  'Esperando verificación',
-                  prov.waitingCount,
-                  const Color(0xFFFF9100),
-                ),
+    return StateView<FuelRedProvider>(
+      onLoading: () => const Padding(
+        padding: EdgeInsets.only(top: 80),
+        child: ShimmerList(itemCount: 3, cardHeight: 120),
+      ),
+      onEmpty: () => const EmptyState(
+        icon: Icons.local_shipping_outlined,
+        title: 'Sin ordenes FuelRed',
+        subtitle: 'Cuando un chofer P4S llegue a la estacion\naparecera aqui',
+      ),
+      onError: (msg, retry) => ErrorCard(
+        message: msg,
+        onRetry: () => context.read<FuelRedProvider>().syncFromRest(),
+      ),
+      onContent: (prov) => CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(child: _buildActionHub(context, prov)),
+          if (prov.waitingTransactions.isNotEmpty) ...[
+            SliverToBoxAdapter(
+              child: _buildSectionHeader(
+                'Esperando verificacion',
+                prov.waitingCount,
+                const Color(0xFFFF9100),
               ),
-              SliverList.separated(
-                itemCount: prov.waitingTransactions.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, i) =>
-                    _buildWaitingCard(context, prov, prov.waitingTransactions[i]),
-              ),
-            ],
-
-            // ── Despachos autorizados (Sello 4 ok) ───────────────
-            if (prov.pendingDispatches.isNotEmpty) ...[
-              SliverToBoxAdapter(
-                child: _buildSectionHeader(
-                  'Despachos autorizados',
-                  prov.pendingCount,
-                  const Color(0xFF00E676),
-                ),
-              ),
-              SliverList.separated(
-                itemCount: prov.pendingDispatches.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, i) =>
-                    _buildDispatchCard(context, prov, prov.pendingDispatches[i]),
-              ),
-            ],
-
-            // ── Empty state ──────────────────────────────────────
-            if (prov.waitingTransactions.isEmpty &&
-                prov.pendingDispatches.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: _buildEmptyState(),
-              ),
-
-            // Spacing inferior
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ),
+            SliverList.separated(
+              itemCount: prov.waitingTransactions.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, i) =>
+                  _buildWaitingCard(context, prov, prov.waitingTransactions[i]),
+            ),
           ],
-        );
-      },
+          if (prov.pendingDispatches.isNotEmpty) ...[
+            SliverToBoxAdapter(
+              child: _buildSectionHeader(
+                'Despachos autorizados',
+                prov.pendingCount,
+                const Color(0xFF00E676),
+              ),
+            ),
+            SliverList.separated(
+              itemCount: prov.pendingDispatches.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, i) =>
+                  _buildDispatchCard(context, prov, prov.pendingDispatches[i]),
+            ),
+          ],
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+        ],
+      ),
     );
   }
 
@@ -221,102 +222,134 @@ class FuelRedPage extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: kNewborder,
+      child: Material(
+        color: kNewborder,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFFFF9100).withValues(alpha: 0.3),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
+          onTap: () => _showRfidScanSheet(context, prov, tx),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFFFF9100).withValues(alpha: 0.3),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Ícono naranja (esperando)
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFF9100).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.access_time_rounded,
-                      color: Color(0xFFFF9100),
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          driverName,
-                          style: const TextStyle(
-                            color: kContrateFondoOscuro,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
+                  // Header
+                  Row(
+                    children: [
+                      // Ícono naranja (esperando)
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF9100).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        const SizedBox(height: 2),
+                        child: const Icon(
+                          Icons.access_time_rounded,
+                          color: Color(0xFFFF9100),
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              driverName,
+                              style: const TextStyle(
+                                color: kContrateFondoOscuro,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '$pumpLabel • TX #$txId',
+                              style: const TextStyle(
+                                color: kNewtextSec,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Tiempo
+                      if (createdAt.isNotEmpty)
                         Text(
-                          '$pumpLabel • TX #$txId',
+                          _timeAgo(createdAt),
                           style: const TextStyle(
                             color: kNewtextSec,
-                            fontSize: 13,
+                            fontSize: 12,
                           ),
                         ),
-                      ],
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Botón de acción
+                  Material(
+                    color: const Color(0xFFFF9100).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.nfc_rounded,
+                              size: 18, color: Color(0xFFFF9100)),
+                          SizedBox(width: 8),
+                          Text(
+                            'Escanear RFID del vehículo',
+                            style: TextStyle(
+                              color: Color(0xFFFF9100),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  // Tiempo
-                  if (createdAt.isNotEmpty)
-                    Text(
-                      _timeAgo(createdAt),
-                      style: const TextStyle(
-                        color: kNewtextSec,
-                        fontSize: 12,
-                      ),
-                    ),
                 ],
               ),
-
-              const SizedBox(height: 12),
-
-              // Etiqueta de estado
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF9100).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.nfc_rounded,
-                        size: 16, color: Color(0xFFFF9100)),
-                    SizedBox(width: 6),
-                    Text(
-                      'Pendiente verificar vehículo (RFID + Pistero)',
-                      style: TextStyle(
-                        color: Color(0xFFFF9100),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RFID SCAN BOTTOM SHEET (Sello 2+3)
+  // ═══════════════════════════════════════════════════════════════════════════
+  void _showRfidScanSheet(
+      BuildContext context, FuelRedProvider prov, Map<String, dynamic> tx) {
+    final txId = tx['transaction_id'] as int? ?? tx['id'] as int? ?? 0;
+    final driverName = tx['driver_name'] as String? ?? 'Chofer';
+    final pumpLabel = tx['pump_label'] as String? ?? '—';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: kNewborder,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) => _RfidScanSheet(
+        txId: txId,
+        driverName: driverName,
+        pumpLabel: pumpLabel,
+        prov: prov,
       ),
     );
   }
@@ -554,39 +587,6 @@ class FuelRedPage extends StatelessWidget {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // EMPTY STATE
-  // ═══════════════════════════════════════════════════════════════════════════
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.local_shipping_outlined,
-            size: 64,
-            color: kNewtextSec.withValues(alpha: 0.4),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Sin órdenes FuelRed',
-            style: TextStyle(
-              color: kContrateFondoOscuro,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Cuando un chofer P4S llegue a la estación\naparecerá aquí',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: kNewtextSec, fontSize: 14),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // HELPERS
   // ═══════════════════════════════════════════════════════════════════════════
   void _confirmCancel(
@@ -654,6 +654,379 @@ class FuelRedPage extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// RFID SCAN SHEET — Escaneo NFC para verificación Sello 2+3
+// ═══════════════════════════════════════════════════════════════════════════
+enum _ScanPhase { idle, scanning, verifying, success, error }
+
+class _RfidScanSheet extends StatefulWidget {
+  const _RfidScanSheet({
+    required this.txId,
+    required this.driverName,
+    required this.pumpLabel,
+    required this.prov,
+  });
+
+  final int txId;
+  final String driverName;
+  final String pumpLabel;
+  final FuelRedProvider prov;
+
+  @override
+  State<_RfidScanSheet> createState() => _RfidScanSheetState();
+}
+
+class _RfidScanSheetState extends State<_RfidScanSheet> {
+  // idle → scanning → verifying → success → error
+  _ScanPhase _phase = _ScanPhase.idle;
+  String? _scannedUid;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    // Iniciar escaneo automáticamente al abrir
+    _startScan();
+  }
+
+  @override
+  void dispose() {
+    FlutterNfcKit.finish().catchError((_) {});
+    super.dispose();
+  }
+
+  String _formatUid(String? raw) {
+    if (raw == null || raw.isEmpty) return '';
+    return raw.replaceAll(RegExp(r'[^0-9a-fA-F]'), '').toUpperCase();
+  }
+
+  Future<void> _startScan() async {
+    if (_phase == _ScanPhase.scanning || _phase == _ScanPhase.verifying) return;
+    setState(() {
+      _phase = _ScanPhase.scanning;
+      _errorMessage = null;
+    });
+
+    try {
+      final ava = await FlutterNfcKit.nfcAvailability;
+      if (ava != NFCAvailability.available) {
+        setState(() {
+          _phase = _ScanPhase.error;
+          _errorMessage = 'NFC no disponible en este dispositivo';
+        });
+        return;
+      }
+
+      final tag = await FlutterNfcKit.poll(
+        timeout: const Duration(seconds: 30),
+        androidPlatformSound: true,
+      );
+
+      final uid = _formatUid(tag.id);
+      await FlutterNfcKit.finish();
+
+      if (uid.isEmpty) {
+        setState(() {
+          _phase = _ScanPhase.error;
+          _errorMessage = 'No se pudo leer el UID de la tarjeta';
+        });
+        return;
+      }
+
+      try { await HapticFeedback.selectionClick(); } catch (_) {}
+      setState(() {
+        _scannedUid = uid;
+        _phase = _ScanPhase.verifying;
+      });
+
+      await _verifyVehicle(uid);
+    } catch (e) {
+      await FlutterNfcKit.finish().catchError((_) {});
+      if (!mounted) return;
+      setState(() {
+        _phase = _ScanPhase.error;
+        _errorMessage = e.toString().contains('timeout')
+            ? 'Tiempo agotado — acerque la tarjeta RFID'
+            : 'Error NFC: $e';
+      });
+    }
+  }
+
+  Future<void> _verifyVehicle(String rfidTag) async {
+    // Obtener identificador del pistero (RFID tag o código de empleado)
+    final cierreProv = context.read<CierreActivoProvider>();
+    final pisteroCode = cierreProv.usuario?.attendantId ?? '';
+
+    if (pisteroCode.isEmpty) {
+      setState(() {
+        _phase = _ScanPhase.error;
+        _errorMessage = 'No se encontró identificador del pistero. Verifique su sesión.';
+      });
+      return;
+    }
+
+    try {
+      final result = await widget.prov.verifyVehicle(
+        transactionId: widget.txId,
+        rfidTag: rfidTag,
+        pisteroCode: pisteroCode,
+      );
+
+      if (!mounted) return;
+
+      if (result != null) {
+        setState(() => _phase = _ScanPhase.success);
+        // Re-sync para que la lista se actualice
+        widget.prov.syncFromRest();
+        await Future.delayed(const Duration(milliseconds: 1200));
+        if (mounted) Navigator.pop(context);
+      } else {
+        setState(() {
+          _phase = _ScanPhase.error;
+          _errorMessage = 'Vehículo no reconocido o no asignado a esta flotilla';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _phase = _ScanPhase.error;
+        _errorMessage = 'Error al verificar: $e';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: kNewtextSec.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Info de la transacción
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF9100).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.person_rounded,
+                      color: Color(0xFFFF9100), size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.driverName,
+                        style: const TextStyle(
+                          color: kContrateFondoOscuro,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        '${widget.pumpLabel} • TX #${widget.txId}',
+                        style: const TextStyle(color: kNewtextSec, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 28),
+
+            // Estado del escaneo
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              child: _buildScanState(),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Botón de acción
+            if (_phase == _ScanPhase.error || _phase == _ScanPhase.idle)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF9100),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.nfc_rounded),
+                  label: const Text('Reintentar escaneo',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  onPressed: _startScan,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScanState() {
+    return switch (_phase) {
+      _ScanPhase.scanning => Column(
+          key: const ValueKey('scan_scanning'),
+          children: [
+            const SizedBox(
+              width: 64,
+              height: 64,
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF9100)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Acerque la tarjeta RFID',
+              style: TextStyle(
+                color: kContrateFondoOscuro,
+                fontWeight: FontWeight.bold,
+                fontSize: 17,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Escanee el RFID del parabrisas del vehículo',
+              style: TextStyle(color: kNewtextSec, fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      _ScanPhase.verifying => Column(
+          key: const ValueKey('scan_verifying'),
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: const Color(0xFF29B6F6).withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.sync_rounded,
+                  color: Color(0xFF29B6F6), size: 32),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Verificando vehículo...',
+              style: TextStyle(
+                color: kContrateFondoOscuro,
+                fontWeight: FontWeight.bold,
+                fontSize: 17,
+              ),
+            ),
+            if (_scannedUid != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                'RFID: $_scannedUid',
+                style: const TextStyle(
+                    color: kNewtextSec,
+                    fontSize: 12,
+                    fontFamily: 'monospace'),
+              ),
+            ],
+          ],
+        ),
+      _ScanPhase.success => Column(
+          key: const ValueKey('scan_success'),
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: const Color(0xFF00E676).withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.check_rounded,
+                  color: Color(0xFF00E676), size: 36),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Vehículo verificado',
+              style: TextStyle(
+                color: Color(0xFF00E676),
+                fontWeight: FontWeight.bold,
+                fontSize: 17,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Esperando autorización del chofer (Sello 4)...',
+              style: TextStyle(color: kNewtextSec, fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      _ScanPhase.error => Column(
+          key: const ValueKey('scan_error'),
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF1744).withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.error_outline_rounded,
+                  color: Color(0xFFFF1744), size: 32),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _errorMessage ?? 'Error desconocido',
+              style: const TextStyle(
+                color: Color(0xFFFF1744),
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      _ScanPhase.idle => Column(
+          key: const ValueKey('scan_idle'),
+          children: [
+            Icon(Icons.nfc_rounded,
+                size: 64, color: kNewtextSec.withValues(alpha: 0.4)),
+            const SizedBox(height: 16),
+            const Text(
+              'Listo para escanear',
+              style: TextStyle(
+                color: kContrateFondoOscuro,
+                fontWeight: FontWeight.bold,
+                fontSize: 17,
+              ),
+            ),
+          ],
+        ),
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // AUTHORIZE BUTTON — StatefulWidget para manejar loading
 // ═══════════════════════════════════════════════════════════════════════════
 class _AuthorizeButton extends StatefulWidget {
@@ -677,33 +1050,13 @@ class _AuthorizeButtonState extends State<_AuthorizeButton> {
       );
       if (!mounted) return;
       if (ok) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: Color(0xFF00C853),
-            content: Text('Despacho autorizado — movido a Despachos',
-                style: TextStyle(color: Colors.white)),
-            duration: Duration(seconds: 3),
-          ),
-        );
+        AppOverlay.success(context, 'Despacho autorizado — movido a Despachos');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: Color(0xFFFF1744),
-            content: Text('Error al autorizar despacho',
-                style: TextStyle(color: Colors.white)),
-            duration: Duration(seconds: 3),
-          ),
-        );
+        AppOverlay.error(context, 'Error al autorizar despacho');
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: const Color(0xFFFF1744),
-          content: Text('Error: $e', style: const TextStyle(color: Colors.white)),
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      AppOverlay.error(context, 'Error: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }

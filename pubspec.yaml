@@ -41,6 +41,8 @@ dependencies:
   flutter_nfc_kit: ^3.6.0
   signalr_netcore: ^1.4.4
   web_socket_channel: ^3.0.1
+  flutter_ringtone_player: ^4.0.0+4
+  shimmer: ^3.0.0
 
 flutter_icons:
   android: "launcher_icon"
