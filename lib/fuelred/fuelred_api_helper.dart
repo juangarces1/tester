@@ -76,20 +76,25 @@ class FuelRedApiHelper {
   static Future<Map<String, dynamic>?> verifyVehicle({
     required int transactionId,
     required String rfidTag,
-    required String pisteroId,
+    required String pisteroCode,
   }) async {
     try {
+      final body = {
+        'rfidTag': rfidTag,
+        'pisteroCode': pisteroCode,
+      };
+      debugPrint('[FuelRedAPI] verifyVehicle TX#$transactionId → $body');
       final res = await _dio.post(
         '/transactions/$transactionId/verify-vehicle',
-        data: {
-          'rfidTag': rfidTag,
-          'pisteroId': pisteroId,
-        },
+        data: body,
       );
-      if (res.statusCode == 200) {
+      debugPrint('[FuelRedAPI] verifyVehicle response: ${res.statusCode} ${res.data}');
+      if (res.statusCode == 200 || res.statusCode == 201) {
         return res.data as Map<String, dynamic>;
       }
-      debugPrint('[FuelRedAPI] verifyVehicle: ${res.statusCode} ${res.data}');
+      return null;
+    } on DioException catch (e) {
+      debugPrint('[FuelRedAPI] verifyVehicle error: ${e.response?.statusCode} ${e.response?.data} | $e');
       return null;
     } catch (e) {
       debugPrint('[FuelRedAPI] verifyVehicle error: $e');

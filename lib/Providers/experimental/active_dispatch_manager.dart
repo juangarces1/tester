@@ -85,7 +85,7 @@ class ActiveDispatchManager extends ChangeNotifier {
         if (session.isFuelRed && fuelRedWs != null) {
           final now = DateTime.now();
           final last = session.lastProgressSent;
-          if (last == null || now.difference(last).inSeconds >= 2) {
+          if (last == null || now.difference(last).inMilliseconds >= 500) {
             session.lastProgressSent = now;
             fuelRedWs!.sendDispatchProgress(
               transactionId: session.fuelRedTxId!,

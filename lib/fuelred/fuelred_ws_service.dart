@@ -25,6 +25,8 @@ class FuelRedWsService {
       StreamController<Map<String, dynamic>>.broadcast();
   final _dispatchUpdateCtrl =
       StreamController<Map<String, dynamic>>.broadcast();
+  final _transactionCancelledCtrl =
+      StreamController<Map<String, dynamic>>.broadcast();
   final _connectionStatusCtrl = StreamController<bool>.broadcast();
 
   Stream<Map<String, dynamic>> get onTransactionWaiting =>
@@ -33,6 +35,8 @@ class FuelRedWsService {
       _dispatchReadyCtrl.stream;
   Stream<Map<String, dynamic>> get onDispatchUpdate =>
       _dispatchUpdateCtrl.stream;
+  Stream<Map<String, dynamic>> get onTransactionCancelled =>
+      _transactionCancelledCtrl.stream;
   Stream<bool> get onConnectionStatus => _connectionStatusCtrl.stream;
 
   bool _connected = false;
@@ -104,8 +108,11 @@ class FuelRedWsService {
         case 'dispatch:update':
           _dispatchUpdateCtrl.add(data);
           break;
+        case 'transaction:cancelled':
+          _transactionCancelledCtrl.add(data);
+          break;
         default:
-          debugPrint('[FuelRedWS] Evento desconocido: $event');
+          debugPrint('[FuelRedWS] Evento desconocido: $event → $data');
       }
     } catch (e) {
       debugPrint('[FuelRedWS] Error parseando mensaje: $e');
@@ -141,7 +148,6 @@ class FuelRedWsService {
     _reconnectTimer?.cancel();
     _retryCount++;
     final delay = (_retryCount * 3).clamp(3, _maxRetryDelay);
-    debugPrint('[FuelRedWS] Reconectando en ${delay}s (intento $_retryCount)');
     _reconnectTimer = Timer(Duration(seconds: delay), () {
       connect();
       onReconnect?.call();
@@ -168,6 +174,7 @@ class FuelRedWsService {
     _transactionWaitingCtrl.close();
     _dispatchReadyCtrl.close();
     _dispatchUpdateCtrl.close();
+    _transactionCancelledCtrl.close();
     _connectionStatusCtrl.close();
   }
 }

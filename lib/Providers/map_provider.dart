@@ -165,8 +165,6 @@ class MapProvider extends ChangeNotifier {
         .map(NozzleStatusDto.fromJson)
         .toList();
 
-    debugPrint('📡 [MapProvider] ReceiveStatus → ${statuses.length} mangueras');
-
     for (final s in statuses) {
       _currentStatus[s.nozzleCode] = s.status.toStatusString();
 
@@ -193,9 +191,6 @@ class MapProvider extends ChangeNotifier {
         .whereType<Map<String, dynamic>>()
         .map(NozzleVisualizationDto.fromJson)
         .toList();
-
-    debugPrint(
-        '📊 [MapProvider] ReceiveVisualization → ${visualizations.length} mangueras activas');
 
     // Actualizar litros/monto en caché
     // Actualizar cache con datos de visualización
@@ -239,10 +234,6 @@ class MapProvider extends ChangeNotifier {
 
       // Estado actual o 'unknown' si no ha llegado nada
       final statusStr = _currentStatus[code] ?? 'unknown';
-
-      // DEBUGLOG: Inspeccionamos cada manguera
-      debugPrint(
-          '🛠️ [MapProvider] RebuildMap -> H:${mapping.hoseNumber} | Code:$code | D:${mapping.dispenserNumber} | Status:$statusStr');
 
       final fuel = _resolveFuel(mapping);
       final price = getPriceForFuel(fuel.name);
