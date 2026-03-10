@@ -147,6 +147,19 @@ class ActiveDispatchManager extends ChangeNotifier {
         }
         // Si !hasFueled, dejamos la sesión visible para que el usuario
         // decida reintentar o descartar (canRetryOrDiscard == true).
+        if (!session.hasFueled && session.hasBeenActivated && !session.isSettled) {
+          debugPrint(
+              '⏰ [ActiveDispatchManager] Despacho $id -> preset expiró sin despachar');
+          // Notificar al backend FuelRed que el preset expiró
+          if (session.isFuelRed && fuelRedWs != null) {
+            fuelRedWs!.sendDispatchProgress(
+              transactionId: session.fuelRedTxId!,
+              liters: 0,
+              amount: 0,
+              status: 'preset_expired',
+            );
+          }
+        }
       }
 
       // Error del hardware

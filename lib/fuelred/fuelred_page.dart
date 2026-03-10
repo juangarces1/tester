@@ -356,6 +356,51 @@ class FuelRedPage extends StatelessWidget {
 
   // ═══════════════════════════════════════════════════════════════════════════
   // DISPATCH CARD (Sello 4 ok, despacho autorizado)
+  // ─── Fuel type label ─────────────────────────────────────────────────────
+  String _fuelTypeLabel(String fuelType) {
+    switch (fuelType.toLowerCase()) {
+      case 'super':
+      case 'superfuel':
+        return 'SUPER';
+      case 'diesel':
+      case 'dieselfuel':
+        return 'DIESEL';
+      case 'regular':
+      case 'regularfuel':
+        return 'REGULAR';
+      default:
+        return fuelType.toUpperCase();
+    }
+  }
+
+  // ─── Fuel palette for gradient header ────────────────────────────────────
+  ({Color primary, Color accent, IconData icon}) _fuelPalette(String fuelType) {
+    switch (fuelType.toLowerCase()) {
+      case 'super':
+      case 'superfuel':
+        return (
+          primary: const Color.fromARGB(255, 140, 11, 149),
+          accent: const Color.fromARGB(255, 99, 3, 111),
+          icon: Icons.bolt,
+        );
+      case 'diesel':
+      case 'dieselfuel':
+        return (
+          primary: const Color.fromARGB(255, 9, 140, 79),
+          accent: const Color.fromARGB(255, 3, 137, 74),
+          icon: Icons.local_shipping,
+        );
+      case 'regular':
+      case 'regularfuel':
+      default:
+        return (
+          primary: const Color.fromARGB(255, 227, 47, 30),
+          accent: const Color.fromARGB(255, 210, 2, 2),
+          icon: Icons.local_gas_station,
+        );
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildDispatchCard(
       BuildContext context, FuelRedProvider prov, Map<String, dynamic> d) {
@@ -368,83 +413,148 @@ class FuelRedPage extends StatelessWidget {
     final liters = d['liters'] as num? ?? 0;
     final txId = d['transaction_id'] as int? ?? d['id'] as int? ?? 0;
     final status = d['dispatch_status'] as String? ?? 'pending';
+    final createdAt = d['created_at'] as String? ?? '';
+
+    final palette = _fuelPalette(fuelType);
+    final radius = BorderRadius.circular(16);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
         decoration: BoxDecoration(
-          color: kNewborder,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFF00E676).withValues(alpha: 0.3),
-          ),
+          borderRadius: radius,
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+        child: ClipRRect(
+          borderRadius: radius,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Header
-              Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF00E676).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.local_gas_station_rounded,
-                      color: Color(0xFF00E676),
-                      size: 22,
-                    ),
+              // ── Gradient header ──
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [palette.primary, palette.accent],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+                child: Row(
+                  children: [
+                    // Pump number — "Dispensador 2" → "D2"
+                    Text(
+                      'D${RegExp(r'\d+').firstMatch(pumpLabel)?.group(0) ?? pumpLabel}',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withValues(alpha: 0.35),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _fuelTypeLabel(fuelType),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'Manguera $hoseLabel',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white.withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(palette.icon, color: Colors.white, size: 24),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              // ── Driver name + plate ──
+              Center(
+                child: Text(
+                  '$driverName • $plate',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black.withValues(alpha: 0.85),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              // ── Info tiles: Monto, Litros, TX# ──
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    _buildInfoTile(
+                      '₡${_formatNumber(amount)}',
+                      palette.primary,
+                      emphasize: true,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildInfoTile('#$txId', Colors.black54),
+                    const Spacer(),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          '$driverName • $plate',
-                          style: const TextStyle(
-                            color: kContrateFondoOscuro,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
+                        _buildStatusChip(status),
+                        if (createdAt.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            _timeAgo(createdAt),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.black38,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '$pumpLabel → $hoseLabel • $fuelType',
-                          style: const TextStyle(
-                            color: kNewtextSec,
-                            fontSize: 13,
-                          ),
-                        ),
+                        ],
                       ],
                     ),
-                  ),
-                  _buildStatusChip(status),
-                ],
+                  ],
+                ),
               ),
 
               const SizedBox(height: 12),
 
-              // Métricas
-              Row(
-                children: [
-                  _buildMetric('Litros', liters.toStringAsFixed(1)),
-                  const SizedBox(width: 16),
-                  _buildMetric('Monto', '₡${_formatNumber(amount)}'),
-                  const SizedBox(width: 16),
-                  _buildMetric('TX', '#$txId'),
-                ],
+              // ── Actions ──
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: _buildActions(context, prov, txId, status, d),
               ),
-
-              const SizedBox(height: 12),
-
-              // Botones de acción según estado
-              _buildActions(context, prov, txId, status, d),
             ],
           ),
         ),
@@ -452,24 +562,23 @@ class FuelRedPage extends StatelessWidget {
     );
   }
 
-  Widget _buildMetric(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(color: kNewtextSec, fontSize: 11),
+  Widget _buildInfoTile(String value, Color color, {bool emphasize = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: emphasize
+            ? color.withValues(alpha: 0.08)
+            : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        value,
+        style: TextStyle(
+          fontSize: emphasize ? 16 : 14,
+          fontWeight: emphasize ? FontWeight.w700 : FontWeight.w600,
+          color: emphasize ? color : Colors.black.withValues(alpha: 0.75),
         ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: const TextStyle(
-            color: kContrateFondoOscuro,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -497,42 +606,24 @@ class FuelRedPage extends StatelessWidget {
       Map<String, dynamic> dispatch) {
     switch (status) {
       case 'pending':
-        return Row(
+        return Column(
           children: [
-            Expanded(
-              child: _AuthorizeButton(prov: prov, dispatch: dispatch),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _actionButton(
-                label: 'Cancelar',
-                icon: Icons.cancel_outlined,
-                color: const Color(0xFFFF1744),
-                onTap: () => _confirmCancel(context, prov, txId),
-              ),
-            ),
+            _AuthorizeButton(prov: prov, dispatch: dispatch),
+            const SizedBox(height: 8),
+            _cancelLink(context, prov, txId),
           ],
         );
       case 'acknowledged':
-        return Row(
+        return Column(
           children: [
-            Expanded(
-              child: _actionButton(
-                label: 'Iniciar despacho',
-                icon: Icons.play_arrow_rounded,
-                color: const Color(0xFF00E676),
-                onTap: () => prov.startDispatch(txId),
-              ),
+            _actionButton(
+              label: 'Iniciar despacho',
+              icon: Icons.play_arrow_rounded,
+              color: const Color(0xFF00E676),
+              onTap: () => prov.startDispatch(txId),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _actionButton(
-                label: 'Cancelar',
-                icon: Icons.cancel_outlined,
-                color: const Color(0xFFFF1744),
-                onTap: () => _confirmCancel(context, prov, txId),
-              ),
-            ),
+            const SizedBox(height: 8),
+            _cancelLink(context, prov, txId),
           ],
         );
       case 'dispensing':
@@ -580,6 +671,24 @@ class FuelRedPage extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _cancelLink(BuildContext context, FuelRedProvider prov, int txId) {
+    return GestureDetector(
+      onTap: () => _confirmCancel(context, prov, txId),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Text(
+          'Cancelar despacho',
+          style: TextStyle(
+            color: const Color(0xFFFF1744).withValues(alpha: 0.6),
+            fontSize: 13,
+            decoration: TextDecoration.underline,
+            decorationColor: const Color(0xFFFF1744).withValues(alpha: 0.4),
           ),
         ),
       ),
@@ -1044,15 +1153,15 @@ class _AuthorizeButtonState extends State<_AuthorizeButton> {
   Future<void> _authorize() async {
     setState(() => _loading = true);
     try {
-      final ok = await widget.prov.authorizeDispatch(
+      final error = await widget.prov.authorizeDispatch(
         context: context,
         dispatch: widget.dispatch,
       );
       if (!mounted) return;
-      if (ok) {
+      if (error == null) {
         AppOverlay.success(context, 'Despacho autorizado — movido a Despachos');
       } else {
-        AppOverlay.error(context, 'Error al autorizar despacho');
+        AppOverlay.error(context, error);
       }
     } catch (e) {
       if (!mounted) return;

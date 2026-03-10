@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-
-const kRegularColor =  Color(0xFFec1c24);
-const kSuperColor = Color(0xFFb634b8);
-const kDieselColor = Color(0xFF1dbd4a);
+import 'package:tester/constans.dart';
 
 class CombustibleIcon extends StatelessWidget {
   final String tipo;

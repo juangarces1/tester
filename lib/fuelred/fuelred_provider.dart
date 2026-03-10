@@ -225,7 +225,9 @@ class FuelRedProvider extends ChangeNotifier with ViewStateMixin {
   // ── Autorizar despacho FuelRed → pipeline local ─────────────
   /// Toma una orden `dispatch:ready` y la convierte en un DispatchSession
   /// que entra al ActiveDispatchManager para ser trackeada por SignalR.
-  Future<bool> authorizeDispatch({
+  ///
+  /// Retorna null si todo OK, o un String con el error específico.
+  Future<String?> authorizeDispatch({
     required BuildContext context,
     required Map<String, dynamic> dispatch,
   }) async {
@@ -240,12 +242,16 @@ class FuelRedProvider extends ChangeNotifier with ViewStateMixin {
     debugPrint('[AuthDispatch] 1. dispatch=$dispatch');
 
     // 2. Buscar posición/manguera en MapProvider
+    // Capturar todas las refs de context ANTES de cualquier await
     final mapProv = context.read<MapProvider>();
+    final cierreProv = context.read<CierreActivoProvider>();
+    final dispatchMgr = context.read<ActiveDispatchManager>();
+
     final posIndex = mapProv.positionIndexForNozzle(hoseNumber);
     debugPrint('[AuthDispatch] 2. posIndex=$posIndex stationMap=${mapProv.stationMap != null}');
     if (posIndex == null || mapProv.stationMap == null) {
       debugPrint('[AuthDispatch] ✗ No se encontró posición para manguera $hoseNumber');
-      return false;
+      return 'No se encontró posición para manguera $hoseNumber';
     }
     final position = mapProv.stationMap![posIndex]!;
     final hose = position.hoses.firstWhere(
@@ -259,30 +265,38 @@ class FuelRedProvider extends ChangeNotifier with ViewStateMixin {
     debugPrint('[AuthDispatch] 3. nozzleCode=$nozzleCode status=$status');
     if (status != 'available' && status != 'blocked') {
       debugPrint('[AuthDispatch] ✗ Manguera $nozzleCode en estado $status');
-      return false;
+      return 'Manguera $nozzleCode en estado "$status" — debe estar disponible';
     }
 
-    // 4. Acknowledge + Start a Flotilla
-    debugPrint('[AuthDispatch] 4. Acknowledge + Start txId=$txId');
-    await acknowledgeDispatch(txId);
-    await startDispatch(txId);
-
-    // 5. Preset al hardware
-    final tagId = context.read<CierreActivoProvider>().usuario?.attendantId ?? '';
-    debugPrint('[AuthDispatch] 5. Preset nozzle=$nozzleCode amount=$amount tagId=$tagId');
-    final ok = await ConsoleApiHelper.presetByAmount(
+    // 4. Preset al hardware (ANTES de notificar al backend)
+    final tagId = cierreProv.usuario?.attendantId ?? '';
+    debugPrint('[AuthDispatch] 4. Preset nozzle=$nozzleCode amount=$amount tagId=$tagId');
+    final presetOk = await ConsoleApiHelper.presetByAmount(
       nozzleCode: nozzleCode,
       amount: amount,
       tagId: tagId,
     );
 
-    if (!ok) {
+    if (!presetOk) {
       debugPrint('[AuthDispatch] ✗ Fallo preset al hardware');
-      return false;
+      return 'Fallo al autorizar la bomba (preset manguera $nozzleCode)';
     }
-    debugPrint('[AuthDispatch] 5. Preset OK');
+    debugPrint('[AuthDispatch] 4. Preset OK');
+
+    // 5. Acknowledge + Start a Flotilla (solo si preset exitoso)
+    debugPrint('[AuthDispatch] 5. Acknowledge + Start txId=$txId');
+    try {
+      final ackOk = await FuelRedApiHelper.acknowledgeDispatch(txId);
+      debugPrint('[AuthDispatch] 5a. Acknowledge result=$ackOk');
+      final startOk = await FuelRedApiHelper.startDispatch(txId);
+      debugPrint('[AuthDispatch] 5b. Start result=$startOk');
+    } catch (e) {
+      debugPrint('[AuthDispatch] 5. Error en acknowledge/start: $e');
+      // No bloquear — el preset ya se hizo, continuar con la sesión
+    }
 
     // 6. Crear DispatchSession con fuelRedTxId
+    debugPrint('[AuthDispatch] 6. Creando DispatchSession...');
     final session = DispatchSession(
       id: 'fuelred-$txId-${DateTime.now().microsecondsSinceEpoch}',
       position: position,
@@ -303,14 +317,16 @@ class FuelRedProvider extends ChangeNotifier with ViewStateMixin {
     );
 
     // 7. Registrar en ActiveDispatchManager
-    context.read<ActiveDispatchManager>().registerDispatch(session);
+    debugPrint('[AuthDispatch] 7. Registrando en ActiveDispatchManager...');
+    dispatchMgr.registerDispatch(session);
+    debugPrint('[AuthDispatch] 7. Registrado OK');
 
     // 8. Quitar de pendingDispatches
     pendingDispatches.removeWhere((d) => _txId(d) == txId);
     _refreshState();
 
     debugPrint('[FuelRedProvider] Despacho FuelRed TX#$txId autorizado → DispatchSession ${session.id}');
-    return true;
+    return null; // null = éxito
   }
 
   // ── Helpers ─────────────────────────────────────────────────

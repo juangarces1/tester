@@ -15,6 +15,7 @@ import 'package:tester/Screens/checkout/checkount.dart';
 import 'package:tester/Screens/credito/credit_process_screen.dart';
 import 'package:tester/Screens/tickets/ticket_screen.dart';
 
+import 'package:tester/fuelred/fuelred_api_helper.dart';
 import 'package:tester/helpers/console_api_helper.dart';
 import 'package:tester/helpers/varios_helpers.dart';
 
@@ -685,8 +686,17 @@ class _DispatchCardState extends State<DispatchCard> {
     if (confirmed != true) return;
     if (!mounted) return;
 
-    context.read<ActiveDispatchManager>().finishSession(widget.d.id);
-    Fluttertoast.showToast(msg: 'Despacho cancelado localmente');
+    // Si es despacho FuelRed, cancelar en el backend
+    final d = widget.d;
+    if (d.isFuelRed) {
+      FuelRedApiHelper.cancelDispatch(
+        dispatchId: d.fuelRedTxId!,
+        reason: 'Cancelado por estación (preset expirado)',
+      );
+    }
+
+    context.read<ActiveDispatchManager>().finishSession(d.id);
+    Fluttertoast.showToast(msg: 'Despacho cancelado');
   }
 
   void _goFacturacion(DispatchSession d) async {
@@ -764,8 +774,21 @@ class _DispatchCardState extends State<DispatchCard> {
 
     if (isSuccess) {
       session.currentStatus = NozzleStatus.blocked;
+      session.hasBeenActivated = false;
       session.hasFueled = false;
       context.read<ActiveDispatchManager>().forceRefresh();
+
+      // Notificar al chofer que el despacho se retomó
+      if (session.isFuelRed) {
+        final ws = context.read<ActiveDispatchManager>().fuelRedWs;
+        ws?.sendDispatchProgress(
+          transactionId: session.fuelRedTxId!,
+          liters: 0,
+          amount: 0,
+          status: 'dispensing',
+        );
+      }
+
       Fluttertoast.showToast(
           msg: 'Despacho re-autorizado', backgroundColor: Colors.green);
     } else {

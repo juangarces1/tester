@@ -89,7 +89,7 @@ class FuelRedApiHelper {
         data: body,
       );
       debugPrint('[FuelRedAPI] verifyVehicle response: ${res.statusCode} ${res.data}');
-      if (res.statusCode == 200 || res.statusCode == 201) {
+      if (_isSuccess(res.statusCode)) {
         return res.data as Map<String, dynamic>;
       }
       return null;
@@ -106,7 +106,7 @@ class FuelRedApiHelper {
   static Future<bool> acknowledgeDispatch(int dispatchId) async {
     try {
       final res = await _dio.post('/dispatches/$dispatchId/acknowledge');
-      return res.statusCode == 200;
+      return _isSuccess(res.statusCode);
     } catch (e) {
       debugPrint('[FuelRedAPI] acknowledge error: $e');
       return false;
@@ -117,7 +117,7 @@ class FuelRedApiHelper {
   static Future<bool> startDispatch(int dispatchId) async {
     try {
       final res = await _dio.post('/dispatches/$dispatchId/start');
-      return res.statusCode == 200;
+      return _isSuccess(res.statusCode);
     } catch (e) {
       debugPrint('[FuelRedAPI] start error: $e');
       return false;
@@ -145,7 +145,7 @@ class FuelRedApiHelper {
         '/dispatches/$dispatchId/complete',
         data: body,
       );
-      if (res.statusCode == 200) {
+      if (_isSuccess(res.statusCode)) {
         return res.data as Map<String, dynamic>;
       }
       debugPrint('[FuelRedAPI] complete: ${res.statusCode} ${res.data}');
@@ -166,10 +166,13 @@ class FuelRedApiHelper {
         '/dispatches/$dispatchId/cancel',
         data: {'reason': reason},
       );
-      return res.statusCode == 200;
+      return _isSuccess(res.statusCode);
     } catch (e) {
       debugPrint('[FuelRedAPI] cancel error: $e');
       return false;
     }
   }
+
+  // ── Helper ────────────────────────────────────────────────
+  static bool _isSuccess(int? code) => code != null && code >= 200 && code < 300;
 }
