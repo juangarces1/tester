@@ -150,6 +150,10 @@ class FuelRedProvider extends ChangeNotifier with ViewStateMixin {
 
   // ── Acciones ────────────────────────────────────────────────
 
+  /// Datos del cliente de estación del último vehículo verificado.
+  /// Se usa para vincular con facturación en FuelRedMobil.
+  Map<String, dynamic>? lastStationClient;
+
   /// Verificar vehículo + pistero (Sello 2+3).
   Future<Map<String, dynamic>?> verifyVehicle({
     required int transactionId,
@@ -162,6 +166,7 @@ class FuelRedProvider extends ChangeNotifier with ViewStateMixin {
       pisteroCode: pisteroCode,
     );
     if (result != null) {
+      lastStationClient = result['stationClient'] as Map<String, dynamic>?;
       // Remover de waiting (pasará a pending cuando llegue dispatch:ready por WS)
       waitingTransactions.removeWhere((t) => _txId(t) == transactionId);
       _refreshState();

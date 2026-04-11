@@ -1082,6 +1082,22 @@ class _RfidScanSheetState extends State<_RfidScanSheet> {
                 fontSize: 17,
               ),
             ),
+            if (widget.prov.lastStationClient != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                widget.prov.lastStationClient!['clientName'] ?? '—',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Cod: ${widget.prov.lastStationClient!['externalClientId'] ?? '—'}',
+                style: const TextStyle(color: kNewtextSec, fontSize: 12),
+              ),
+            ],
             const SizedBox(height: 6),
             const Text(
               'Esperando autorización del chofer (Sello 4)...',
