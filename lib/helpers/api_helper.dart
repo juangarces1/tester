@@ -16,6 +16,7 @@ import 'package:tester/Models/FuelRed/cierredatafono.dart';
 import 'package:tester/Models/FuelRed/cliente.dart';
 
 import 'package:tester/Models/FuelRed/datafono.dart';
+import 'package:tester/Models/Pax/transaccion_pax.dart';
 import 'package:tester/Models/FuelRed/deposito.dart';
 import 'package:tester/Models/FuelRed/factura.dart';
 import 'package:tester/Models/FuelRed/money.dart';
@@ -527,6 +528,70 @@ class ApiHelper {
       }
     }
     return Response(isSuccess: true, result: datafonos);
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // PAX Transactions
+  // ══════════════════════════════════════════════════════════════
+
+  static Future<Response> postTransaccionPax(
+      Map<String, dynamic> request) async {
+    try {
+      final response =
+          await _dio.post('/api/TransaccionesPax', data: request);
+
+      if (response.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: response.data?.toString() ?? '');
+      }
+      return Response(isSuccess: true, result: response.data);
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
+  }
+
+  static Future<Response> getTransaccionesPaxByFactura(int idFactura) async {
+    try {
+      final response =
+          await _dio.get('/api/TransaccionesPax/factura/$idFactura');
+
+      if (response.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: response.data?.toString() ?? '');
+      }
+
+      List<TransaccionPax> transacciones = [];
+      if (response.data != null) {
+        for (var item in response.data) {
+          transacciones.add(TransaccionPax.fromJson(item));
+        }
+      }
+      return Response(isSuccess: true, result: transacciones);
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
+  }
+
+  static Future<Response> getTransaccionesPaxByCierre(int idCierre) async {
+    try {
+      final response =
+          await _dio.get('/api/TransaccionesPax/cierre/$idCierre');
+
+      if (response.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: response.data?.toString() ?? '');
+      }
+
+      List<TransaccionPax> transacciones = [];
+      if (response.data != null) {
+        for (var item in response.data) {
+          transacciones.add(TransaccionPax.fromJson(item));
+        }
+      }
+      return Response(isSuccess: true, result: transacciones);
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
   }
 
   static Future<Response> getMoneys() async {

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:dio/dio.dart' show CancelToken;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
@@ -21,6 +22,10 @@ import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Providers/facturas_provider.dart';
 import 'package:tester/Screens/NewHome/Components/produccts_page.dart';
 import 'package:tester/Screens/test_print/testprint.dart';
+import 'package:tester/Models/FuelRed/datafono.dart';
+import 'package:tester/Models/Pax/pax_response.dart';
+import 'package:tester/Models/Pax/transaccion_pax.dart';
+import 'package:tester/services/pax_service.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
 import 'package:tester/helpers/varios_helpers.dart';
@@ -774,6 +779,131 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // PAX HELPERS
+  // ═══════════════════════════════════════════════════════════════
+
+  /// Returns the card amount and associated datafono if the invoice has a card payment.
+  /// Matches the payment method to the correct datafono by name.
+  /// Falls back to any PAX-configured datafono if no name match found.
+  /// Returns null if no card payment or no PAX-configured datafono.
+  Future<(double amount, Datafono datafono)?> _findCardPayment(
+      Invoice factura) async {
+    final paid = factura.formPago!;
+
+    // Map payment method key -> (amount, search terms for datafono name match)
+    final cardPayments = <String, (double amount, List<String> terms)>{
+      'bac': (paid.totalBac, ['bac']),
+      'bn': (paid.totalBn, ['bn', 'nacional']),
+      'scotia': (paid.totalSctia, ['scot', 'sta']),
+      'dav': (paid.totalDav, ['dav']),
+    };
+
+    final activeCard = cardPayments.entries
+        .where((e) => e.value.$1 > 0)
+        .firstOrNull;
+    if (activeCard == null) return null;
+
+    final response = await ApiHelper.getDatafonos();
+    if (!response.isSuccess) return null;
+
+    final List<Datafono> datafonos = response.result;
+    final paxDatafonos = datafonos.where((d) => d.hasPax).toList();
+    if (paxDatafonos.isEmpty) return null;
+
+    // Try to match by datafono name containing one of the bank's search terms
+    final terms = activeCard.value.$2;
+    final matched = paxDatafonos.where((d) {
+      final name = (d.nombre ?? '').toLowerCase();
+      return terms.any((t) => name.contains(t));
+    }).firstOrNull;
+
+    // Use matched datafono, or fall back to first available PAX
+    final datafono = matched ?? paxDatafonos.first;
+
+    return (activeCard.value.$1, datafono);
+  }
+
+  /// Shows a modal overlay while waiting for the PAX terminal response.
+  /// Uses CancelToken to abort the HTTP request if the user taps Cancel.
+  /// The PAX call is fired BEFORE showDialog to avoid re-firing on widget rebuilds.
+  Future<PaxResponse?> _executePaxSale(
+      Datafono datafono, int montoCentavos) async {
+    final cancelToken = CancelToken();
+
+    // Fire the PAX call OUTSIDE the builder to prevent double-fire on rebuild
+    final paxFuture = PaxService.venta(
+      ip: datafono.ip!,
+      puerto: datafono.puerto ?? 8080,
+      monto: montoCentavos,
+      cancelToken: cancelToken,
+    );
+
+    bool dialogOpen = true;
+
+    // When PAX responds, close the dialog
+    paxFuture.then((_) {
+      if (dialogOpen && mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+    });
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) {
+        return PopScope(
+          canPop: false,
+          child: AlertDialog(
+            backgroundColor: kNewsurface,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 16),
+                const CircularProgressIndicator(color: kNewgreen),
+                const SizedBox(height: 24),
+                const Text(
+                  'Procesando pago...',
+                  style: TextStyle(
+                    color: kNewtextPri,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Pase la tarjeta en el terminal ${datafono.nombre}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: kNewtextMut, fontSize: 14),
+                ),
+                const SizedBox(height: 24),
+                TextButton(
+                  onPressed: () {
+                    cancelToken.cancel('Usuario cancelo la operacion');
+                    Navigator.of(dialogCtx).pop();
+                  },
+                  child: const Text('Cancelar',
+                      style: TextStyle(color: kNewred)),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    dialogOpen = false;
+
+    // Await the result (may already be complete)
+    final paxResult = await paxFuture;
+
+    // If user cancelled, the response will have respCode 'CANCELLED'
+    if (cancelToken.isCancelled) return null;
+    return paxResult;
+  }
+
   Future<void> goFact(Invoice facturaApp) async {
     // Chequea SIEMPRE con la del provider (no variable local)
     if (facturaApp.saldo != 0) {
@@ -789,6 +919,58 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
       return;
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // PAX INTEGRATION: If card payment exists, call PAX first
+    // ═══════════════════════════════════════════════════════════════
+    PaxResponse? paxResponse;
+    Datafono? paxDatafono;
+
+    final cardPayment = await _findCardPayment(facturaApp);
+    if (cardPayment != null) {
+      final cardAmount = cardPayment.$1;
+      paxDatafono = cardPayment.$2;
+
+      // Convert to centavos (no decimals): 10.00 -> 1000
+      final montoCentavos = (cardAmount * 100).round();
+
+      paxResponse = await _executePaxSale(paxDatafono, montoCentavos);
+
+      // User cancelled the dialog
+      if (paxResponse == null) return;
+
+      // PAX declined
+      if (!paxResponse.isApproved) {
+        final errorMsg = paxResponse.errorMessage;
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: kNewsurface,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              title:
+                  const Text('Pago Denegado', style: TextStyle(color: kNewred)),
+              content: Text(
+                errorMsg,
+                style: const TextStyle(color: kNewtextPri),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Aceptar',
+                      style: TextStyle(color: kNewtextSec)),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // SAVE INVOICE (original flow)
+    // ═══════════════════════════════════════════════════════════════
     setState(() {
       _showLoader = true;
     });
@@ -825,18 +1007,47 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
     final Response response =
         await ApiHelper.post("Api/Facturacion/FacturaSp", request);
 
+    // Decode once, reuse below
+    final decodedResult = response.isSuccess
+        ? jsonDecode(response.result) as Map<String, dynamic>
+        : null;
+
+    // ═══════════════════════════════════════════════════════════════
+    // PAX: ALWAYS save transaction if PAX approved (even if invoice fails)
+    // This prevents orphan charges with no record in the system.
+    // ═══════════════════════════════════════════════════════════════
+    if (paxResponse != null && paxResponse.isApproved) {
+      final tx = TransaccionPax.fromPaxResponse(
+        paxResponse,
+        idFactura: decodedResult?['idfactura'],
+        idCierre: facturaApp.cierre!.idcierre,
+        idDatafono: paxDatafono!.iddatafono,
+      );
+      await ApiHelper.postTransaccionPax(tx.toJson());
+    }
+
     setState(() {
       _showLoader = false;
     });
 
     if (!response.isSuccess) {
       if (mounted) {
+        // Warn differently if PAX already charged the card
+        final bool paxCharged = paxResponse != null && paxResponse.isApproved;
+        final String errorTitle = paxCharged
+            ? 'Error - Tarjeta ya cobrada'
+            : 'Error';
+        final String errorBody = paxCharged
+            ? '${response.message}\n\nATENCION: La tarjeta ya fue cobrada. '
+              'Debe realizar una ANULACION en el terminal PAX.'
+            : response.message;
+
         showDialog(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: const Text('Error'),
-              content: Text(response.message),
+              title: Text(errorTitle),
+              content: Text(errorBody),
               actions: <Widget>[
                 TextButton(
                   child: const Text('Aceptar'),
@@ -852,8 +1063,7 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
       return;
     }
 
-    final decodedJson = jsonDecode(response.result);
-    final Factura resdocFactura = Factura.fromJson(decodedJson);
+    final Factura resdocFactura = Factura.fromJson(decodedResult!);
     resdocFactura.usuario = facturaApp.empleado?.nombreCompleto;
 
     if (facturaApp.acumulaPuntos) {

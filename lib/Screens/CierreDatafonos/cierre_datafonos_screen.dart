@@ -10,6 +10,9 @@ import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/printer_provider.dart';
 import 'package:tester/Screens/CierreDatafonos/add_datafono_screen.dart';
 import 'package:tester/Screens/test_print/testprint.dart';
+import 'package:tester/Models/FuelRed/datafono.dart';
+import 'package:tester/Models/Pax/transaccion_pax.dart';
+import 'package:tester/services/pax_service.dart';
 import 'package:tester/constans.dart';
 import 'package:tester/helpers/api_helper.dart';
 import 'package:tester/helpers/varios_helpers.dart';
@@ -129,16 +132,35 @@ class _CierreDatafonosScreenState extends State<CierreDatafonosScreen> {
                 ),
               ),
         bottomNavigationBar: _totalBar(),
-        floatingActionButton: FloatingActionButton.extended(
-          backgroundColor: kNewgreen,
-          foregroundColor: kNewtextPri,
-          elevation: 0,
-          onPressed: _goAdd,
-          icon: const Icon(Icons.add),
-          label: const Text(
-            'Nuevo',
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
+        floatingActionButton: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FloatingActionButton.extended(
+              heroTag: 'pax_cierre',
+              backgroundColor: const Color(0xFFE53935),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              onPressed: _executePaxCierre,
+              icon: const Icon(Icons.contactless_outlined),
+              label: const Text(
+                'Cierre PAX',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            const SizedBox(height: 12),
+            FloatingActionButton.extended(
+              heroTag: 'add_cierre',
+              backgroundColor: kNewgreen,
+              foregroundColor: kNewtextPri,
+              elevation: 0,
+              onPressed: _goAdd,
+              icon: const Icon(Icons.add),
+              label: const Text(
+                'Nuevo',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -590,6 +612,118 @@ class _CierreDatafonosScreenState extends State<CierreDatafonosScreen> {
     } catch (e, st) {
       debugPrint('printCierreDatafono error: $e\n$st');
       Fluttertoast.showToast(msg: 'Error al imprimir: $e');
+    }
+  }
+
+  Future<void> _executePaxCierre() async {
+    final Response dfResponse = await ApiHelper.getDatafonos();
+    if (!dfResponse.isSuccess || !mounted) return;
+
+    final List<Datafono> datafonos = dfResponse.result;
+    final paxDatafonos = datafonos.where((d) => d.hasPax).toList();
+
+    if (paxDatafonos.isEmpty) {
+      Fluttertoast.showToast(
+        msg: 'No hay datafonos PAX configurados',
+        backgroundColor: Colors.orange,
+      );
+      return;
+    }
+
+    Datafono selected;
+    if (paxDatafonos.length == 1) {
+      selected = paxDatafonos.first;
+    } else {
+      final picked = await showModalBottomSheet<Datafono>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => Container(
+          decoration: const BoxDecoration(
+            color: kNewsurface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'Selecciona terminal PAX',
+                    style: TextStyle(
+                        color: kNewtextPri,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+                ...paxDatafonos.map((d) => ListTile(
+                      title: Text(d.nombre ?? '',
+                          style: const TextStyle(color: kNewtextPri)),
+                      subtitle: Text(d.ip ?? '',
+                          style: const TextStyle(color: kNewtextMut)),
+                      onTap: () => Navigator.of(ctx).pop(d),
+                    )),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+      );
+      if (picked == null) return;
+      selected = picked;
+    }
+
+    setState(() {
+      showLoader = true;
+    });
+
+    final paxResponse = await PaxService.cierre(
+      ip: selected.ip!,
+      puerto: selected.puerto ?? 8080,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      showLoader = false;
+    });
+
+    if (paxResponse.isApproved) {
+      final cierreActPro =
+          Provider.of<CierreActivoProvider>(context, listen: false);
+      final tx = TransaccionPax.fromPaxResponse(
+        paxResponse,
+        idCierre: cierreActPro.cierreFinal!.idcierre,
+        idDatafono: selected.iddatafono,
+      );
+      await ApiHelper.postTransaccionPax(tx.toJson());
+
+      Fluttertoast.showToast(
+        msg: 'Cierre PAX completado',
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+      );
+
+      _getCierres();
+    } else {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: kNewsurface,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Error Cierre PAX',
+              style: TextStyle(color: kNewred)),
+          content: Text(paxResponse.errorMessage,
+              style: const TextStyle(color: kNewtextPri)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Aceptar'),
+            ),
+          ],
+        ),
+      );
     }
   }
 }
