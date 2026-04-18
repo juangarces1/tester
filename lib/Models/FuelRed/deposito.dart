@@ -1,42 +1,42 @@
 class Deposito {
   int? iddeposito;
   int? monto;
-  String? fechadepostio; 
+  String? fechadeposito;
   int? cedulaempleado;
   String? moneda;
   int? idcierre;
   bool? selected = false;
   DateTime? createdAt;
 
-  Deposito(
-      {this.iddeposito,
-      this.monto,
-      this.fechadepostio,
-      this.cedulaempleado,
-      this.moneda,
-      this.idcierre,
-      this.selected,
-      this.createdAt,
-      });
+  Deposito({
+    this.iddeposito,
+    this.monto,
+    this.fechadeposito,
+    this.cedulaempleado,
+    this.moneda,
+    this.idcierre,
+    this.selected,
+    this.createdAt,
+  });
 
   Deposito.fromJson(Map<String, dynamic> json) {
     iddeposito = json['iddeposito'];
     monto = json['monto'];
-    fechadepostio =json['fechadeposito'];
+    fechadeposito = json['fechadeposito']?.toString();
     cedulaempleado = json['cedulaempleado'];
     moneda = json['moneda'];
     idcierre = json['idcierre'];
-    createdAt = DateTime.parse(json['fechadeposito']);
+    createdAt = fechadeposito != null ? DateTime.tryParse(fechadeposito!) : null;
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = <String, dynamic>{};
-    data['iddeposito'] = iddeposito;
-    data['monto'] = monto;
-    data['fechadepostio'] = fechadepostio;
-    data['cedulaempleado'] = cedulaempleado;
-    data['moneda'] = moneda;
-    data['idcierre'] = idcierre;
-    return data;
+    return <String, dynamic>{
+      'iddeposito': iddeposito,
+      'monto': monto,
+      'fechadeposito': fechadeposito,
+      'cedulaempleado': cedulaempleado,
+      'moneda': moneda,
+      'idcierre': idcierre,
+    };
   }
 }

@@ -18,7 +18,9 @@ import 'package:tester/Models/FuelRed/empleado.dart';
 
 import 'package:tester/Models/FuelRed/datafono.dart';
 import 'package:tester/Models/Pax/transaccion_pax.dart';
+import 'package:tester/Models/FuelRed/cheque.dart';
 import 'package:tester/Models/FuelRed/deposito.dart';
+import 'package:tester/Models/FuelRed/dollar.dart';
 import 'package:tester/Models/FuelRed/factura.dart';
 import 'package:tester/Models/FuelRed/money.dart';
 import 'package:tester/Models/FuelRed/peddler.dart';
@@ -492,11 +494,63 @@ class ApiHelper {
     }
   }
 
+  /// POST /api/v1/transacciones/procesar-sin-factura — marca combustible
+  /// como procesado sin factura (Efectivo, Exonerado, Calibracion, etc.).
+  /// Reemplaza `Api/Facturacion/ProcessTransactions` del API vieja.
+  static Future<Response> procesarTransaccionesSinFactura(
+      Map<String, dynamic> request) async {
+    try {
+      final resp = await _dio.post(
+        '/api/v1/transacciones/procesar-sin-factura',
+        data: request,
+      );
+      if (resp.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: resp.data?.toString() ?? 'Error');
+      }
+      return Response(isSuccess: true, result: resp.data);
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
+  }
+
   /// DELETE /api/v1/peddlers/{id} — elimina un peddler y revierte la transacción.
   /// Reemplaza `/api/Peddler/{id}` del API vieja.
   static Future<Response> deletePeddler(int id) async {
     try {
       final resp = await _dio.delete('/api/v1/peddlers/$id');
+      if (resp.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: resp.data?.toString() ?? 'Error');
+      }
+      return Response(isSuccess: true);
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
+  }
+
+  /// POST /api/v1/cierre-datafonos/ — crea un cierre-datafono.
+  /// Reemplaza `api/CierreDatafonos/` del API vieja.
+  static Future<Response> createCierreDatafono(CierreDatafono cd) async {
+    try {
+      final resp =
+          await _dio.post('/api/v1/cierre-datafonos/', data: cd.toJson());
+      if (resp.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: resp.data?.toString() ?? 'Error');
+      }
+      return Response(
+          isSuccess: true, result: CierreDatafono.fromJson(resp.data));
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
+  }
+
+  /// DELETE /api/v1/cierre-datafonos/{id} — elimina un cierre-datafono.
+  /// Reemplaza `/api/CierreDatafonos/{id}` del API vieja.
+  static Future<Response> deleteCierreDatafono(int id) async {
+    try {
+      final resp = await _dio.delete('/api/v1/cierre-datafonos/$id');
       if (resp.statusCode! >= 400) {
         return Response(
             isSuccess: false, message: resp.data?.toString() ?? 'Error');
@@ -539,6 +593,129 @@ class ApiHelper {
       }
     }
     return Response(isSuccess: true, result: viaticos);
+  }
+
+  /// POST /api/v1/viaticos/ — crea un viático.
+  /// Reemplaza `api/Viaticos/` del API vieja.
+  static Future<Response> createViatico(Viatico v) async {
+    try {
+      final resp = await _dio.post('/api/v1/viaticos/', data: v.toJson());
+      if (resp.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: resp.data?.toString() ?? 'Error');
+      }
+      return Response(isSuccess: true, result: Viatico.fromJson(resp.data));
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
+  }
+
+  /// DELETE /api/v1/viaticos/{id} — elimina un viático.
+  /// Reemplaza `/api/Viaticos/{id}` del API vieja.
+  static Future<Response> deleteViatico(int id) async {
+    try {
+      final resp = await _dio.delete('/api/v1/viaticos/$id');
+      if (resp.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: resp.data?.toString() ?? 'Error');
+      }
+      return Response(isSuccess: true);
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
+  }
+
+  /// POST /api/v1/depositos/ — crea un depósito (entrega de efectivo).
+  /// Reemplaza `api/Depositos/` del API vieja.
+  static Future<Response> createDeposito(Deposito d) async {
+    try {
+      final resp = await _dio.post('/api/v1/depositos/', data: d.toJson());
+      if (resp.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: resp.data?.toString() ?? 'Error');
+      }
+      return Response(isSuccess: true, result: Deposito.fromJson(resp.data));
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
+  }
+
+  /// DELETE /api/v1/depositos/{id} — elimina un depósito.
+  /// Reemplaza `/api/Depositos/{id}` del API vieja.
+  static Future<Response> deleteDeposito(int id) async {
+    try {
+      final resp = await _dio.delete('/api/v1/depositos/$id');
+      if (resp.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: resp.data?.toString() ?? 'Error');
+      }
+      return Response(isSuccess: true);
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
+  }
+
+  /// POST /api/v1/cierres/dolares — crea un registro de dólar del cierre.
+  /// Reemplaza `api/Cierres/PostDollar` del API vieja.
+  static Future<Response> createDollar(Dollar d) async {
+    try {
+      final resp =
+          await _dio.post('/api/v1/cierres/dolares', data: d.toJson());
+      if (resp.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: resp.data?.toString() ?? 'Error');
+      }
+      return Response(isSuccess: true, result: resp.data);
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
+  }
+
+  /// POST /api/v1/cierres/cheques — crea un cheque del cierre.
+  /// Reemplaza `api/Cierres/PostCheque` del API vieja.
+  static Future<Response> createCheque(Cheque c) async {
+    try {
+      final resp =
+          await _dio.post('/api/v1/cierres/cheques', data: c.toJson());
+      if (resp.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: resp.data?.toString() ?? 'Error');
+      }
+      return Response(isSuccess: true, result: resp.data);
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
+  }
+
+  /// POST /api/v1/cashbacks/ — crea un cashback.
+  /// Reemplaza `api/Cashbacks/` del API vieja.
+  static Future<Response> createCashback(Cashback cashback) async {
+    try {
+      final resp =
+          await _dio.post('/api/v1/cashbacks/', data: cashback.toJson());
+      if (resp.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: resp.data?.toString() ?? 'Error');
+      }
+      return Response(isSuccess: true, result: Cashback.fromJson(resp.data));
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
+  }
+
+  /// DELETE /api/v1/cashbacks/{id} — elimina un cashback.
+  /// Reemplaza `/api/Cashbacks/{id}` del API vieja.
+  static Future<Response> deleteCashback(int id) async {
+    try {
+      final resp = await _dio.delete('/api/v1/cashbacks/$id');
+      if (resp.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: resp.data?.toString() ?? 'Error');
+      }
+      return Response(isSuccess: true);
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
   }
 
   static Future<Response> getCashBacks(int cierre) async {

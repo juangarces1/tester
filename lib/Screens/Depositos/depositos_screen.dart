@@ -173,7 +173,7 @@ class _DepositosScreenState extends State<DepositosScreen> {
   Widget _depositoTile(Deposito d, bool isBusy, bool isBound) {
     final montoFormatted =
         VariosHelpers.formattedToCurrencyValue((d.monto ?? 0).toString());
-    final fecha = d.fechadepostio?.split('T').first ?? 'Sin fecha registrada';
+    final fecha = d.fechadeposito?.split('T').first ?? 'Sin fecha registrada';
     final moneda = d.moneda ?? 'Sin moneda';
     final printer = context.read<PrinterProvider>();
 
@@ -398,7 +398,7 @@ class _DepositosScreenState extends State<DepositosScreen> {
   Future<bool> _goDelete(int id) async {
     setState(() => showLoader = true);
 
-    final response = await ApiHelper.delete('/api/Depositos/', id.toString());
+    final response = await ApiHelper.deleteDeposito(id);
 
     setState(() => showLoader = false);
 

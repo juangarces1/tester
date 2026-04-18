@@ -501,7 +501,7 @@ class _ShowProcessMenuState extends State<ShowProcessMenu> {
     };
 
     final Response response =
-        await ApiHelper.post("Api/Facturacion/ProcessTransactions", request);
+        await ApiHelper.procesarTransaccionesSinFactura(request);
 
     setState(() => _showLoader = false);
 

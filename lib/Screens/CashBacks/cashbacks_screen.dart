@@ -517,8 +517,7 @@ class _CashbarksScreenState extends State<CashbarksScreen> {
       showLoader = true;
     });
 
-    final Response response =
-        await ApiHelper.delete('/api/Cashbacks/', id.toString());
+    final Response response = await ApiHelper.deleteCashback(id);
 
     if (!mounted) {
       return false;

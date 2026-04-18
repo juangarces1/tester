@@ -34,7 +34,6 @@ class TransaccionesScreen extends StatefulWidget {
 
 class _TransaccionesScreenState extends State<TransaccionesScreen> {
   TxFilter _filter = TxFilter.todos;
-  bool _bootstrapped = false;
   bool _loading = false;
   String? _error;
   final Set<String> _reversalPending = <String>{};
@@ -42,10 +41,10 @@ class _TransaccionesScreenState extends State<TransaccionesScreen> {
   @override
   void initState() {
     super.initState();
-    // Bootstrap después del primer frame para no disparar en build()
+    // Siempre refrescamos al entrar (data del cierre cambia fuera de esta pantalla).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PrinterProvider>().init();
-      _bootstrapIfNeeded();
+      _fetchFromBackend();
     });
   }
 
@@ -66,15 +65,6 @@ class _TransaccionesScreenState extends State<TransaccionesScreen> {
         Fluttertoast.showToast(msg: 'Error al imprimir: $e');
       }
     });
-  }
-
-  Future<void> _bootstrapIfNeeded() async {
-    if (_bootstrapped) return;
-    final prov = context.read<TransaccionesProvider>();
-    if (prov.items.isEmpty) {
-      await _fetchFromBackend();
-    }
-    _bootstrapped = true;
   }
 
   Future<void> _fetchFromBackend() async {
@@ -187,13 +177,9 @@ class _TransaccionesScreenState extends State<TransaccionesScreen> {
       'estado': 'copiado',
     };
     
-     final Response response = await ApiHelper.post("Api/Facturacion/ProcessTransactions", request);
-      if (response.isSuccess) {
-        return true;
-      } else {
-        return false;
-        // Manejar error
-      }
+    final Response response =
+        await ApiHelper.procesarTransaccionesSinFactura(request);
+    return response.isSuccess;
     
     
   }

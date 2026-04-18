@@ -549,12 +549,7 @@ class _AddViaticoScreenState extends State<AddViaticoScreen> {
       idcliente: int.parse(invoice.formPago!.clienteFactura.codigo),
     );
 
-    Map<String, dynamic> request = viatico.toJson();
-
-    Response response = await ApiHelper.post(
-      'api/Viaticos/',
-      request,
-    );
+    Response response = await ApiHelper.createViatico(viatico);
 
     if (!mounted) return;
 

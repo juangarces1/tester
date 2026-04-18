@@ -681,11 +681,7 @@ class _EntregaEfectivoScreenState extends State<EntregaEfectivoScreen> {
       moneda: moneda,
     );
 
-    final Map<String, dynamic> request = deposito.toJson();
-    final Response response = await ApiHelper.post(
-      'api/Depositos/',
-      request,
-    );
+    final Response response = await ApiHelper.createDeposito(deposito);
 
     Response responseDollar = Response(isSuccess: true);
     if (showDollar) {
@@ -696,10 +692,7 @@ class _EntregaEfectivoScreenState extends State<EntregaEfectivoScreen> {
         monto: int.tryParse(montoController.text.trim()) ?? 0,
         idcierre: cierreActPro.cierreFinal!.idcierre,
       );
-      responseDollar = await ApiHelper.post(
-        'api/Cierres/PostDollar',
-        dollar.toJson(),
-      );
+      responseDollar = await ApiHelper.createDollar(dollar);
     }
 
     Response responseCheque = Response(isSuccess: true);
@@ -711,10 +704,7 @@ class _EntregaEfectivoScreenState extends State<EntregaEfectivoScreen> {
         monto: int.tryParse(montoController.text.trim()) ?? 0,
         idcierre: cierreActPro.cierreFinal!.idcierre,
       );
-      responseCheque = await ApiHelper.post(
-        'api/Cierres/PostCheque',
-        cheque.toJson(),
-      );
+      responseCheque = await ApiHelper.createCheque(cheque);
     }
 
     if (!mounted) return;

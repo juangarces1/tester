@@ -485,8 +485,7 @@ class _ViaticosScreenState extends State<ViaticosScreen> {
       showLoader = true;
     });
 
-    Response response =
-        await ApiHelper.delete('/api/Viaticos/', id.toString());
+    Response response = await ApiHelper.deleteViatico(id);
 
     setState(() {
       showLoader = false;

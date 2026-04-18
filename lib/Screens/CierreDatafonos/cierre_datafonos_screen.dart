@@ -556,8 +556,7 @@ class _CierreDatafonosScreenState extends State<CierreDatafonosScreen> {
       showLoader = true;
     });
 
-    final Response response =
-        await ApiHelper.delete('/api/CierreDatafonos/', id.toString());
+    final Response response = await ApiHelper.deleteCierreDatafono(id);
 
     if (!mounted) {
       return false;

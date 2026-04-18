@@ -454,8 +454,7 @@ class _AddCashbackScreenState extends State<AddCashbackScreen> {
       idcierre: cierreActPro.cierreFinal!.idcierre,
     );
 
-    final Response response =
-        await ApiHelper.post('api/Cashbacks/', cashback.toJson());
+    final Response response = await ApiHelper.createCashback(cashback);
 
     if (!mounted) return;
     setState(() => _showLoader = false);

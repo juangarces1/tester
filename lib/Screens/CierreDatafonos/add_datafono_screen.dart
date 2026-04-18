@@ -527,12 +527,7 @@ class _DatafonoScreenState extends State<DatafonoScreen> {
       banco: data.nombre,
     );
 
-    final Map<String, dynamic> request = datafono.toJson();
-
-    final Response response = await ApiHelper.post(
-      'api/CierreDatafonos/',
-      request,
-    );
+    final Response response = await ApiHelper.createCierreDatafono(datafono);
 
     if (!mounted) {
       return;
