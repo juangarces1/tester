@@ -405,7 +405,7 @@ class _ClietesAddScreenState extends State<ClietesAddScreen> {
     //   // 'tipoPago': 'EFECTIVO',
     // };
 
-    final Response response = await ApiHelper.post('api/clientes/crear', _cliente!.toJson());
+    final Response response = await ApiHelper.crearClienteContado(_cliente!);
 
     setState(() => _loading = false);
 

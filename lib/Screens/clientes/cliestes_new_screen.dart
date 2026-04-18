@@ -767,13 +767,7 @@ class ClientesNewScreenState extends State<ClientesNewScreen>
   Future<bool> _addEmail(String newEmail, String codigo, String id) async {
     _setBusyById(id, true, status: 'Agregando email…');
 
-    final request = {
-      'newEmail': newEmail,
-      'oldEmail': '',
-      'codCliente': codigo,
-      'isCredito': false
-    };
-    final response = await ApiHelper.post('api/Users', request);
+    final response = await ApiHelper.addEmail(codigo, newEmail);
     if (!mounted) return false;
 
     if (!response.isSuccess) {

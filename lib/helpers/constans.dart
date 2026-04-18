@@ -3,9 +3,15 @@ class Constans {
   static String get apiUrl => 'https://api.estacionsangerardo.com';
   static String get localAPI => 'http://10.0.2.2';
   static String get apiHacienda => 'https://api.hacienda.go.cr/fe/ae';
-  static String get localDesarrollo => 'http://192.168.1.13:8088';
+  // IP del PC donde corre la API nueva (misma LAN que el dispositivo de prueba).
+  static String get localDesarrollo => 'http://192.168.1.39:8088';
+
+  /// Toggle: apuntar al API nuevo (true) vs API vieja en prod (false).
+  /// Mientras dura la migración, dejarlo en true.
+  static const bool useNewApi = true;
+
   static String getAPIUrl() {
-    return apiUrl;
+    return useNewApi ? localDesarrollo : apiUrl;
   }
 
   static String imagenesUrlRemoto = 'https://estacionsangerardo.com/photos';

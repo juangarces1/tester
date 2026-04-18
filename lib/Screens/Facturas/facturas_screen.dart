@@ -464,7 +464,7 @@ class _FacturasScreenState extends State<FacturasScreen> {
       'cedulaUsuario': usuario.cedulaEmpleado.toString(),
     };
 
-    final resp = await ApiHelper.post('Api/Facturacion/DevolucionSP', req);
+    final resp = await ApiHelper.facturarDevolucion(req);
 
     if (!mounted) return;
     setState(() => _loading = false);

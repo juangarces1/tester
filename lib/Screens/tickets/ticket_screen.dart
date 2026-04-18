@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -627,9 +626,11 @@ class _TicketScreenState extends State<TicketScreen> {
       'totalCupones': factura.formPago!.totalCupones,
       'totalPuntos': factura.formPago!.totalPuntos,
       'totalTransfer': factura.formPago!.totalTransfer,
+      'totalSinpe': factura.formPago!.totalSinpe,
       'saldo': factura.saldo,
       'clientePuntos': factura.formPago!.clientePuntos.toJson(),
       'Transferencia': factura.formPago!.transfer.toJson(),
+      'sinpe': factura.formPago!.sinpe.toJson(),
       'observaciones': factura.observaciones ?? '',
       'placa': '',
       'isTicket': true,
@@ -637,8 +638,7 @@ class _TicketScreenState extends State<TicketScreen> {
       'isCredit': false,
     };
 
-    final Response response =
-        await ApiHelper.post("Api/Facturacion/FacturaSp", request);
+    final Response response = await ApiHelper.facturar(request);
 
     setState(() => _showLoader = false);
 
@@ -660,9 +660,10 @@ class _TicketScreenState extends State<TicketScreen> {
       return;
     }
 
-    final decodedJson = jsonDecode(response.result);
-    final Factura resdocFactura = Factura.fromJson(decodedJson)
-      ..usuario = factura.empleado!.nombreCompleto;
+    // ApiHelper.facturar garantiza Map<String, dynamic>.
+    final Factura resdocFactura =
+        Factura.fromJson(response.result as Map<String, dynamic>)
+          ..usuario = factura.empleado!.nombreCompleto;
 
     if (factura.acumulaPuntos) {
       await _handleAcumulaPuntosPrint(

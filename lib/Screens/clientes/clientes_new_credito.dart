@@ -681,9 +681,10 @@ class ClientesNewCreditoState extends State<ClientesNewCredito> with SingleTicke
         'codCliente': codigo,
         'isCredito' : true
       };
-    
-    
-    var response = await ApiHelper.post('api/Users', request);
+
+
+    var response = await ApiHelper.addEmail(
+        request['codCliente'] as String, request['newEmail'] as String);
 
     setState(() {
       showLoader = false;

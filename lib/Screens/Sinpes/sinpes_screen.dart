@@ -398,10 +398,7 @@ class _SinpesScreenState extends State<SinpesScreen> {
       showLoader = true;
     });
 
-    final response = await ApiHelper.delete(
-      '/api/Sinpes/',
-      sinpe.id.toString(),
-    );
+    final response = await ApiHelper.deleteSinpe(sinpe.id);
 
     setState(() {
       showLoader = false;

@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:tester/Components/app_bar_custom.dart';
 import 'package:tester/Components/loader_component.dart';
@@ -7,6 +5,7 @@ import 'package:tester/Models/LogIn/inventory_item.dart';
 import 'package:tester/Models/FuelRed/all_fact.dart';
 import 'package:tester/Models/FuelRed/cart.dart';
 import 'package:tester/Models/FuelRed/response.dart';
+import 'package:tester/Providers/cierre_activo_provider.dart';
 import 'package:tester/Providers/clientes_provider.dart';
 import 'package:tester/Screens/NewHome/new_home_screen.dart';
 import 'package:tester/constans.dart';
@@ -245,20 +244,17 @@ class _InventScreenState extends State<InventScreen> {
       showLoader = true;
     });    
 
-     Map<String, dynamic> request = 
-      {
-        'inventario': inventario.map((e) => e.toJson()).toList(),
-        'idzona' : widget.zona,
-        'cedUsuario' : widget.cedulaEmpleado,     
-      };
-
-    Response response = await ApiHelper.post("Api/Users/CrearCierre", request);  
+    Response response = await ApiHelper.crearCierre(
+      idzona: widget.zona,
+      cedUsuario: widget.cedulaEmpleado,
+      inventario: inventario,
+    );
     setState(() {
       showLoader = false;
     });
 
     if (!response.isSuccess) {
-        if (mounted) {       
+        if (mounted) {
           showDialog(
             context: context,
             builder: (BuildContext context) {
@@ -276,13 +272,13 @@ class _InventScreenState extends State<InventScreen> {
               );
             },
           );
-        }  
+        }
        return;
      }
 
-      var decodedJson = jsonDecode(response.result);
-
-      AllFact factura = AllFact.fromJson(decodedJson);
+      // ApiHelper.crearCierre ya devuelve AllFact en response.result (construido localmente
+      // con cierreActivo del API + arrays vacíos, igual que el viejo GetCierreByCierreEmpleado).
+      AllFact factura = response.result as AllFact;
 
    
 
@@ -294,6 +290,9 @@ class _InventScreenState extends State<InventScreen> {
      final clienteProvider = Provider.of<ClienteProvider>(context, listen: false);
       clienteProvider.setClientesContado(factura.clientesFacturacion);
       //  clienteProvider.setClientesCredito(factura.clientesCredito);
+
+    // Fix 2026-04-18: sin esto NewHomeScreen explota leyendo cajero null del provider.
+    context.read<CierreActivoProvider>().setFrom(factura.cierreActivo!);
 
 
     factura.placa='';

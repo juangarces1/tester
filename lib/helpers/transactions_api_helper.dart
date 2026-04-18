@@ -9,7 +9,7 @@ class TransaccionesApiHelper {
   /// POST /TransaccionesApi  -> y si es necesario GET /TransaccionesApi/{id}
   /// Devuelve la Transaccion completa que vive en la BD.
  static Future<Transaccion> postAndFetchFull(Transaccion tx) async {
-  final res = await _dio.post('/api/TransaccionesApi', data: tx.toJson());
+  final res = await _dio.post('/api/v1/transacciones/', data: tx.toJson());
 
   // Éxito normal
   if (res.statusCode == 200 || res.statusCode == 201) {
@@ -39,7 +39,7 @@ class TransaccionesApiHelper {
 
   /// GET /TransaccionesApi/{id}
   static Future<Transaccion> getById(int id) async {
-    final res = await _dio.get('/api/TransaccionesApi/$id');
+    final res = await _dio.get('/api/v1/transacciones/$id');
     if (res.statusCode == 200) {
       return Transaccion.fromJson(res.data);
     } else if (res.statusCode == 404) {
@@ -51,7 +51,7 @@ class TransaccionesApiHelper {
   /// GET /TransaccionesApi/byKey?numero={numero}&fecha={fecha}
   static Future<Transaccion?> getByKey(int numero, DateTime fecha) async {
     final res = await _dio.get(
-      '/api/TransaccionesApi/byKey',
+      '/api/v1/transacciones/by-key',
       queryParameters: {
         'numero': numero,
         'fecha': fecha.toIso8601String(),

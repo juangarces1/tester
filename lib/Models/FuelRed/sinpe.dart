@@ -23,15 +23,15 @@ class Sinpe {
 
   factory Sinpe.fromJson(Map<String, dynamic> json) {
     return Sinpe(
-      id: json['id'],
-      numComprobante: json['numComprobante'],
-      nota: json['nota'],
-      idCierre: json['idCierre'],
-      nombreEmpleado: json['nombreEmpleado'],
-      fecha: DateTime.parse(json['fecha']),
-      numFact: json['numFact'],
-      activo: json['activo'],
-      monto: double.parse(json['monto'].toString()),
+      id: (json['id'] ?? 0) as int,
+      numComprobante: (json['numComprobante'] ?? '') as String,
+      nota: (json['nota'] ?? '') as String,
+      idCierre: (json['idCierre'] ?? 0) as int,
+      nombreEmpleado: (json['nombreEmpleado'] ?? '') as String,
+      fecha: json['fecha'] != null ? DateTime.parse(json['fecha']) : DateTime.now(),
+      numFact: (json['numFact'] ?? '') as String,
+      activo: (json['activo'] ?? 0) as int,
+      monto: double.parse((json['monto'] ?? 0).toString()),
     );
   }
 

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -785,8 +784,7 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
       'plazo': factura.formPago!.clienteFactura.plazo,
       'isContado': false,
     };
-    Response response =
-        await ApiHelper.post("Api/Facturacion/FacturaSp", request);
+    Response response = await ApiHelper.facturar(request);
 
     setState(() {
       _showLoader = false;
@@ -815,8 +813,9 @@ class _ProceeeCreditScreen extends State<ProceeeCreditScreen> {
       return;
     }
 
-    var decodedJson = jsonDecode(response.result);
-    Factura resdocFactura = Factura.fromJson(decodedJson);
+    // ApiHelper.facturar garantiza Map<String, dynamic>.
+    Factura resdocFactura =
+        Factura.fromJson(response.result as Map<String, dynamic>);
     resdocFactura.usuario = factura.empleado!.nombreCompleto;
     //  factura.actualizarCantidadProductos();
     //   factura.resetFactura();

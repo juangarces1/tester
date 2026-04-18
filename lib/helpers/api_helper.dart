@@ -1,11 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart' hide Response;
 import 'package:flutter/material.dart';
-import 'package:tester/ConsoleModels/dispensersstatusresponse.dart';
 import 'package:tester/Models/FuelRed/nozzle_mapping.dart';
-import 'package:tester/Models/LogIn/inventory_item.dart';
+import 'package:tester/Models/LogIn/inventory_item.dart' show InventoryItem;
 import 'package:tester/Models/Promo/cliente_promo.dart';
 import 'package:tester/Models/ResumenCierre/cierre_caja_general.dart';
 import 'package:tester/Models/FuelRed/all_fact.dart';
@@ -14,6 +14,7 @@ import 'package:tester/Models/FuelRed/cashback.dart';
 import 'package:tester/Models/FuelRed/cierreactivo.dart';
 import 'package:tester/Models/FuelRed/cierredatafono.dart';
 import 'package:tester/Models/FuelRed/cliente.dart';
+import 'package:tester/Models/FuelRed/empleado.dart';
 
 import 'package:tester/Models/FuelRed/datafono.dart';
 import 'package:tester/Models/Pax/transaccion_pax.dart';
@@ -37,7 +38,7 @@ class ApiHelper {
   static Dio get _dio => DioClient.main;
 
   static Future<Response> getCierre(String cierre) async {
-    final response = await _dio.get('/api/Caja/$cierre');
+    final response = await _dio.get('/api/v1/caja/cierre/$cierre');
 
     if (response.statusCode == 200) {
       return Response(
@@ -51,9 +52,10 @@ class ApiHelper {
     }
   }
 
+  /// Firma conservada: el Flutter pasa la zona como String (hereda del viejo).
   static Future<Response> getCierreActivo(String cierre) async {
     final response =
-        await _dio.get('/api/Caja/GetCierreActivo/$cierre');
+        await _dio.get('/api/v1/caja/cierre-activo/$cierre');
 
     if (response.statusCode == 200) {
       return Response(
@@ -67,78 +69,125 @@ class ApiHelper {
     }
   }
 
+  /// Pasa el cierre a STANBY (pre-cierre). Migrado 2026-04-18.
+  /// Viejo: GET /api/Facturacion/SranbyCierre/{cierre}
+  /// Nuevo: POST /api/v1/caja/cierre/{id}/pasar-stanby
   static Future<Response> preCierre(String cierre) async {
-    final response =
-        await _dio.get('/api/Facturacion/SranbyCierre/$cierre');
-
-    if (response.statusCode == 200) {
-      return Response(isSuccess: true, result: response.data);
-    } else if (response.statusCode == 204) {
-      return Response(isSuccess: true, message: '', result: []);
-    } else {
-      return Response(
-          isSuccess: false, message: "Error: ${response.data}");
-    }
-  }
-
-  static Future<Response> setCierre(String cierre) async {
-    final response =
-        await _dio.get('/api/Facturacion/CrearCierre/$cierre');
-
-    if (response.statusCode == 200) {
-      return Response(isSuccess: true, result: response.data);
-    } else if (response.statusCode == 204) {
-      return Response(isSuccess: true, message: '', result: []);
-    } else {
-      return Response(
-          isSuccess: false, message: "Error: ${response.data}");
-    }
-  }
-
-  static Future<Response> getLogIn(int? zona, int? cedula) async {
     try {
       final response =
-          await _dio.get('/api/users/GetLogInOpen/$zona-$cedula');
-
-      if (response.statusCode == 200) {
+          await _dio.post('/api/v1/caja/cierre/$cierre/pasar-stanby');
+      if (response.statusCode! >= 400) {
         return Response(
-            isSuccess: true, result: AllFact.fromJson(response.data));
-      } else if (response.statusCode == 204) {
-        return Response(isSuccess: true, message: '', result: []);
-      } else {
-        return Response(
-            isSuccess: false, message: "Error: ${response.data}");
+            isSuccess: false, message: response.data?.toString() ?? '');
       }
+      return Response(isSuccess: true, result: response.data);
     } catch (e) {
-      return Response(
-          isSuccess: false, message: "Exception: ${e.toString()}");
+      return Response(isSuccess: false, message: e.toString());
     }
   }
 
+  /// PENDIENTE DE MIGRAR — el viejo hace FacturacionController.CrearCierre
+  /// (SetCierreFinal): genera ticket de cuadre vía sp_Facturar_Venta,
+  /// respalda inventario final, marca cierre REVISADO. Pesado — portar aparte.
+  static Future<Response> setCierre(String cierre) async {
+    return Response(
+        isSuccess: false,
+        message: 'setCierre pendiente de migrar al API nuevo');
+  }
+
+  /// Deprecado — el Flutter ya no llama a este (sólo getLogInNuevo).
+  /// Se deja el método por compatibilidad hasta borrarlo en una limpieza posterior.
+  static Future<Response> getLogIn(int? zona, int? cedula) async {
+    return getLogInNuevo(zona, cedula);
+  }
+
+  /// Login (bootstrap mínimo) — migrado 2026-04-18 al API nueva.
+  ///
+  /// **Observación importante**: el API vieja `GetLogInNuevo` NO traía clientes,
+  /// transacciones ni productos — esos campos estaban comentados; sólo llenaba
+  /// `cierreActivo` + arrays vacíos. La data real la cargan los providers después
+  /// bajo demanda (ClientesProvider, MapProvider, etc.). Replicamos ese contrato.
+  ///
+  /// Flujo:
+  ///   1. POST /auth/login → token + idCierre + info del empleado
+  ///   2. Guardar token en Dio para las siguientes llamadas
+  ///   3. Si idCierre == null (zona Cerrada / user no-cajero del Stanby):
+  ///      AllFact con CierreActivo vacío + cajero = user (→ Flutter va a Invent).
+  ///   4. Si idCierre existe: GET /caja/cierre-activo/{zona} para tener el shape
+  ///      completo (cierreFinal + cajero + usuario).
   static Future<Response> getLogInNuevo(int? zona, int? cedula) async {
     try {
-      final response =
-          await _dio.get('/api/users/GetLogInNuevo/$zona-$cedula');
+      final loginResp = await _dio.post(
+        '/api/v1/auth/login',
+        data: {'zona': zona, 'cedula': cedula},
+      );
 
-      if (response.statusCode == 200) {
+      if (loginResp.statusCode == 401) {
         return Response(
-            isSuccess: true, result: AllFact.fromJson(response.data));
-      } else if (response.statusCode == 204) {
-        return Response(isSuccess: true, message: '', result: []);
-      } else {
-        return Response(
-            isSuccess: false, message: "Error: ${response.data}");
+            isSuccess: false,
+            message: 'Cédula incorrecta o sin cierre abierto para la zona.');
       }
+      if (loginResp.statusCode! >= 400) {
+        return Response(
+            isSuccess: false,
+            message: 'Error ${loginResp.statusCode}: ${loginResp.data}');
+      }
+
+      final loginData = loginResp.data as Map<String, dynamic>;
+      final token = loginData['token'] as String?;
+      final idCierre = loginData['idCierre'] as int?;
+
+      if (token != null && token.isNotEmpty) {
+        _dio.options.headers['Authorization'] = 'Bearer $token';
+      }
+
+      // Empleado desde la respuesta del login (campos que Empleado.fromApi reconoce).
+      final empleado = Empleado.fromApi(loginData);
+
+      // Caso zona Cerrada / user no-cajero del Stanby → AllFact con sólo cajero.
+      if (idCierre == null) {
+        final cierreVacio = CierreActivo.fromJson(<String, dynamic>{});
+        cierreVacio.cajero = empleado;
+        return Response(
+            isSuccess: true,
+            result: AllFact(
+              lasTr: 0,
+              cierreActivo: cierreVacio,
+              transacciones: const [],
+              productos: const [],
+              clientesFacturacion: const [],
+              clientesCredito: const [],
+              clientesPromo: const [],
+            ));
+      }
+
+      // Hay cierre activo → shape completo.
+      final cierreResp = await _dio.get('/api/v1/caja/cierre-activo/$zona');
+      final cierreActivo = cierreResp.data is Map<String, dynamic>
+          ? CierreActivo.fromJson(cierreResp.data)
+          : (CierreActivo.fromJson(<String, dynamic>{})..cajero = empleado);
+
+      return Response(
+          isSuccess: true,
+          result: AllFact(
+            lasTr: 0,
+            cierreActivo: cierreActivo,
+            transacciones: const [],
+            productos: const [],
+            clientesFacturacion: const [],
+            clientesCredito: const [],
+            clientesPromo: const [],
+          ));
     } catch (e) {
       return Response(
-          isSuccess: false, message: "Exception: ${e.toString()}");
+          isSuccess: false, message: 'Exception: ${e.toString()}');
     }
   }
 
   static Future<Response> getInventarioInicial(int? zona) async {
     try {
       final response =
-          await _dio.get('/api/users/GetInventInicial/$zona');
+          await _dio.get('/api/v1/empleados/invent-inicial/$zona');
 
       if (response.statusCode! >= 400) {
         return Response(
@@ -157,10 +206,11 @@ class ApiHelper {
     }
   }
 
+  /// GET factura por número. Migrado a /api/v1/facturacion/por-numero/{id}.
   static Future<Response> getFactura(String id) async {
     try {
       final response =
-          await _dio.get('/api/Facturacion/GetFacturaByNum/$id');
+          await _dio.get('/api/v1/facturacion/por-numero/$id');
 
       if (response.statusCode == 200) {
         return Response(
@@ -182,7 +232,7 @@ class ApiHelper {
 
   static Future<Response> getClientesCredito() async {
     final response =
-        await _dio.get('/api/Clientes/GetClientsYam');
+        await _dio.get('/api/v1/clientes/credito');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -204,7 +254,7 @@ class ApiHelper {
   static Future<Response> getCierresByDia(DateTime dia) async {
     try {
       final response = await _dio.get(
-          '/api/Caja/GetCierreByDia/${VariosHelpers.formatYYYYmmDD(dia)}');
+          '/api/v1/caja/cierres-by-dia/${VariosHelpers.formatYYYYmmDD(dia)}');
 
       if (response.statusCode == 200) {
         List<CierreActivo> cierres = [];
@@ -228,7 +278,7 @@ class ApiHelper {
 
   static Future<Response> getTransacciones(int? zona) async {
     final response = await _dio.get(
-        '/api/TransaccionesApi/GetTransaccionesByZona/$zona');
+        '/api/v1/transacciones/por-zona/$zona');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -246,9 +296,9 @@ class ApiHelper {
   static Future<Response> getMapHoseDispenser() async {
     try {
       debugPrint(
-          '🔍 [ApiHelper] GET ${Constans.getAPIUrl()}/api/Shifts/GetHoseKeyMap/');
+          '🔍 [ApiHelper] GET ${Constans.getAPIUrl()}/api/v1/shifts/GetHoseKeyMap');
       final response = await _dio.get(
-        '/api/Shifts/GetHoseKeyMap/',
+        '/api/v1/shifts/GetHoseKeyMap',
         options: Options(receiveTimeout: const Duration(seconds: 10)),
       );
 
@@ -282,9 +332,9 @@ class ApiHelper {
   static Future<Response> getFuelPrices() async {
     try {
       debugPrint(
-          '🔍 [ApiHelper] GET ${Constans.getAPIUrl()}/api/Shifts/GetFuelPrices');
+          '🔍 [ApiHelper] GET ${Constans.getAPIUrl()}/api/v1/shifts/GetFuelPrices');
       final response = await _dio.get(
-        '/api/Shifts/GetFuelPrices',
+        '/api/v1/shifts/GetFuelPrices',
         options: Options(receiveTimeout: const Duration(seconds: 10)),
       );
 
@@ -308,7 +358,7 @@ class ApiHelper {
 
   static Future<Response> getFacturasByCierre(int? cierre) async {
     final response = await _dio.get(
-        '/api/Facturacion/GetFacturasByCierre/$cierre');
+        '/api/v1/facturacion/por-cierre/$cierre');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -323,18 +373,30 @@ class ApiHelper {
     return Response(isSuccess: true, result: facturas);
   }
 
+  /// Migrado 2026-04-18 al API nueva.
+  /// Viejo: GET /api/Users/GetEmailsByCodigo/{codigo} → List<String>
+  /// Nuevo: GET /api/v1/clientes/detalle/{codigo} → extraemos email principal + emails adicionales.
   static Future<Response> getEmailsBy(String codigo) async {
     final response =
-        await _dio.get('/api/Users/GetEmailsByCodigo/$codigo');
+        await _dio.get('/api/v1/clientes/detalle/$codigo');
 
     if (response.statusCode! >= 400) {
       return Response(
           isSuccess: false, message: response.data?.toString() ?? '');
     }
-    List<String> emails = [];
-    if (response.data != null) {
-      for (var item in response.data) {
-        emails.add(item);
+
+    final data = response.data as Map<String, dynamic>?;
+    final emails = <String>[];
+    if (data != null) {
+      final principal = data['email']?.toString();
+      if (principal != null && principal.isNotEmpty) emails.add(principal);
+
+      final extra = data['emails'];
+      if (extra is List) {
+        for (final e in extra) {
+          final s = e?.toString();
+          if (s != null && s.isNotEmpty && !emails.contains(s)) emails.add(s);
+        }
       }
     }
     return Response(isSuccess: true, result: emails);
@@ -342,7 +404,7 @@ class ApiHelper {
 
   static Future<Response> getFacturasByCliente(String id) async {
     final response = await _dio.get(
-        '/api/Facturacion/GetFacturasByCliente/$id');
+        '/api/v1/facturacion/por-cliente/$id');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -366,7 +428,7 @@ class ApiHelper {
 
   static Future<Response> getFacturasCredito(int? cierre) async {
     final response = await _dio.get(
-        '/api/Facturacion/GetFacturasCreditByCierre/$cierre');
+        '/api/v1/facturacion/credito/$cierre');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -383,7 +445,7 @@ class ApiHelper {
 
   static Future<Response> getTransaccionesByCierre(int? cierre) async {
     final response = await _dio.get(
-        '/api/TransaccionesApi/GetTransaccionesByCierre/$cierre');
+        '/api/v1/transacciones/por-cierre/$cierre');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -399,7 +461,7 @@ class ApiHelper {
   }
 
   static Future<Response> getPeddlersByCierre(int? cierre) async {
-    final response = await _dio.get('/api/Peddler/$cierre');
+    final response = await _dio.get('/api/v1/peddlers/por-cierre/$cierre');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -416,7 +478,7 @@ class ApiHelper {
 
   static Future<Response> getCierresDatafonos(int cierre) async {
     final response =
-        await _dio.get('/api/CierreDatafonos/$cierre');
+        await _dio.get('/api/v1/cierre-datafonos/por-cierre/$cierre');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -433,7 +495,7 @@ class ApiHelper {
 
   static Future<Response> getViaticosByCierre(int cierre) async {
     final response = await _dio.get(
-        '/api/Viaticos/GetViaticoByCierre/$cierre');
+        '/api/v1/viaticos/por-cierre/$cierre');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -449,7 +511,7 @@ class ApiHelper {
   }
 
   static Future<Response> getCashBacks(int cierre) async {
-    final response = await _dio.get('/api/Cashbacks/$cierre');
+    final response = await _dio.get('/api/v1/cashbacks/por-cierre/$cierre');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -465,7 +527,7 @@ class ApiHelper {
   }
 
   static Future<Response> getSinpes(int cierre) async {
-    final response = await _dio.get('/api/Sinpes/$cierre');
+    final response = await _dio.get('/api/v1/sinpes/por-cierre/$cierre');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -480,8 +542,36 @@ class ApiHelper {
     return Response(isSuccess: true, result: sinpes);
   }
 
+  /// POST /api/v1/sinpes/ — crea un SINPE.
+  /// Reemplaza `api/Sinpes/` del API vieja.
+  static Future<Response> createSinpe(Sinpe sinpe) async {
+    try {
+      final resp = await _dio.post('/api/v1/sinpes/', data: sinpe.toJson());
+      if (resp.statusCode! >= 400) {
+        return Response(isSuccess: false, message: resp.data?.toString() ?? 'Error');
+      }
+      return Response(isSuccess: true, result: Sinpe.fromJson(resp.data));
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
+  }
+
+  /// DELETE /api/v1/sinpes/{id} — elimina un SINPE.
+  /// Reemplaza `api/Sinpes/{id}` del API vieja.
+  static Future<Response> deleteSinpe(int id) async {
+    try {
+      final resp = await _dio.delete('/api/v1/sinpes/$id');
+      if (resp.statusCode! >= 400) {
+        return Response(isSuccess: false, message: resp.data?.toString() ?? 'Error');
+      }
+      return Response(isSuccess: true);
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
+  }
+
   static Future<Response> getDepositos(int cierre) async {
-    final response = await _dio.get('/api/Depositos/$cierre');
+    final response = await _dio.get('/api/v1/depositos/por-cierre/$cierre');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -498,7 +588,7 @@ class ApiHelper {
 
   static Future<Response> getBanks() async {
     final response =
-        await _dio.get('/api/Cashbacks/GetBanks');
+        await _dio.get('/api/v1/cashbacks/bancos');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -515,7 +605,7 @@ class ApiHelper {
 
   static Future<Response> getDatafonos() async {
     final response =
-        await _dio.get('/api/CierreDatafonos/GetDatafonos');
+        await _dio.get('/api/v1/cierre-datafonos/datafonos');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -538,7 +628,7 @@ class ApiHelper {
       Map<String, dynamic> request) async {
     try {
       final response =
-          await _dio.post('/api/TransaccionesPax', data: request);
+          await _dio.post('/api/v1/transacciones-pax/', data: request);
 
       if (response.statusCode! >= 400) {
         return Response(
@@ -553,7 +643,7 @@ class ApiHelper {
   static Future<Response> getTransaccionesPaxByFactura(int idFactura) async {
     try {
       final response =
-          await _dio.get('/api/TransaccionesPax/factura/$idFactura');
+          await _dio.get('/api/v1/transacciones-pax/factura/$idFactura');
 
       if (response.statusCode! >= 400) {
         return Response(
@@ -575,7 +665,7 @@ class ApiHelper {
   static Future<Response> getTransaccionesPaxByCierre(int idCierre) async {
     try {
       final response =
-          await _dio.get('/api/TransaccionesPax/cierre/$idCierre');
+          await _dio.get('/api/v1/transacciones-pax/cierre/$idCierre');
 
       if (response.statusCode! >= 400) {
         return Response(
@@ -596,7 +686,7 @@ class ApiHelper {
 
   static Future<Response> getMoneys() async {
     final response =
-        await _dio.get('/api/Depositos/GetMoneys');
+        await _dio.get('/api/v1/depositos/monedas');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -613,7 +703,7 @@ class ApiHelper {
 
   static Future<Response> getTransfes() async {
     final response =
-        await _dio.get('/api/Transferencias/GetTransfers');
+        await _dio.get('/api/v1/transferencias/');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -630,7 +720,7 @@ class ApiHelper {
 
   static Future<Response> getTransfesByCierre(int cierre) async {
     final response = await _dio.get(
-        '/api/Transferencias/GetTransfersByCierre/$cierre');
+        '/api/v1/transferencias/por-cierre/$cierre');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -647,7 +737,7 @@ class ApiHelper {
 
   static Future<Response> getTransaccionesAsProduct(int? zona) async {
     final response = await _dio.get(
-        '/api/TransaccionesApi/GetTransaccionesByZonaAsProducts/$zona');
+        '/api/v1/transacciones/as-products/$zona');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -662,27 +752,17 @@ class ApiHelper {
     return Response(isSuccess: true, result: transacciones);
   }
 
+  /// Deprecado — no lo consume ninguna pantalla. El API nuevo tiene
+  /// /api/v1/transacciones/{id} pero devuelve Transaccion normal, no Product.
+  /// Si se necesita, agregar endpoint `/{id}/as-product` en el server.
   static Future<Response> getTransaccionAsProductById(int? id) async {
-    final response = await _dio.get(
-        '/api/TransaccionesApi/GetTransaccionByIdAsProducts/$id');
-
-    if (response.statusCode! >= 400) {
-      return Response(
-          isSuccess: false, message: response.data?.toString() ?? '');
-    }
-
-    if (response.data != null) {
-      Product product = Product.fromJson(response.data);
-      return Response(isSuccess: true, result: product);
-    } else {
-      return Response(isSuccess: false, message: 'Error al decodificar');
-    }
+    return Response(isSuccess: false, message: 'Endpoint deprecado');
   }
 
   static Future<Response> getUltimaTransaccion(
       int dispensador, DateTime fecha) async {
     final fechaStr = fecha.toIso8601String().split('.').first;
-    final url = '/api/TransaccionesApi/GetUltimaTransaccion/$dispensador';
+    final url = '/api/v1/transacciones/ultima/$dispensador';
     debugPrint('🔍 [ApiHelper] GET $url?fecha=$fechaStr');
     debugPrint('   baseUrl: ${_dio.options.baseUrl}');
 
@@ -717,7 +797,7 @@ class ApiHelper {
 
   static Future<Response> getProducts(int? zona) async {
     final response = await _dio.get(
-        '/api/TransaccionesApi/GetProducts/$zona');
+        '/api/v1/transacciones/products/$zona');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -734,7 +814,7 @@ class ApiHelper {
 
   static Future<Response> getClienteContado() async {
     final response =
-        await _dio.get('/api/Clientes/GetClientsContado');
+        await _dio.get('/api/v1/clientes/contado');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -765,10 +845,10 @@ class ApiHelper {
       }
 
       debugPrint(
-          '🌐 API Call: /api/Clientes/GetClientsContadoPaged $queryParams');
+          '🌐 API Call: /api/v1/clientes/contado/paged $queryParams');
 
       final response = await _dio.get(
-        '/api/Clientes/GetClientsContadoPaged',
+        '/api/v1/clientes/contado/paged',
         queryParameters: queryParams,
         options: Options(receiveTimeout: const Duration(seconds: 30)),
       );
@@ -825,7 +905,7 @@ class ApiHelper {
 
   static Future<Response> getClientesTransfer() async {
     final response =
-        await _dio.get('/api/Otros/GetClientesSanGerardo');
+        await _dio.get('/api/v1/clientes/san-gerardo');
 
     if (response.statusCode! >= 400) {
       return Response(
@@ -848,7 +928,7 @@ class ApiHelper {
 
     try {
       final resp = await _dio.get(
-        '/api/Clientes/GetClientFrecuenteByCodigoFrecuente/$trimmed',
+        '/api/v1/clientes/frecuente/$trimmed',
         options: Options(
           receiveTimeout: const Duration(seconds: 15),
           headers: {'accept': 'application/json'},
@@ -929,7 +1009,7 @@ class ApiHelper {
 
     try {
       final resp = await _dio.get(
-        '/api/Clientes/buscar/$doc',
+        '/api/v1/clientes/hacienda/$doc',
         options: Options(
           receiveTimeout: const Duration(seconds: 20),
           headers: {'accept': 'application/json'},
@@ -990,16 +1070,40 @@ class ApiHelper {
     }
   }
 
+  /// Migrado 2026-04-18 al API nueva.
+  /// Viejo: PUT /api/Users/{id}  body: { email, emailAntiguo, codigo }
+  /// Nuevo: DELETE viejo + POST nuevo en /api/v1/clientes/{codigo}/emails
+  /// (en el viejo `id` era el código del cliente, no un id real de Users).
   static Future<Response> editEmail(
-      String id, Map<String, dynamic> request) async {
-    final response =
-        await _dio.put('/api/Users/$id', data: request);
+      String codigo, Map<String, dynamic> request) async {
+    final emailNuevo = (request['email'] ?? request['Email'])?.toString();
+    final emailAntiguo = (request['emailAntiguo'] ?? request['EmailAntiguo'])?.toString();
 
-    if (response.statusCode! >= 400) {
-      return Response(
-          isSuccess: false, message: response.data?.toString() ?? '');
+    if (emailNuevo == null || emailNuevo.isEmpty) {
+      return Response(isSuccess: false, message: 'Email nuevo vacío');
     }
-    return Response(isSuccess: true);
+
+    try {
+      // 1) Borrar el antiguo si viene (DELETE recibe el email como query param).
+      if (emailAntiguo != null && emailAntiguo.isNotEmpty) {
+        await _dio.delete(
+          '/api/v1/clientes/$codigo/emails',
+          queryParameters: {'email': emailAntiguo},
+        );
+      }
+      // 2) Agregar el nuevo
+      final resp = await _dio.post(
+        '/api/v1/clientes/$codigo/emails',
+        data: {'email': emailNuevo},
+      );
+      if (resp.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: resp.data?.toString() ?? '');
+      }
+      return Response(isSuccess: true);
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
   }
 
   static Future<Response> put(
@@ -1051,38 +1155,175 @@ class ApiHelper {
     return Response(isSuccess: true);
   }
 
+  /// Deprecado — el módulo Promo murió junto con Magic.
+  /// Se deja el método por compat hasta limpiar los call-sites.
+  /// Retorna lista vacía en vez de pegarle a una ruta que ya no existe.
   static Future<Response> getClientesPromo() async {
-    final response = await _dio.get(
-        '/api/TransaccionesApi/GetClientesPromo');
+    return Response(isSuccess: true, result: <ClientePromo>[]);
+  }
 
-    if (response.statusCode! >= 400) {
-      return Response(
-          isSuccess: false, message: response.data?.toString() ?? '');
-    }
-    List<ClientePromo> clientes = [];
-    if (response.data != null) {
-      for (var item in response.data) {
-        try {
-          clientes.add(ClientePromo.fromJson(item));
-        } catch (e) {
-          debugPrint('Error parsing single promo client: $e');
-        }
+  /// Crear cliente contado — migrado 2026-04-18 al API nueva.
+  /// Viejo: POST /api/clientes/crear con Cliente.toJson()
+  /// Nuevo: POST /api/v1/clientes/contado con CrearClienteContadoRequest
+  static Future<Response> crearClienteContado(Cliente cliente) async {
+    final body = <String, dynamic>{
+      'nombre': cliente.nombre,
+      'cedula': cliente.documento,
+      'codigoTipoId': cliente.codigoTipoID,  // API nueva usa 'd' minúscula
+      'correo': cliente.email,
+      'telefono': cliente.telefono,
+      'codigoFrecuente': (cliente.codigoFrecuente ?? '').isEmpty ? null : cliente.codigoFrecuente,
+      'codigoActividad': cliente.actividadSeleccionada?.codigo,
+      'descripActividad': cliente.actividadSeleccionada?.descripcion,
+    };
+
+    try {
+      final resp = await _dio.post('/api/v1/clientes/contado', data: body);
+      if (resp.statusCode! >= 400) {
+        return Response(isSuccess: false, message: resp.data?.toString() ?? '');
       }
+      // La API devuelve ClienteDetalleResponse; mapeamos a Cliente para compat.
+      if (resp.data is Map<String, dynamic>) {
+        return Response(isSuccess: true, result: Cliente.fromJson(resp.data));
+      }
+      return Response(isSuccess: true, result: resp.data);
+    } catch (e) {
+      return Response(isSuccess: false, message: 'Exception: ${e.toString()}');
     }
-    return Response(isSuccess: true, result: clientes);
+  }
+
+  /// Abrir un cierre nuevo desde la pantalla InventScreen — migrado 2026-04-18.
+  /// Viejo: POST /Api/Users/CrearCierre → retornaba AllFact.
+  /// Nuevo: POST /api/v1/caja/abrir-cierre → retorna CierreActivoResponse.
+  /// Armamos el AllFact localmente (arrays vacíos igual que el viejo).
+  static Future<Response> crearCierre({
+    required int idzona,
+    required int cedUsuario,
+    required List<InventoryItem> inventario,
+  }) async {
+    try {
+      final body = {
+        'idzona': idzona,
+        'cedUsuario': cedUsuario,
+        'inventario': inventario.map((e) => e.toJson()).toList(),
+      };
+      final resp = await _dio.post('/api/v1/caja/abrir-cierre', data: body);
+      if (resp.statusCode! >= 400) {
+        return Response(isSuccess: false, message: resp.data?.toString() ?? '');
+      }
+
+      final cierreActivo = resp.data is Map<String, dynamic>
+          ? CierreActivo.fromJson(resp.data)
+          : CierreActivo.fromJson(<String, dynamic>{});
+
+      final allFact = AllFact(
+        lasTr: 0,
+        cierreActivo: cierreActivo,
+        transacciones: const [],
+        productos: const [],
+        clientesFacturacion: const [],
+        clientesCredito: const [],
+        clientesPromo: const [],
+      );
+      return Response(isSuccess: true, result: allFact);
+    } catch (e) {
+      return Response(isSuccess: false, message: 'Exception: ${e.toString()}');
+    }
+  }
+
+  /// Agregar email a un cliente (contado o crédito).
+  /// Reutiliza el endpoint POST /clientes/{codigo}/emails.
+  static Future<Response> addEmail(String codigo, String email) async {
+    try {
+      final resp = await _dio.post(
+        '/api/v1/clientes/$codigo/emails',
+        data: {'email': email},
+      );
+      if (resp.statusCode! >= 400) {
+        return Response(isSuccess: false, message: resp.data?.toString() ?? '');
+      }
+      return Response(isSuccess: true);
+    } catch (e) {
+      return Response(isSuccess: false, message: 'Exception: ${e.toString()}');
+    }
+  }
+
+  /// Migrado 2026-04-18 al API nueva.
+  /// Viejo: POST /api/Clientes/actividades/sincronizar  body { numeroDocumento, tipoCliente }
+  /// Nuevo: POST /api/v1/clientes/{contado|credito}/{doc}/sincronizar-actividades
+  /// Facturar contado/credito/ticket — POST sp_Facturar_Venta vía API nueva.
+  /// Viejo: POST /Api/Facturacion/FacturaSp
+  /// Nuevo: POST /api/v1/facturacion/crear
+  ///
+  /// Normaliza los keys históricos del request:
+  ///   - cedualaUsuario (typo viejo) → cedulaUsuario
+  ///   - Transferencia (capital)     → transferencia
+  ///   - isticket (lowercase)        → isTicket
+  ///
+  /// Garantiza que `response.result` SIEMPRE sea `Map<String, dynamic>`.
+  /// Los screens hacen `response.result as Map<String, dynamic>` sin jsonDecode.
+  static Future<Response> facturar(Map<String, dynamic> request) async {
+    final body = _normalizarFacturaRequest(request);
+    try {
+      final resp = await _dio.post('/api/v1/facturacion/crear', data: body);
+      if (resp.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: resp.data?.toString() ?? 'Error');
+      }
+      return Response(isSuccess: true, result: _asMap(resp.data));
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
+  }
+
+  /// Crear devolución — POST sp_Devolucion_FromFacturaCompleta vía API nueva.
+  static Future<Response> facturarDevolucion(Map<String, dynamic> request) async {
+    try {
+      final resp =
+          await _dio.post('/api/v1/facturacion/devolucion', data: request);
+      if (resp.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: resp.data?.toString() ?? 'Error');
+      }
+      return Response(isSuccess: true, result: _asMap(resp.data));
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
+  }
+
+  /// Garantiza `Map<String, dynamic>`: si ya es Map lo devuelve, si es String hace decode,
+  /// si es null/otro devuelve mapa vacío.
+  static Map<String, dynamic> _asMap(dynamic data) {
+    if (data is Map<String, dynamic>) return data;
+    if (data is String && data.isNotEmpty) {
+      final decoded = jsonDecode(data);
+      if (decoded is Map<String, dynamic>) return decoded;
+    }
+    return <String, dynamic>{};
+  }
+
+  static Map<String, dynamic> _normalizarFacturaRequest(Map<String, dynamic> src) {
+    final out = <String, dynamic>{};
+    for (final e in src.entries) {
+      final key = switch (e.key) {
+        'cedualaUsuario' => 'cedulaUsuario', // corrige typo histórico
+        'Transferencia' => 'transferencia',
+        'isticket' => 'isTicket',
+        _ => e.key,
+      };
+      out[key] = e.value;
+    }
+    return out;
   }
 
   static Future<Response> syncActividades(String documento,
       {String tipoCliente = "Contado"}) async {
-    final body = {
-      "numeroDocumento": documento,
-      "tipoCliente": tipoCliente,
-    };
+    final doc = Uri.encodeComponent(documento.trim());
+    final tipo = tipoCliente.toLowerCase() == "credito" ? "credito" : "contado";
 
     try {
       final response = await _dio.post(
-        '/api/Clientes/actividades/sincronizar',
-        data: body,
+        '/api/v1/clientes/$tipo/$doc/sincronizar-actividades',
       );
 
       if (response.statusCode! >= 400) {
@@ -1104,7 +1345,7 @@ class ApiHelper {
 
     try {
       final resp = await _dio.post(
-        '/api/Clientes/clientes/$doc/actividades/credito',
+        '/api/v1/clientes/credito/$doc/sincronizar-actividades',
       );
 
       if (resp.statusCode! >= 400) {
@@ -1128,32 +1369,10 @@ class ApiHelper {
     }
   }
 
+  /// Deprecado — no tiene equivalente en el API nueva y tampoco se usa desde
+  /// ninguna pantalla (código muerto histórico del viejo ApiHelper).
+  /// Si algún día se necesita, vivir en console_api_helper (estado del terminal).
   static Future<Response> getFuelingPoints() async {
-    try {
-      debugPrint(
-          '🔍 [ApiHelper] GET ${Constans.getAPIUrl()}/api/Shifts/GetFuelingPoints');
-      final response = await _dio.get(
-        '/api/Shifts/GetFuelingPoints',
-        options: Options(receiveTimeout: const Duration(seconds: 10)),
-      );
-
-      if (response.statusCode! >= 400) {
-        debugPrint(
-            '❌ [ApiHelper] Error ${response.statusCode}: ${response.data}');
-        return Response(
-            isSuccess: false,
-            message: 'Status ${response.statusCode}: ${response.data}');
-      }
-
-      if (response.data != null) {
-        final data = DispensersStatusResponse.fromJson(response.data);
-        return Response(isSuccess: true, result: data);
-      }
-      return Response(isSuccess: false, message: 'Respuesta vacía');
-    } catch (e) {
-      debugPrint(
-          '❌ [ApiHelper] Exception fetching fueling points: $e');
-      return Response(isSuccess: false, message: e.toString());
-    }
+    return Response(isSuccess: false, message: 'Endpoint deprecado');
   }
 }

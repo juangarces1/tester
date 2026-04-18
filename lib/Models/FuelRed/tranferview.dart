@@ -19,14 +19,14 @@ class Transferview {
 
   });
 
-  Transferview.fromJson(Map<String, dynamic> json) {  
-    cliente = json['cliente'];
-    id = json['id'];   
-    cuenta = json['cuenta'];
-    saldo = json['saldo'];
-    numeroDeposito = json['numeroDeposito']; 
-    monto = json['monto']; 
-    banco= json['banco']; 
+  Transferview.fromJson(Map<String, dynamic> json) {
+    cliente = (json['cliente'] ?? '') as String;
+    id = (json['id'] ?? 0) as int;
+    cuenta = (json['cuenta'] ?? '') as String;
+    saldo = (json['saldo'] ?? 0) as int;
+    numeroDeposito = (json['numeroDeposito'] ?? '') as String;
+    monto = (json['monto'] ?? 0) as int;
+    banco = (json['banco'] ?? '') as String;
   }
 
   

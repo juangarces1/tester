@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:dio/dio.dart' show CancelToken;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -362,9 +360,16 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
             ),
 
             // ═══════════════════════════════════════════════════════════════
-            // BOTÓN FACTURAR (flotante, aparece cuando saldo == 0)
+            // BOTÓN FACTURAR (flotante): aparece cuando
+            //   - saldo == 0 (medios de pago cubren el total)
+            //   - hay al menos 1 producto en el detalle
+            //   - hay cliente seleccionado
+            //   - el cliente tiene actividad económica escogida
             // ═══════════════════════════════════════════════════════════════
-            if (factura.saldo == 0 && (factura.detail?.isNotEmpty == true))
+            if (factura.saldo == 0
+                && (factura.detail?.isNotEmpty == true)
+                && factura.formPago!.clienteFactura.nombre.isNotEmpty
+                && (factura.formPago!.clienteFactura.actividadSeleccionada?.codigo ?? '').isNotEmpty)
               Positioned(
                 bottom: 20,
                 left: 20,
@@ -1004,12 +1009,11 @@ class _CheaOutScreenState extends State<CheaOutScreen> {
       'isContado': true,
     };
 
-    final Response response =
-        await ApiHelper.post("Api/Facturacion/FacturaSp", request);
+    final Response response = await ApiHelper.facturar(request);
 
-    // Decode once, reuse below
+    // ApiHelper.facturar garantiza Map<String, dynamic> en result.
     final decodedResult = response.isSuccess
-        ? jsonDecode(response.result) as Map<String, dynamic>
+        ? response.result as Map<String, dynamic>
         : null;
 
     // ═══════════════════════════════════════════════════════════════

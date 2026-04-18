@@ -251,10 +251,7 @@ class _AddSinpeScreenState extends State<AddSinpeScreen> {
       monto: double.tryParse(montoController.text.trim()) ?? 0,
     );
 
-    final Response response = await ApiHelper.post(
-      'api/Sinpes/',
-      sinpe.toJson(),
-    );
+    final Response response = await ApiHelper.createSinpe(sinpe);
 
     if (!mounted) return;
 

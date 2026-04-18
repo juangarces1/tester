@@ -22,14 +22,14 @@ class TransParcial {
     
   });
 
-  TransParcial.fromJson(Map<String, dynamic> json) {  
-    id = json['id'];
-    saldo = json['saldo'];   
-    aplicado = json['aplicado'];
-    cuenta = json['cuenta']; 
-    numeroDeposito = json['numeroDeposito']; 
-     cliente = json['cliente']; 
-     banco=json['banco']; 
+  TransParcial.fromJson(Map<String, dynamic> json) {
+    id = (json['id'] ?? 0) as int;
+    saldo = (json['saldo'] ?? 0) as int;
+    aplicado = (json['aplicado'] ?? 0) as int;
+    cuenta = (json['cuenta'] ?? '') as String;
+    numeroDeposito = (json['numeroDeposito'] ?? '') as String;
+    cliente = (json['cliente'] ?? '') as String;
+    banco = (json['banco'] ?? '') as String;
   }
 
   
