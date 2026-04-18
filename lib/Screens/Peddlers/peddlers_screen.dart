@@ -128,15 +128,95 @@ class _PeddlersScreenState extends State<PeddlersScreen> {
   }
 
   Future<bool> _confirmDelete(int index, Peddler peddler) async {
+    final cliente = peddler.cliente?.nombre ?? 'Sin cliente';
+    final placa = peddler.placa?.isNotEmpty == true ? peddler.placa! : 'Sin placa';
+    final monto = VariosHelpers.formattedToCurrencyValue(
+        peddler.total.toStringAsFixed(2));
+
+    final ok = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: kNewsurfaceHi,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded,
+                color: Color(0xFFF59E0B), size: 26),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Eliminar Peddler',
+                style: TextStyle(
+                    color: kNewtextPri,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Esta acción revierte la transacción asociada y libera el combustible para volver a facturarse.',
+              style: TextStyle(color: kNewtextSec, fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: kNewborder),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _dialogRow('Cliente', cliente),
+                  const SizedBox(height: 4),
+                  _dialogRow('Placa', placa),
+                  const SizedBox(height: 4),
+                  _dialogRow('Monto', monto),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            style: TextButton.styleFrom(foregroundColor: kNewtextMut),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD64045),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: const Icon(Icons.delete_outline_rounded, size: 20),
+            label: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return false;
+
     final deleted = await _goDelete(peddler);
     if (!deleted || !mounted) return false;
     setState(() {
       peddlers.removeAt(index);
       total = peddlers.fold<double>(0, (prev, e) => prev + e.total);
     });
-    
+
     Fluttertoast.showToast(
-      msg: 'Peddler eliminado con �xito',
+      msg: 'Peddler eliminado con éxito',
       toastLength: Toast.LENGTH_SHORT,
       gravity: ToastGravity.BOTTOM,
       backgroundColor: Colors.green,
@@ -144,6 +224,35 @@ class _PeddlersScreenState extends State<PeddlersScreen> {
       fontSize: 14,
     );
     return true;
+  }
+
+  Widget _dialogRow(String label, String value) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 72,
+          child: Text(
+            label,
+            style: const TextStyle(
+                color: kNewtextMut,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+                color: kNewtextPri,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _peddlerTile(
@@ -340,8 +449,7 @@ class _PeddlersScreenState extends State<PeddlersScreen> {
       showLoader = true;
     });
 
-    final response =
-        await ApiHelper.delete('/api/Peddler/', ped.id.toString());
+    final response = await ApiHelper.deletePeddler(ped.id ?? 0);
 
     setState(() {
       showLoader = false;

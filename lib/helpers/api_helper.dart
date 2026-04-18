@@ -476,6 +476,37 @@ class ApiHelper {
     return Response(isSuccess: true, result: peddlers);
   }
 
+  /// POST /api/v1/peddlers/crear — crea una transacción peddler (fuel delivery).
+  /// Reemplaza `Api/Peddler/PostPeddler` del API vieja.
+  static Future<Response> createPeddler(Peddler peddler) async {
+    try {
+      final resp =
+          await _dio.post('/api/v1/peddlers/crear', data: peddler.toJson());
+      if (resp.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: resp.data?.toString() ?? 'Error');
+      }
+      return Response(isSuccess: true, result: Peddler.fromJson(resp.data));
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
+  }
+
+  /// DELETE /api/v1/peddlers/{id} — elimina un peddler y revierte la transacción.
+  /// Reemplaza `/api/Peddler/{id}` del API vieja.
+  static Future<Response> deletePeddler(int id) async {
+    try {
+      final resp = await _dio.delete('/api/v1/peddlers/$id');
+      if (resp.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: resp.data?.toString() ?? 'Error');
+      }
+      return Response(isSuccess: true);
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
+  }
+
   static Future<Response> getCierresDatafonos(int cierre) async {
     final response =
         await _dio.get('/api/v1/cierre-datafonos/por-cierre/$cierre');

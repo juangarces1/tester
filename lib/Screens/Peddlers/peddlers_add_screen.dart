@@ -124,10 +124,64 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
     // Color para Peddlers (Amber)
     const peddlerColor = Color(0xFFF59E0B); // Amber
 
+    final canCrear = facturaC.formPago!.clienteFactura.nombre.isNotEmpty &&
+        (facturaC.detail?.isNotEmpty ?? false);
+
     return SafeArea(
       child: Scaffold(
         resizeToAvoidBottomInset: true,
         backgroundColor: const Color(0xFF12151A),
+        bottomNavigationBar: canCrear
+            ? SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Ink(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFF59E0B)
+                                .withValues(alpha: 0.4),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: InkWell(
+                        onTap: () => _goPeddler(facturaC),
+                        borderRadius: BorderRadius.circular(18),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.local_shipping_rounded,
+                                  color: Colors.black87, size: 24),
+                              SizedBox(width: 12),
+                              Text(
+                                'Crear Orden Peddler',
+                                style: TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            : null,
         body: Stack(
           children: [
             CustomScrollView(
@@ -328,71 +382,12 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
                         SizedBox(height: SizeConfig.screenHeight * 0.02),
                         signUpForm(facturaC),
                         SizedBox(height: SizeConfig.screenHeight * 0.02),
-
-                        // Espacio para el botón flotante
-                        const SizedBox(height: 100),
                       ],
                     ),
                   ),
                 ),
               ],
             ),
-
-            // ═══════════════════════════════════════════════════════════════
-            // BOTÓN CREAR ORDEN (flotante, aparece cuando hay cliente y productos)
-            // ═══════════════════════════════════════════════════════════════
-            if (facturaC.formPago!.clienteFactura.nombre.isNotEmpty &&
-                (facturaC.detail?.isNotEmpty ?? false))
-              Positioned(
-                bottom: 20,
-                left: 20,
-                right: 20,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFF59E0B).withValues(alpha: 0.4),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => _goPeddler(facturaC),
-                      borderRadius: BorderRadius.circular(18),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 18),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.local_shipping_rounded,
-                              color: Colors.black87,
-                              size: 24,
-                            ),
-                            SizedBox(width: 12),
-                            Text(
-                              'Crear Orden Peddler',
-                              style: TextStyle(
-                                color: Colors.black87,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
 
             // Loader
             if (_showLoader) const LoaderComponent(loadingText: 'Creando...'),
@@ -898,8 +893,7 @@ class _PeddlersAddScreenState extends State<PeddlersAddScreen> {
       orden: facturaC.peddler!.orden,
     );
 
-    final response =
-        await ApiHelper.post('Api/Peddler/PostPeddler', pd.toJson());
+    final response = await ApiHelper.createPeddler(pd);
 
     setState(() => _showLoader = false);
 
