@@ -10,7 +10,9 @@ import 'package:tester/Screens/NewHome/Components/admin_hub_screen.dart';
 import 'package:tester/Screens/NewHome/Components/facturacion_page_v2.dart';
 // import 'package:tester/Screens/NewHome/PagesWizard/first_page.dart';
 import 'package:tester/Screens/NewHome/PagesWizard/first_page_v2.dart';
+import 'package:tester/Screens/logIn/login_screen.dart';
 import 'package:tester/fuelred/fuelred_page.dart';
+import 'package:tester/helpers/reset_helper.dart';
 
 import '../../constans.dart';
 
@@ -397,16 +399,27 @@ class _NewHomeScreenState extends State<NewHomeScreen> {
 
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (dialogCtx) {
         return Dialog(
           backgroundColor: Colors.transparent,
           child: EmpleadoInfoCard(
             empleado: cajero!,
-            onTap: () => print('Tapped!'),
             showAttendantId: true,
+            onLogout: () {
+              Navigator.of(dialogCtx).pop();
+              _logout();
+            },
           ),
         );
       },
+    );
+  }
+
+  void _logout() {
+    ResetHelper.resetAll(context);
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (_) => false,
     );
   }
 }

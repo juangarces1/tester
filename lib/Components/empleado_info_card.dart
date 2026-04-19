@@ -1,27 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:tester/Models/FuelRed/empleado.dart';
+import 'package:tester/constans.dart';
 
-/// Material You styled card to display employee information
-/// Elegant, professional design with smooth animations and modern aesthetics
+/// Card del empleado (modal de sesión) en dark theme — coherente con
+/// form_pago_v2, resumen_cierre y otras pantallas redesign.
 class EmpleadoInfoCard extends StatelessWidget {
   final Empleado empleado;
   final VoidCallback? onTap;
   final bool showAttendantId;
+
+  /// Callback para cerrar sesión. Si se provee, se muestra un botón
+  /// al pie de la card.
+  final VoidCallback? onLogout;
 
   const EmpleadoInfoCard({
     super.key,
     required this.empleado,
     this.onTap,
     this.showAttendantId = false,
+    this.onLogout,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+    return Material(
+      color: kNewsurfaceHi,
+      borderRadius: BorderRadius.circular(20),
+      elevation: 8,
+      shadowColor: Colors.black.withValues(alpha: 0.5),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
@@ -29,23 +35,16 @@ class EmpleadoInfoCard extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).colorScheme.surfaceContainerHighest,
-                Theme.of(context).colorScheme.surfaceContainerHigh,
-              ],
-            ),
+            border: Border.all(color: kNewborder, width: 1),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header with avatar and name
+              // Header con avatar + nombre + badge de tipo
               Row(
                 children: [
-                  _buildAvatar(context),
+                  _Avatar(initials: _getInitials()),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
@@ -53,22 +52,16 @@ class EmpleadoInfoCard extends StatelessWidget {
                       children: [
                         Text(
                           empleado.nombreCompleto,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
+                          style: const TextStyle(
+                            color: kNewtextPri,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 4),
-                        _buildBadge(
-                          context,
-                          empleado.tipoempleado,
-                          Icons.badge_outlined,
-                        ),
+                        const SizedBox(height: 6),
+                        _Badge(text: empleado.tipoempleado),
                       ],
                     ),
                   ),
@@ -77,18 +70,13 @@ class EmpleadoInfoCard extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // Info rows
-              _buildInfoRow(
-                context,
+              _InfoRow(
                 icon: Icons.credit_card_rounded,
                 label: 'Cédula',
                 value: empleado.cedulaEmpleado.toString(),
               ),
-
-              const SizedBox(height: 12),
-
-              _buildInfoRow(
-                context,
+              const SizedBox(height: 10),
+              _InfoRow(
                 icon: Icons.schedule_rounded,
                 label: 'Tipo',
                 value: empleado.tipoempleado.isEmpty
@@ -97,12 +85,61 @@ class EmpleadoInfoCard extends StatelessWidget {
               ),
 
               if (showAttendantId && empleado.attendantId != null) ...[
-                const SizedBox(height: 12),
-                _buildInfoRow(
-                  context,
+                const SizedBox(height: 10),
+                _InfoRow(
                   icon: Icons.qr_code_rounded,
                   label: 'Attendant ID',
                   value: empleado.attendantId!,
+                ),
+              ],
+
+              if (onLogout != null) ...[
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Ink(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFD64045), Color(0xFFB91C1C)],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFD64045)
+                                .withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: InkWell(
+                        onTap: onLogout,
+                        borderRadius: BorderRadius.circular(12),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.logout_rounded,
+                                  color: Colors.white, size: 20),
+                              SizedBox(width: 10),
+                              Text(
+                                'Cerrar sesión',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ],
@@ -112,102 +149,116 @@ class EmpleadoInfoCard extends StatelessWidget {
     );
   }
 
-  Widget _buildAvatar(BuildContext context) {
-    final initials = _getInitials();
+  String _getInitials() {
+    final first = empleado.nombre.trim();
+    final last = empleado.apellido1.trim();
+    var initials = '';
+    if (first.isNotEmpty) initials += first[0].toUpperCase();
+    if (last.isNotEmpty) initials += last[0].toUpperCase();
+    return initials.isEmpty ? '?' : initials;
+  }
+}
+
+class _Avatar extends StatelessWidget {
+  final String initials;
+  const _Avatar({required this.initials});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       width: 64,
       height: 64,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0EA5E9), Color(0xFF2563EB)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Theme.of(context).colorScheme.primaryContainer,
-            Theme.of(context).colorScheme.primary,
-          ],
         ),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-            blurRadius: 8,
+            color: const Color(0xFF0EA5E9).withValues(alpha: 0.35),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Center(
-        child: Text(
-          initials,
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.onPrimaryContainer,
-          ),
+      alignment: Alignment.center,
+      child: Text(
+        initials,
+        style: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
         ),
       ),
     );
   }
+}
 
-  Widget _buildBadge(BuildContext context, String text, IconData icon) {
+class _Badge extends StatelessWidget {
+  final String text;
+  const _Badge({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF0EA5E9).withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+            color: const Color(0xFF0EA5E9).withValues(alpha: 0.35)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 16,
-            color: Theme.of(context).colorScheme.onSecondaryContainer,
-          ),
+          const Icon(Icons.badge_outlined,
+              size: 14, color: Color(0xFF0EA5E9)),
           const SizedBox(width: 6),
           Text(
-            text,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSecondaryContainer,
+            text.isEmpty ? 'N/A' : text,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0EA5E9),
+              letterSpacing: 0.3,
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildInfoRow(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withValues(alpha: 0.5),
+        color: const Color(0xFF0F172A),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: kNewborder),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
+              color: const Color(0xFF0EA5E9).withValues(alpha: 0.18),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
-            ),
+            child: Icon(icon, size: 20, color: const Color(0xFF0EA5E9)),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -216,19 +267,20 @@ class EmpleadoInfoCard extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  style: const TextStyle(
+                    color: kNewtextMut,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurface,
+                  style: const TextStyle(
+                    color: kNewtextPri,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -240,24 +292,9 @@ class EmpleadoInfoCard extends StatelessWidget {
       ),
     );
   }
-
-  String _getInitials() {
-    final firstName = empleado.nombre.trim();
-    final lastName = empleado.apellido1.trim();
-
-    String initials = '';
-    if (firstName.isNotEmpty) {
-      initials += firstName[0].toUpperCase();
-    }
-    if (lastName.isNotEmpty) {
-      initials += lastName[0].toUpperCase();
-    }
-
-    return initials.isEmpty ? '?' : initials;
-  }
 }
 
-/// Compact version for lists
+/// Compact version para listas (se mantiene en dark theme).
 class EmpleadoListTile extends StatelessWidget {
   final Empleado empleado;
   final VoidCallback? onTap;
@@ -276,21 +313,22 @@ class EmpleadoListTile extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
-      tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+      tileColor: kNewsurfaceHi,
       leading: CircleAvatar(
         radius: 24,
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        backgroundColor: const Color(0xFF0EA5E9).withValues(alpha: 0.25),
         child: Text(
           _getInitials(),
-          style: TextStyle(
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.onPrimaryContainer,
+            color: Colors.white,
           ),
         ),
       ),
       title: Text(
         empleado.nombreCompleto,
         style: const TextStyle(
+          color: kNewtextPri,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -300,48 +338,37 @@ class EmpleadoListTile extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              Icon(
-                Icons.badge_outlined,
-                size: 14,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+              const Icon(Icons.badge_outlined,
+                  size: 14, color: kNewtextMut),
               const SizedBox(width: 4),
-              Text(empleado.tipoempleado),
+              Text(empleado.tipoempleado,
+                  style: const TextStyle(color: kNewtextSec)),
             ],
           ),
           const SizedBox(height: 2),
           Row(
             children: [
-              Icon(
-                Icons.schedule_rounded,
-                size: 14,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+              const Icon(Icons.schedule_rounded,
+                  size: 14, color: kNewtextMut),
               const SizedBox(width: 4),
-              Text(empleado.turno.isEmpty ? 'Sin turno' : empleado.turno),
+              Text(
+                empleado.turno.isEmpty ? 'Sin turno' : empleado.turno,
+                style: const TextStyle(color: kNewtextSec),
+              ),
             ],
           ),
         ],
       ),
-      trailing: Icon(
-        Icons.chevron_right,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
+      trailing: const Icon(Icons.chevron_right, color: kNewtextMut),
     );
   }
 
   String _getInitials() {
-    final firstName = empleado.nombre.trim();
-    final lastName = empleado.apellido1.trim();
-
-    String initials = '';
-    if (firstName.isNotEmpty) {
-      initials += firstName[0].toUpperCase();
-    }
-    if (lastName.isNotEmpty) {
-      initials += lastName[0].toUpperCase();
-    }
-
+    final first = empleado.nombre.trim();
+    final last = empleado.apellido1.trim();
+    var initials = '';
+    if (first.isNotEmpty) initials += first[0].toUpperCase();
+    if (last.isNotEmpty) initials += last[0].toUpperCase();
     return initials.isEmpty ? '?' : initials;
   }
 }

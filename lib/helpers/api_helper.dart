@@ -54,10 +54,11 @@ class ApiHelper {
     }
   }
 
-  /// Firma conservada: el Flutter pasa la zona como String (hereda del viejo).
+  /// GET /api/v1/caja/cierre/{id} — devuelve CierreCajaGeneral completo
+  /// (cierre + facturas + transacciones + depositos + cashbacks + puntos + …).
+  /// Firma conservada: el Flutter pasa el idcierre como String.
   static Future<Response> getCierreActivo(String cierre) async {
-    final response =
-        await _dio.get('/api/v1/caja/cierre-activo/$cierre');
+    final response = await _dio.get('/api/v1/caja/cierre/$cierre');
 
     if (response.statusCode == 200) {
       return Response(
@@ -88,13 +89,21 @@ class ApiHelper {
     }
   }
 
-  /// PENDIENTE DE MIGRAR — el viejo hace FacturacionController.CrearCierre
-  /// (SetCierreFinal): genera ticket de cuadre vía sp_Facturar_Venta,
-  /// respalda inventario final, marca cierre REVISADO. Pesado — portar aparte.
+  /// POST /api/v1/caja/cierre/{id}/cerrar — cerrar turno definitivo.
+  /// Emite ticket de cuadre con el combustible sobrante, respalda el
+  /// inventario final y marca el cierre como REVISADO.
+  /// Reemplaza `api/Facturacion/CrearCierre/{id}` del API vieja.
   static Future<Response> setCierre(String cierre) async {
-    return Response(
-        isSuccess: false,
-        message: 'setCierre pendiente de migrar al API nuevo');
+    try {
+      final resp = await _dio.post('/api/v1/caja/cierre/$cierre/cerrar');
+      if (resp.statusCode! >= 400) {
+        return Response(
+            isSuccess: false, message: resp.data?.toString() ?? 'Error');
+      }
+      return Response(isSuccess: true, result: resp.data);
+    } catch (e) {
+      return Response(isSuccess: false, message: e.toString());
+    }
   }
 
   /// Deprecado — el Flutter ya no llama a este (sólo getLogInNuevo).
@@ -163,8 +172,10 @@ class ApiHelper {
             ));
       }
 
-      // Hay cierre activo → shape completo.
-      final cierreResp = await _dio.get('/api/v1/caja/cierre-activo/$zona');
+      // Hay cierre activo → shape completo, pero por ID específico.
+      // No usar /cierre-activo/{zona} porque resuelve el ABIERTO de la zona
+      // y, si conviven ABIERTO + STANBY, devuelve el cierre equivocado.
+      final cierreResp = await _dio.get('/api/v1/caja/cierre/$idCierre/activo');
       final cierreActivo = cierreResp.data is Map<String, dynamic>
           ? CierreActivo.fromJson(cierreResp.data)
           : (CierreActivo.fromJson(<String, dynamic>{})..cajero = empleado);

@@ -12,14 +12,10 @@ import 'package:tester/Screens/Sinpes/sinpes_screen.dart';
 import 'package:tester/Screens/Transacciones/transacciones_screen.dart';
 import 'package:tester/Screens/Transfers/transferencias_screen.dart';
 import 'package:tester/Screens/Viaticos/viaticos_screen.dart';
-import 'package:tester/Screens/logIn/login_screen.dart';
 import 'package:tester/Screens/NewHome/Components/show_process.dart'; // Import ShowProcessMenu
 
 // Provider de transacciones (ajusta el path si lo tienes distinto)
 import 'package:tester/Providers/tranascciones_provider.dart';
-import 'package:tester/Screens/logIn/nfc_test.dart';
-
-import 'package:tester/helpers/reset_helper.dart'; // <- ojo a la ortografía del archivo en tu proyecto
 
 class AdminCenterPage extends StatefulWidget {
   const AdminCenterPage({super.key});
@@ -131,12 +127,12 @@ class _AdminCenterPageState extends State<AdminCenterPage> {
     );
   }
 
-  // Construye y filtra (sin caché global)
+  // Construye y filtra respetando el orden del array en _buildActions (el
+  // orden está pensado: más usados primero, Resumen de Cierre al final).
   List<_AdminAction> _filteredActions(BuildContext context) {
-    final actions = _buildActions(context);
-    final base = actions.where((a) => a.filter == _filter).toList();
-    base.sort((a, b) => a.title.compareTo(b.title));
-    return base;
+    return _buildActions(context)
+        .where((a) => a.filter == _filter)
+        .toList();
   }
 
   String _filterLabel(_AdminFilter f) {
@@ -147,8 +143,6 @@ class _AdminCenterPageState extends State<AdminCenterPage> {
         return 'Operaciones';
       case _AdminFilter.billing:
         return 'Facturación';
-      case _AdminFilter.session:
-        return 'Sesión';
     }
   }
 }
@@ -243,7 +237,7 @@ class _IconWithBadge extends StatelessWidget {
 
 typedef CounterFn = int Function(BuildContext);
 
-enum _AdminFilter { ops, cash, billing, session }
+enum _AdminFilter { ops, cash, billing }
 
 class _AdminAction {
   const _AdminAction({
@@ -285,15 +279,6 @@ List<_AdminAction> _buildActions(BuildContext context) {
     } else {
       Navigator.of(context).push(route);
     }
-  }
-
-  Future<void> logout(BuildContext context) async {
-    ResetHelper.resetAll(context); // ✅ limpia todo
-
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (_) => false,
-    );
   }
 
   // Contadores reales (ejemplo: Transacciones pendientes)
@@ -413,23 +398,5 @@ List<_AdminAction> _buildActions(BuildContext context) {
       onTap: () => open(const FacturasScreen(tipo: 'Credito')),
     ),
 
-    // Sesión
-    _AdminAction(
-      title: 'NFC',
-      subtitle: 'Config Nfc Tags',
-      icon: Icons.wifi_tethering_outlined,
-      color: const Color(0xFFEF4444),
-      filter: _AdminFilter.session,
-      onTap: () => open(const NfcTestPage()),
-    ),
-
-    _AdminAction(
-      title: 'Cerrar sesión',
-      subtitle: 'Volver a iniciar',
-      icon: Icons.logout_rounded,
-      color: const Color(0xFFEF4444),
-      filter: _AdminFilter.session,
-      onTap: () => logout(context),
-    ),
   ];
 }
